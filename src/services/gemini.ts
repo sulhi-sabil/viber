@@ -368,7 +368,7 @@ export class GeminiService {
       };
       errorMessage = errorData.error?.message || errorMessage;
       errorDetails = errorData.error || {};
-    } catch (e) {
+    } catch {
       errorMessage = await response.text();
     }
 
