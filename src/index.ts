@@ -1,5 +1,6 @@
 export * from "./types/errors";
 export * from "./types/database";
+export * from "./types/service-config";
 export * from "./utils/errors";
 export * from "./utils/logger";
 export * from "./utils/retry";

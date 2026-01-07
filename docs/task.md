@@ -599,22 +599,23 @@ Created `src/utils/resilience.ts` with a reusable `executeWithResilience` functi
 - [I14] Optimize Logger Sanitization Performance ✅
 - [I15] Optimize Retry Logic Performance ✅
 - [R01] Extract Duplicate executeWithResilience Logic ✅
+- [R02] Consolidate Configuration Interfaces ✅
 
 ---
 
 ## Task Statistics
 
-- Total Tasks: 17
+- Total Tasks: 21
 - Backlog: 8
 - In Progress: 0
-- Complete: 9
+- Complete: 13
 - Blocked: 0
 
 ### Priority Breakdown
 
 - P0 (Critical): 0 remaining
 - P1 (High): 1 remaining (I03)
-- P2 (Medium): 5 remaining
+- P2 (Medium): 4 remaining
 - P3 (Low): 1 remaining
 
 ### Performance Optimizations Completed
@@ -1080,17 +1081,17 @@ Created validators in `src/migrations/validators.ts`:
 
 ### Task Statistics
 
-- Total Tasks: 18
+- Total Tasks: 21
 - Backlog: 8
 - In Progress: 0
-- Complete: 10
+- Complete: 13
 - Blocked: 0
 
 ### Priority Breakdown
 
 - P0 (Critical): 0 remaining
 - P1 (High): 1 remaining (I03)
-- P2 (Medium): 5 remaining
+- P2 (Medium): 4 remaining
 - P3 (Low): 1 remaining
 
 ### Data Architecture Tasks Completed
@@ -1355,17 +1356,136 @@ Added comprehensive documentation sections to README.md:
 
 ---
 
+## [R02] Consolidate Configuration Interfaces
+
+**Status**: ✅ Complete
+**Priority**: P2
+**Agent**: Code Reviewer & Refactoring Specialist
+
+### Description
+
+Consolidate duplicate configuration interfaces across services to improve type safety and maintainability.
+
+### Issue
+
+Three separate configuration interfaces contained duplicate resilience-related fields:
+
+- `SupabaseConfig` (src/services/supabase.ts): timeout, maxRetries, circuitBreakerThreshold, circuitBreakerResetTimeout
+- `GeminiConfig` (src/services/gemini.ts): timeout, maxRetries, circuitBreakerThreshold, circuitBreakerResetTimeout, rateLimitRequests, rateLimitWindow
+- `ServiceConfig` (src/types/errors.ts): timeout, maxRetries, circuitBreakerThreshold (unused)
+
+This created:
+
+- Type safety issues (no shared typing for common config)
+- DRY violations (defaults defined in multiple places)
+- Inconsistency risk (different defaults across services)
+- Poor maintainability (changes require multiple updates)
+
+### Solution
+
+Created unified configuration system in `src/types/service-config.ts`:
+
+- `ResilienceConfig` interface for shared resilience fields
+- `RateLimitConfig` interface for rate limiting fields
+- `DEFAULT_RESILIENCE_CONFIG` constant for default values
+- `DEFAULT_RATE_LIMIT_CONFIG` constant for default values
+- Updated `SupabaseConfig` to extend `ResilienceConfig`
+- Updated `GeminiConfig` to extend `ResilienceConfig` and `RateLimitConfig`
+- Removed unused `ServiceConfig` interface from errors.ts
+- Exported new interfaces from src/index.ts
+
+### Acceptance Criteria
+
+- [x] Created `src/types/service-config.ts` with shared interfaces
+- [x] Updated `SupabaseConfig` to extend `ResilienceConfig`
+- [x] Updated `GeminiConfig` to extend `ResilienceConfig` and `RateLimitConfig`
+- [x] Removed unused `ServiceConfig` interface
+- [x] Exported new interfaces from public API
+- [x] All existing tests pass (310/310)
+- [x] Linting passes without errors
+- [x] TypeScript compilation succeeds
+- [x] No behavior changes (backward compatible)
+
+### Technical Notes
+
+**Benefits**:
+
+1. **Type Safety**: Shared typing ensures consistency across services
+2. **DRY Principle**: Configuration fields defined once, reused everywhere
+3. **Maintainability**: Single source of truth for defaults
+4. **Flexibility**: Services can override defaults with service-specific values
+5. **Extensibility**: New services easily inherit common configuration
+
+**Implementation Details**:
+
+- Created `src/types/service-config.ts` with ResilienceConfig and RateLimitConfig interfaces
+- SupabaseService maintains its own timeout default (10000ms) via DEFAULT_SUPABASE_CONFIG
+- GeminiService maintains its own timeout default (30000ms) via DEFAULT_GEMINI_CONFIG
+- Both services benefit from shared ResilienceConfig typing
+- Service-specific defaults allow per-service tuning while maintaining type safety
+- No breaking changes - backward compatible with existing configuration usage
+
+**Files Created**:
+
+- `src/types/service-config.ts`: Shared configuration interfaces and constants
+
+**Files Modified**:
+
+- `src/services/supabase.ts`: Updated SupabaseConfig to extend ResilienceConfig, renamed DEFAULT_CONFIG to DEFAULT_SUPABASE_CONFIG
+- `src/services/gemini.ts`: Updated GeminiConfig to extend ResilienceConfig and RateLimitConfig, renamed DEFAULT_CONFIG to DEFAULT_GEMINI_CONFIG
+- `src/types/errors.ts`: Removed unused ServiceConfig interface
+- `src/index.ts`: Added export for service-config
+
+**Test Results**:
+
+- All 310 tests pass
+- Linting passes without errors
+- TypeScript compilation succeeds
+- No behavior regressions
+
+### Usage Example
+
+```typescript
+import { ResilienceConfig, RateLimitConfig } from "viber-integration-layer";
+
+// Service configs automatically inherit shared fields
+interface MyServiceConfig extends ResilienceConfig, RateLimitConfig {
+  apiKey: string;
+  customField: string;
+}
+
+// Type-safe configuration with shared defaults
+const config: MyServiceConfig = {
+  apiKey: "xxx",
+  customField: "yyy",
+  // ResilienceConfig fields available with defaults
+  // timeout: 30000 (from DEFAULT_RESILIENCE_CONFIG)
+  // maxRetries: 3 (from DEFAULT_RESILIENCE_CONFIG)
+  // circuitBreakerThreshold: 5 (from DEFAULT_RESILIENCE_CONFIG)
+  // circuitBreakerResetTimeout: 60000 (from DEFAULT_RESILIENCE_CONFIG)
+  // rateLimitRequests: 15 (from DEFAULT_RATE_LIMIT_CONFIG)
+  // rateLimitWindow: 60000 (from DEFAULT_RATE_LIMIT_CONFIG)
+};
+```
+
+---
+
 ### Task Statistics
 
-- Total Tasks: 20
+- Total Tasks: 21
 - Backlog: 8
 - In Progress: 0
-- Complete: 12
+- Complete: 13
 - Blocked: 0
 
 ### Priority Breakdown
 
 - P0 (Critical): 0 remaining
 - P1 (High): 1 remaining (I03)
-- P2 (Medium): 5 remaining
+- P2 (Medium): 4 remaining
 - P3 (Low): 1 remaining
+
+### Refactoring Completed
+
+- [R01] Extract Duplicate executeWithResilience Logic ✅
+- [R02] Consolidate Configuration Interfaces ✅

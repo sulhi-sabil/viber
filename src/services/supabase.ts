@@ -8,15 +8,12 @@ import { executeWithResilience } from "../utils/resilience";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+import { ResilienceConfig } from "../types/service-config";
 
-export interface SupabaseConfig {
+export interface SupabaseConfig extends ResilienceConfig {
   url: string;
   anonKey: string;
   serviceRoleKey?: string;
-  timeout?: number;
-  maxRetries?: number;
-  circuitBreakerThreshold?: number;
-  circuitBreakerResetTimeout?: number;
 }
 
 export interface DatabaseRow {
@@ -32,7 +29,7 @@ export interface QueryOptions {
   useRetry?: boolean;
 }
 
-const DEFAULT_CONFIG: Required<
+const DEFAULT_SUPABASE_CONFIG: Required<
   Pick<
     SupabaseConfig,
     | "timeout"
@@ -54,7 +51,7 @@ export class SupabaseService {
   private config: SupabaseConfig;
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_SUPABASE_CONFIG, ...config };
 
     Validator.url(config.url, "Supabase URL");
     Validator.string(config.anonKey, "anonKey");

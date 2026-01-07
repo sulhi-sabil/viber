@@ -4,15 +4,10 @@ import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { RateLimiter } from "../utils/rate-limiter";
+import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
 
-export interface GeminiConfig {
+export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
-  timeout?: number;
-  maxRetries?: number;
-  circuitBreakerThreshold?: number;
-  circuitBreakerResetTimeout?: number;
-  rateLimitRequests?: number;
-  rateLimitWindow?: number;
 }
 
 export interface GeminiMessage {
@@ -53,7 +48,7 @@ export interface StreamingChunk {
   };
 }
 
-const DEFAULT_CONFIG: Required<
+const DEFAULT_GEMINI_CONFIG: Required<
   Pick<
     GeminiConfig,
     | "timeout"
@@ -99,19 +94,20 @@ export class GeminiService {
 
     this.apiKey = config.apiKey;
     this.config = {
-      timeout: config.timeout ?? DEFAULT_CONFIG.timeout,
-      maxRetries: config.maxRetries ?? DEFAULT_CONFIG.maxRetries,
+      timeout: config.timeout ?? DEFAULT_GEMINI_CONFIG.timeout,
+      maxRetries: config.maxRetries ?? DEFAULT_GEMINI_CONFIG.maxRetries,
       circuitBreakerThreshold:
         config.circuitBreakerThreshold ??
-        DEFAULT_CONFIG.circuitBreakerThreshold,
+        DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold,
       circuitBreakerResetTimeout:
         config.circuitBreakerResetTimeout ??
-        DEFAULT_CONFIG.circuitBreakerResetTimeout,
+        DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout,
     };
 
     this.rateLimiter = new RateLimiter({
-      maxRequests: config.rateLimitRequests ?? DEFAULT_CONFIG.rateLimitRequests,
-      windowMs: config.rateLimitWindow ?? DEFAULT_CONFIG.rateLimitWindow,
+      maxRequests:
+        config.rateLimitRequests ?? DEFAULT_GEMINI_CONFIG.rateLimitRequests,
+      windowMs: config.rateLimitWindow ?? DEFAULT_GEMINI_CONFIG.rateLimitWindow,
       serviceName: "Gemini",
     });
 
