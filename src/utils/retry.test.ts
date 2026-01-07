@@ -137,6 +137,16 @@ describe("retry", () => {
     expect(operation).toHaveBeenCalledTimes(2);
     expect(result).toBe("success");
   });
+
+  it("should throw error when retry operation fails completely", async () => {
+    const error = new Error("Service unavailable") as ErrorWithStatusCode;
+    error.statusCode = 503;
+    const operation = jest.fn().mockRejectedValue(error);
+
+    await expect(retry(operation, { maxAttempts: 1 })).rejects.toThrow(
+      "Service unavailable",
+    );
+  });
 });
 
 describe("sleep", () => {
@@ -158,7 +168,35 @@ describe("withTimeout", () => {
     expect(result).toBe("result");
   });
 
-  it.todo("should reject if promise exceeds timeout");
+  it("should reject if promise exceeds timeout", async () => {
+    jest.useFakeTimers();
 
-  it.todo("should include operation name in timeout error");
+    const slowPromise = new Promise((resolve) => {
+      setTimeout(() => resolve("result"), 2000);
+    });
+
+    const promise = withTimeout(slowPromise, 1000, "testOperation");
+
+    jest.advanceTimersByTime(1000);
+
+    await expect(promise).rejects.toThrow(
+      "testOperation timed out after 1000ms",
+    );
+  });
+
+  it("should include operation name in timeout error", async () => {
+    jest.useFakeTimers();
+
+    const slowPromise = new Promise((resolve) => {
+      setTimeout(() => resolve("result"), 2000);
+    });
+
+    const promise = withTimeout(slowPromise, 500, "databaseQuery");
+
+    jest.advanceTimersByTime(500);
+
+    await expect(promise).rejects.toThrow(
+      "databaseQuery timed out after 500ms",
+    );
+  });
 });

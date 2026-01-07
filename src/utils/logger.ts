@@ -1,3 +1,99 @@
+const SENSITIVE_PATTERNS = [
+  /password/i,
+  /secret/i,
+  /api[_-]?key/i,
+  /private[_-]?key/i,
+  /access[_-]?token/i,
+  /auth[_-]?token/i,
+  /bearer/i,
+  /session/i,
+  /token/i,
+  /credit[_-]?card/i,
+  /ssn/i,
+  /authorization/i,
+];
+
+const MAX_DEPTH = 5;
+const MAX_KEYS = 100;
+
+let patternCache = new Map<string, boolean>();
+
+interface KeyCounter {
+  count: number;
+}
+
+function isSensitiveKey(key: string): boolean {
+  if (patternCache.has(key)) {
+    return patternCache.get(key)!;
+  }
+
+  const result = SENSITIVE_PATTERNS.some((pattern) => pattern.test(key));
+  patternCache.set(key, result);
+
+  if (patternCache.size > 1000) {
+    const entries = Array.from(patternCache.entries());
+    patternCache = new Map(entries.slice(500));
+  }
+
+  return result;
+}
+
+function sanitizeData(
+  data: unknown,
+  key?: string,
+  depth: number = 0,
+  keyCount?: KeyCounter,
+): unknown {
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  if (depth > MAX_DEPTH) {
+    return "[MAX_DEPTH_REACHED]";
+  }
+
+  if (keyCount && keyCount.count >= MAX_KEYS) {
+    return "[MAX_KEYS_REACHED]";
+  }
+
+  if (key && isSensitiveKey(key)) {
+    return "[REDACTED]";
+  }
+
+  if (Array.isArray(data)) {
+    if (data.length === 0) return data;
+
+    return data.slice(0, 10).map((item) => {
+      if (keyCount) keyCount.count++;
+      return sanitizeData(item, undefined, depth + 1, keyCount);
+    });
+  }
+
+  if (typeof data === "object") {
+    const sanitized: Record<string, unknown> = {};
+    let localCount = 0;
+
+    for (const [nestedKey, value] of Object.entries(
+      data as Record<string, unknown>,
+    )) {
+      if (localCount >= 50) break;
+
+      if (keyCount) keyCount.count++;
+      sanitized[nestedKey] = sanitizeData(
+        value,
+        nestedKey,
+        depth + 1,
+        keyCount,
+      );
+      localCount++;
+    }
+
+    return sanitized;
+  }
+
+  return data;
+}
+
 export interface Logger {
   error(message: string, meta?: Record<string, unknown>): void;
   warn(message: string, meta?: Record<string, unknown>): void;
@@ -19,25 +115,29 @@ export class ConsoleLogger implements Logger {
 
   debug(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("debug")) {
-      console.debug(`[DEBUG] ${message}`, meta || "");
+      const sanitizedMeta = meta ? sanitizeData(meta) : "";
+      console.debug(`[DEBUG] ${message}`, sanitizedMeta);
     }
   }
 
   info(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("info")) {
-      console.info(`[INFO] ${message}`, meta || "");
+      const sanitizedMeta = meta ? sanitizeData(meta) : "";
+      console.info(`[INFO] ${message}`, sanitizedMeta);
     }
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("warn")) {
-      console.warn(`[WARN] ${message}`, meta || "");
+      const sanitizedMeta = meta ? sanitizeData(meta) : "";
+      console.warn(`[WARN] ${message}`, sanitizedMeta);
     }
   }
 
   error(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("error")) {
-      console.error(`[ERROR] ${message}`, meta || "");
+      const sanitizedMeta = meta ? sanitizeData(meta) : "";
+      console.error(`[ERROR] ${message}`, sanitizedMeta);
     }
   }
 }

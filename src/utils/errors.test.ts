@@ -1,6 +1,7 @@
 import {
   ValidationError,
   UnauthorizedError,
+  ForbiddenError,
   NotFoundError,
   RateLimitError,
   ServiceUnavailableError,
@@ -206,5 +207,199 @@ describe("wrapError", () => {
 
     expect(wrapped).toBeInstanceOf(InternalError);
     expect(wrapped.message).toBe("Something went wrong");
+  });
+});
+
+describe("Edge Cases", () => {
+  it("should handle empty error message", () => {
+    const error = new ValidationError("");
+
+    expect(error.message).toBe("");
+    expect(error.code).toBe(ErrorCode.VALIDATION_ERROR);
+  });
+
+  it("should handle very long error message", () => {
+    const longMessage = "a".repeat(10000);
+    const error = new ValidationError(longMessage);
+
+    expect(error.message).toBe(longMessage);
+  });
+
+  it("should handle error with circular reference in details", () => {
+    const details: Record<string, unknown> = { key: "value" };
+    details.circular = details;
+
+    const error = new ValidationError("Invalid data", details);
+
+    expect(error.details).toBeDefined();
+    expect(error.details?.key).toBe("value");
+  });
+
+  it("should handle wrapping non-Error objects", () => {
+    const error = "string error";
+    const wrapped = wrapError(error);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("string error");
+  });
+
+  it("should handle wrapping null", () => {
+    const wrapped = wrapError(null);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("null");
+  });
+
+  it("should handle wrapping undefined", () => {
+    const wrapped = wrapError(undefined);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+  });
+
+  it("should handle wrapping number", () => {
+    const wrapped = wrapError(500);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("500");
+  });
+
+  it("should handle wrapping object without message", () => {
+    const error = { code: "ERROR_CODE" };
+    const wrapped = wrapError(error);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.details?.originalError).toBeDefined();
+  });
+
+  it("should generate unique requestId for each error", () => {
+    const error1 = new ValidationError("Error 1");
+    const error2 = new ValidationError("Error 2");
+
+    expect(error1.requestId).not.toBe(error2.requestId);
+  });
+
+  it("should handle rate limit error with 0 retryAfter", () => {
+    const error = new RateLimitError("Rate limited", 0);
+
+    expect(error.details).toEqual({ retryAfter: 0 });
+  });
+
+  it("should handle rate limit error with very large retryAfter", () => {
+    const error = new RateLimitError("Rate limited", 999999);
+
+    expect(error.details).toEqual({ retryAfter: 999999 });
+  });
+
+  it("should handle timeout error with 0 timeout", () => {
+    const error = new TimeoutError("operation", 0);
+
+    expect(error.message).toBe("operation timed out after 0ms");
+  });
+
+  it("should handle timeout with very large timeout", () => {
+    const error = new TimeoutError("operation", Number.MAX_SAFE_INTEGER);
+
+    expect(error.message).toContain("operation timed out");
+  });
+
+  it("should handle createApiError with null context", () => {
+    const appError = new ValidationError("Invalid data");
+    const apiError = createApiError(appError, undefined);
+
+    expect(apiError.error.details).toEqual(appError.details);
+  });
+
+  it("should handle createApiError with empty context", () => {
+    const appError = new ValidationError("Invalid data");
+    const apiError = createApiError(appError, {});
+
+    expect(apiError.error.details).toEqual({});
+  });
+
+  it("should handle mapHttpStatusCodeToErrorCode with 0", () => {
+    const code = mapHttpStatusCodeToErrorCode(0);
+
+    expect(code).toBe(ErrorCode.INTERNAL_ERROR);
+  });
+
+  it("should handle mapHttpStatusCodeToErrorCode with very large code", () => {
+    const code = mapHttpStatusCodeToErrorCode(9999);
+
+    expect(code).toBe(ErrorCode.INTERNAL_ERROR);
+  });
+
+  it("should handle mapHttpStatusCodeToErrorCode with negative code", () => {
+    const code = mapHttpStatusCodeToErrorCode(-1);
+
+    expect(code).toBe(ErrorCode.INTERNAL_ERROR);
+  });
+
+  it("should preserve stack trace in wrapped errors", () => {
+    const originalError = new Error("Original");
+    const wrapped = wrapError(originalError);
+
+    expect(wrapped.details?.stack).toBe(originalError.stack);
+  });
+
+  it("should handle error without stack trace", () => {
+    const error: Error = { message: "Test error", name: "Error" } as Error;
+    const wrapped = wrapError(error);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.details?.stack).toBeDefined();
+  });
+
+  it("should handle wrapping error with custom error code", () => {
+    const error = new Error("Custom error");
+    const wrapped = wrapError(
+      error,
+      "Custom message",
+      ErrorCode.VALIDATION_ERROR,
+    );
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("Custom message");
+  });
+
+  it("should handle isOperationalError with inherited errors", () => {
+    const error = Object.create(new ValidationError("Base error"));
+
+    expect(isOperationalError(error)).toBe(true);
+  });
+
+  it("should handle error class with default severity", () => {
+    const error = new ValidationError("Test");
+
+    expect(error.severity).toBe(ErrorSeverity.LOW);
+  });
+
+  it("should use default message for ForbiddenError", () => {
+    const error = new ForbiddenError();
+
+    expect(error.message).toBe("Forbidden");
+  });
+
+  it("should use default message for UnauthorizedError", () => {
+    const error = new UnauthorizedError();
+
+    expect(error.message).toBe("Unauthorized access");
+  });
+
+  it("should map 403 to FORBIDDEN", () => {
+    expect(mapHttpStatusCodeToErrorCode(403)).toBe(ErrorCode.FORBIDDEN);
+  });
+
+  it("should map 422 to VALIDATION_ERROR", () => {
+    expect(mapHttpStatusCodeToErrorCode(422)).toBe(ErrorCode.VALIDATION_ERROR);
+  });
+
+  it("should map 503 to SERVICE_UNAVAILABLE", () => {
+    expect(mapHttpStatusCodeToErrorCode(503)).toBe(
+      ErrorCode.SERVICE_UNAVAILABLE,
+    );
+  });
+
+  it("should map 504 to TIMEOUT", () => {
+    expect(mapHttpStatusCodeToErrorCode(504)).toBe(ErrorCode.TIMEOUT);
   });
 });
