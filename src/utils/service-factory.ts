@@ -33,9 +33,7 @@ export class ServiceFactory {
   private services: Map<string, unknown>;
   private circuitBreakerConfigs: CircuitBreakerConfigMap;
 
-  private constructor(
-    private circuitBreakerConfigMap: CircuitBreakerConfigMap = {},
-  ) {
+  private constructor(circuitBreakerConfigMap: CircuitBreakerConfigMap = {}) {
     this.circuitBreakers = new Map();
     this.services = new Map();
     this.circuitBreakerConfigs = circuitBreakerConfigMap;
@@ -64,7 +62,7 @@ export class ServiceFactory {
       halfOpenMaxCalls: 3,
       monitorWindow: 60000,
       ...config,
-      onStateChange: (state, reason) => {
+      onStateChange: (state: string, reason: string) => {
         logger.warn(
           `${serviceName} circuit breaker state changed to ${state}: ${reason}`,
         );

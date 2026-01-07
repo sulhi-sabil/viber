@@ -176,11 +176,7 @@ export class SupabaseService {
       let query = this.client.from(table).select(columns);
 
       if (filter) {
-        query = query.filter(
-          filter.column,
-          filter.operator as any,
-          filter.value,
-        );
+        query = query.filter(filter.column, filter.operator, filter.value);
       }
 
       if (orderBy) {
