@@ -241,6 +241,100 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", "");
     });
+
+    it("should redact sensitive password fields", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = { username: "testuser", password: "secret123" };
+
+      consoleLogger.debug("User login attempt", meta);
+
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        "[DEBUG] User login attempt",
+        { username: "testuser", password: "[REDACTED]" },
+      );
+    });
+
+    it("should redact sensitive api_key fields", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = {
+        apiKey: "sk-1234567890",
+        endpoint: "https://api.example.com",
+      };
+
+      consoleLogger.info("API call", meta);
+
+      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] API call", {
+        apiKey: "[REDACTED]",
+        endpoint: "https://api.example.com",
+      });
+    });
+
+    it("should redact sensitive token fields", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = {
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+        userId: 123,
+      };
+
+      consoleLogger.debug("Token verification", meta);
+
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        "[DEBUG] Token verification",
+        { token: "[REDACTED]", userId: 123 },
+      );
+    });
+
+    it("should redact nested sensitive fields", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = { user: { id: 1, credentials: { secret: "s3cr3t" } } };
+
+      consoleLogger.info("User action", meta);
+
+      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] User action", {
+        user: { id: 1, credentials: { secret: "[REDACTED]" } },
+      });
+    });
+
+    it("should redact multiple sensitive fields", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = {
+        username: "test",
+        password: "pass123",
+        apiKey: "key-123",
+        token: "token-456",
+      };
+
+      consoleLogger.warn("Security event", meta);
+
+      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Security event", {
+        username: "test",
+        password: "[REDACTED]",
+        apiKey: "[REDACTED]",
+        token: "[REDACTED]",
+      });
+    });
+
+    it("should redact authorization header", () => {
+      const consoleLogger = new ConsoleLogger("debug");
+      const meta = {
+        headers: {
+          authorization: "Bearer abc123",
+          "content-type": "application/json",
+        },
+      };
+
+      consoleLogger.debug("Request received", meta);
+
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        "[DEBUG] Request received",
+        {
+          headers: {
+            authorization: "[REDACTED]",
+            "content-type": "application/json",
+          },
+        },
+      );
+    });
   });
 
   describe("Logger interface compliance", () => {

@@ -25,13 +25,12 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function calculateDelay(attempt: number, options: RetryOptions): number {
-  const {
-    initialDelay = DEFAULT_RETRY_OPTIONS.initialDelay,
-    backoffMultiplier = DEFAULT_RETRY_OPTIONS.backoffMultiplier,
-    maxDelay = DEFAULT_RETRY_OPTIONS.maxDelay,
-  } = options;
-
+export function calculateDelay(
+  attempt: number,
+  initialDelay: number,
+  backoffMultiplier: number,
+  maxDelay: number,
+): number {
   const delay = initialDelay * Math.pow(backoffMultiplier, attempt - 1);
   return Math.min(delay, maxDelay);
 }
@@ -41,8 +40,18 @@ export async function retry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const finalOptions = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  const { maxAttempts, retryableErrors, retryableErrorCodes, onRetry } =
-    finalOptions;
+  const {
+    maxAttempts,
+    retryableErrors,
+    retryableErrorCodes,
+    onRetry,
+    initialDelay,
+    backoffMultiplier,
+    maxDelay,
+  } = finalOptions;
+
+  const retryableErrorSet = new Set(retryableErrors);
+  const retryableErrorCodeSet = new Set(retryableErrorCodes);
 
   let lastError: Error | undefined;
   let attempt = 1;
@@ -61,8 +70,8 @@ export async function retry<T>(
 
       const shouldRetry = isRetryable(
         error,
-        retryableErrors,
-        retryableErrorCodes,
+        retryableErrorSet,
+        retryableErrorCodeSet,
       );
 
       if (!shouldRetry || attempt >= maxAttempts) {
@@ -74,7 +83,12 @@ export async function retry<T>(
         throw lastError;
       }
 
-      const delay = calculateDelay(attempt, finalOptions);
+      const delay = calculateDelay(
+        attempt,
+        initialDelay,
+        backoffMultiplier,
+        maxDelay,
+      );
       logger.warn(
         `Attempt ${attempt} failed: ${lastError?.message || "Unknown error"}. Retrying in ${delay}ms...`,
       );
@@ -93,8 +107,8 @@ export async function retry<T>(
 
 function isRetryable(
   error: unknown,
-  retryableErrors: number[],
-  retryableErrorCodes: string[],
+  retryableErrors: Set<number>,
+  retryableErrorCodes: Set<string>,
 ): boolean {
   const errorObj = error as {
     isOperational?: boolean;
@@ -110,11 +124,11 @@ function isRetryable(
   const statusCode = errorObj?.statusCode || errorObj?.status;
   const errorCode = errorObj?.code;
 
-  if (statusCode && retryableErrors.includes(statusCode)) {
+  if (statusCode && retryableErrors.has(statusCode)) {
     return true;
   }
 
-  if (errorCode && retryableErrorCodes.includes(errorCode)) {
+  if (errorCode && retryableErrorCodes.has(errorCode)) {
     return true;
   }
 
