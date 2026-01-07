@@ -4,7 +4,7 @@ import {
   PostgrestError,
 } from "@supabase/supabase-js";
 import { CircuitBreaker } from "../utils/circuit-breaker";
-import { retry, withTimeout } from "../utils/retry";
+import { executeWithResilience } from "../utils/resilience";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 
@@ -139,49 +139,21 @@ export class SupabaseService {
     operation: () => Promise<T>,
     options: QueryOptions = {},
   ): Promise<T> {
-    const {
-      timeout = this.config.timeout || 10000,
-      useCircuitBreaker = true,
-      useRetry = true,
-    } = options;
-
-    const operationWithTimeout = async (): Promise<T> => {
-      const promise = operation();
-      if (timeout > 0) {
-        return withTimeout(promise, timeout, "Supabase operation");
-      }
-      return promise;
-    };
-
-    if (useCircuitBreaker) {
-      const operationWithCircuitBreaker = () =>
-        this.circuitBreaker.execute(operationWithTimeout);
-
-      if (useRetry) {
-        return retry(operationWithCircuitBreaker, {
-          maxAttempts: this.config.maxRetries,
-          retryableErrors: [408, 429, 500, 502, 503, 504],
-          retryableErrorCodes: ["PGRST116", "PGRST301"],
-          onRetry: (attempt, error) => {
-            logger.warn(`Supabase operation retry attempt ${attempt}`, {
-              error: error.message,
-            });
-          },
+    return executeWithResilience<T>({
+      operation,
+      options,
+      defaultTimeout: this.config.timeout || 10000,
+      circuitBreaker: this.circuitBreaker,
+      maxRetries: this.config.maxRetries,
+      retryableErrors: [408, 429, 500, 502, 503, 504],
+      retryableErrorCodes: ["PGRST116", "PGRST301"],
+      onRetry: (attempt: number, error: Error) => {
+        logger.warn(`Supabase operation retry attempt ${attempt}`, {
+          error: error.message,
         });
-      }
-
-      return operationWithCircuitBreaker();
-    }
-
-    if (useRetry) {
-      return retry(operationWithTimeout, {
-        maxAttempts: this.config.maxRetries,
-        retryableErrors: [408, 429, 500, 502, 503, 504],
-        retryableErrorCodes: ["PGRST116", "PGRST301"],
-      });
-    }
-
-    return operationWithTimeout();
+      },
+      timeoutOperationName: "Supabase operation",
+    });
   }
 
   async select<T extends DatabaseRow>(

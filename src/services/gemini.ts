@@ -1,5 +1,5 @@
 import { CircuitBreaker } from "../utils/circuit-breaker";
-import { retry, withTimeout } from "../utils/retry";
+import { executeWithResilience } from "../utils/resilience";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 
@@ -403,49 +403,21 @@ export class GeminiService {
     operation: () => Promise<T>,
     options: GeminiRequestOptions = {},
   ): Promise<T> {
-    const {
-      timeout = this.config.timeout || 30000,
-      useCircuitBreaker = true,
-      useRetry = true,
-    } = options;
-
-    const operationWithTimeout = async (): Promise<T> => {
-      const promise = operation();
-      if (timeout > 0) {
-        return withTimeout(promise, timeout, "Gemini operation");
-      }
-      return promise;
-    };
-
-    if (useCircuitBreaker) {
-      const operationWithCircuitBreaker = () =>
-        this.circuitBreaker.execute(operationWithTimeout);
-
-      if (useRetry) {
-        return retry(operationWithCircuitBreaker, {
-          maxAttempts: this.config.maxRetries,
-          retryableErrors: [408, 429, 500, 502, 503, 504],
-          retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT"],
-          onRetry: (attempt, error) => {
-            logger.warn(`Gemini operation retry attempt ${attempt}`, {
-              error: error.message,
-            });
-          },
+    return executeWithResilience<T>({
+      operation,
+      options,
+      defaultTimeout: this.config.timeout || 30000,
+      circuitBreaker: this.circuitBreaker,
+      maxRetries: this.config.maxRetries,
+      retryableErrors: [408, 429, 500, 502, 503, 504],
+      retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT"],
+      onRetry: (attempt: number, error: Error) => {
+        logger.warn(`Gemini operation retry attempt ${attempt}`, {
+          error: error.message,
         });
-      }
-
-      return operationWithCircuitBreaker();
-    }
-
-    if (useRetry) {
-      return retry(operationWithTimeout, {
-        maxAttempts: this.config.maxRetries,
-        retryableErrors: [408, 429, 500, 502, 503, 504],
-        retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT"],
-      });
-    }
-
-    return operationWithTimeout();
+      },
+      timeoutOperationName: "Gemini operation",
+    });
   }
 
   async healthCheck(): Promise<{
