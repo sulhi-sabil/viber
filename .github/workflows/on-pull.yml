@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
 
     steps:
@@ -31,14 +31,14 @@ jobs:
           poll-interval-seconds: 30
           same-branch-only: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Code
         uses: actions/checkout@v4
         continue-on-error: true
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
