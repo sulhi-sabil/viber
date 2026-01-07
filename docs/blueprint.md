@@ -2,12 +2,12 @@
 
 ## External Services & APIs
 
-| Service | Purpose | Authentication | Rate Limits |
-|---------|---------|----------------|-------------|
-| **Supabase** | Database & Auth | VITE_SUPABASE_URL + SUPABASE_ANON_KEY | Per plan |
-| **Cloudflare** | Hosting & CDN | CLOUDFLARE_ACCOUNT_ID + API_TOKEN | Per plan |
-| **Gemini AI** | AI/LLM operations | GEMINI_API_KEY | 15 RPM (free) |
-| **IFlow API** | Unknown integration | IFLOW_API_KEY | TBD |
+| Service        | Purpose             | Authentication                        | Rate Limits   |
+| -------------- | ------------------- | ------------------------------------- | ------------- |
+| **Supabase**   | Database & Auth     | VITE_SUPABASE_URL + SUPABASE_ANON_KEY | Per plan      |
+| **Cloudflare** | Hosting & CDN       | CLOUDFLARE_ACCOUNT_ID + API_TOKEN     | Per plan      |
+| **Gemini AI**  | AI/LLM operations   | GEMINI_API_KEY                        | 15 RPM (free) |
+| **IFlow API**  | Unknown integration | IFLOW_API_KEY                         | TBD           |
 
 ## API Standards
 
@@ -31,6 +31,41 @@
 }
 ```
 
+**Implementation Status**: ✅ Complete
+
+The error handling system is fully implemented:
+
+- **Location**: `src/utils/errors.ts` and `src/types/errors.ts`
+- **Features**:
+  - Standardized error class hierarchy
+  - Error code mapping for all services
+  - Request ID generation for tracking
+  - Error severity levels
+  - Operational vs non-operational error distinction
+  - Builder function for API error responses
+  - Service-specific error classes (SupabaseError, GeminiError, CloudflareError)
+- **Testing**: Full test coverage
+
+**Usage Example**:
+
+```typescript
+import {
+  ValidationError,
+  NotFoundError,
+  ServiceUnavailableError,
+  createApiError,
+} from "./utils/errors";
+
+throw new ValidationError("Invalid email format", { field: "email" });
+
+throw new NotFoundError("User");
+
+const apiErrorResponse = createApiError(
+  new ServiceUnavailableError("Database"),
+  { operation: "fetchUser" },
+);
+```
+
 ### Standard HTTP Status Codes
 
 - `200 OK` - Success
@@ -49,12 +84,12 @@
 
 ### Timeout Configuration
 
-| Service | Timeout | Reason |
-|---------|---------|--------|
-| Supabase | 10000ms | Database operations |
-| Gemini AI | 30000ms | AI generation |
-| Cloudflare | 5000ms | API calls |
-| IFlow API | 10000ms | TBD |
+| Service    | Timeout | Reason              |
+| ---------- | ------- | ------------------- |
+| Supabase   | 10000ms | Database operations |
+| Gemini AI  | 30000ms | AI generation       |
+| Cloudflare | 5000ms  | API calls           |
+| IFlow API  | 10000ms | TBD                 |
 
 ### Retry Strategy
 
@@ -64,7 +99,47 @@ const retryConfig = {
   initialDelay: 1000, // ms
   maxDelay: 10000, // ms
   backoffMultiplier: 2, // Exponential
-  retryableErrors: [408, 429, 500, 502, 503, 504]
+  retryableErrors: [408, 429, 500, 502, 503, 504],
+};
+```
+
+**Implementation Status**: ✅ Complete
+
+The retry logic with exponential backoff is fully implemented:
+
+- **Location**: `src/utils/retry.ts`
+- **Features**:
+  - Configurable retry attempts and delays
+  - Exponential backoff with configurable multiplier
+  - Max delay cap to prevent excessive waiting
+  - Retryable error detection (HTTP status codes and error codes)
+  - Operation timeout support (`withTimeout`)
+  - Callback hooks for retry attempts
+- **Testing**: Full test coverage for retry scenarios
+
+**Usage Example**:
+
+```typescript
+import { retry, withTimeout } from "./utils/retry";
+
+async function callExternalAPI() {
+  return await retry(
+    async () => {
+      return await withTimeout(
+        fetch("https://api.example.com/data"),
+        10000,
+        "External API call",
+      );
+    },
+    {
+      maxAttempts: 3,
+      initialDelay: 1000,
+      maxDelay: 10000,
+      onRetry: (attempt, error) => {
+        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
+      },
+    },
+  );
 }
 ```
 
@@ -75,7 +150,38 @@ const circuitBreaker = {
   failureThreshold: 5, // Open after 5 failures
   resetTimeout: 60000, // Try again after 60s
   halfOpenMaxCalls: 3, // Test with 3 calls
-  monitorWindow: 60000 // Evaluate over last 60s
+  monitorWindow: 60000, // Evaluate over last 60s
+};
+```
+
+**Implementation Status**: ✅ Complete
+
+The circuit breaker pattern is fully implemented as a reusable utility:
+
+- **Location**: `src/utils/circuit-breaker.ts`
+- **State Machine**: CLOSED → OPEN → HALF_OPEN → CLOSED
+- **Configuration**: Customizable thresholds per service
+- **Monitoring**: Built-in metrics tracking (failures, successes, state transitions)
+- **Testing**: Full test coverage including state transitions, metrics, and recovery
+
+**Usage Example**:
+
+```typescript
+import { createCircuitBreaker } from "./utils/circuit-breaker";
+
+const supabaseBreaker = createCircuitBreaker({
+  failureThreshold: 5,
+  resetTimeout: 60000,
+  onStateChange: (state, reason) => {
+    logger.info(`Circuit breaker state: ${state}`, { reason });
+  },
+});
+
+async function fetchFromSupabase() {
+  return supabaseBreaker.execute(async () => {
+    // Supabase operation here
+    return await supabase.from("users").select("*");
+  });
 }
 ```
 
@@ -116,8 +222,8 @@ Content-Type: application/json
 const rateLimitConfig = {
   windowMs: 60000, // 1 minute
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests, please try again later'
-}
+  message: "Too many requests, please try again later",
+};
 ```
 
 ## Webhook Handling
