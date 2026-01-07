@@ -1,328 +1,134 @@
-# Integration Blueprint
-
-## External Services & APIs
-
-| Service        | Purpose             | Authentication                        | Rate Limits   |
-| -------------- | ------------------- | ------------------------------------- | ------------- |
-| **Supabase**   | Database & Auth     | VITE_SUPABASE_URL + SUPABASE_ANON_KEY | Per plan      |
-| **Cloudflare** | Hosting & CDN       | CLOUDFLARE_ACCOUNT_ID + API_TOKEN     | Per plan      |
-| **Gemini AI**  | AI/LLM operations   | GEMINI_API_KEY                        | 15 RPM (free) |
-| **IFlow API**  | Unknown integration | IFLOW_API_KEY                         | TBD           |
-
-## API Standards
-
-### Naming Conventions
-
-- **Endpoints**: `/api/{version}/{resource}` (e.g., `/api/v1/users`)
-- **Methods**: GET (read), POST (create), PUT (update), DELETE (remove)
-- **Parameters**: `camelCase` for query params, `snake_case` for database fields
-- **Response Fields**: `camelCase` for JSON responses
-
-### Error Response Format
-
-```typescript
-{
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable message",
-    "details": { ... },
-    "requestId": "uuid"
-  }
-}
-```
-
-**Implementation Status**: ✅ Complete
-
-The error handling system is fully implemented:
-
-- **Location**: `src/utils/errors.ts` and `src/types/errors.ts`
-- **Features**:
-  - Standardized error class hierarchy
-  - Error code mapping for all services
-  - Request ID generation for tracking
-  - Error severity levels
-  - Operational vs non-operational error distinction
-  - Builder function for API error responses
-  - Service-specific error classes (SupabaseError, GeminiError, CloudflareError)
-- **Testing**: Full test coverage
-
-**Usage Example**:
-
-```typescript
-import {
-  ValidationError,
-  NotFoundError,
-  ServiceUnavailableError,
-  createApiError,
-} from "./utils/errors";
-
-throw new ValidationError("Invalid email format", { field: "email" });
-
-throw new NotFoundError("User");
-
-const apiErrorResponse = createApiError(
-  new ServiceUnavailableError("Database"),
-  { operation: "fetchUser" },
+Blueprint: Universal Serverless Framework on Cloudflare PagesVersi Dokumen: 1.0Target Platform: Cloudflare Pages (Full Stack)Tujuan: Membangun kerangka kerja website fleksibel (Multi-purpose) dengan Admin Dashboard terintegrasi, biaya rendah (Serverless), dan performa tinggi (Edge).1. Ringkasan EksekutifProyek ini bertujuan membuat "Engine" website yang di-host sepenuhnya di Cloudflare. Engine ini memisahkan Logic (Code) dan Content (Data).Frontend Public: Merender konten berdasarkan data yang diambil dari DB.Admin Dashboard: Interface untuk mengelola konten dan struktur data.Backend: Berjalan di Cloudflare Pages Functions (Workers) untuk API dan rendering.2. Arsitektur SistemSistem menggunakan pendekatan Monorepo Full-Stack. Frontend dan Backend berada dalam satu repositori git dan dideploy bersamaan.Diagram Alur Datagraph TD
+    User[Visitor] -->|Request URL| CDN[Cloudflare Edge Network]
+    Admin[Admin User] -->|Manage Content| Dashboard[Admin Dashboard /admin]
+    
+    subgraph Cloudflare Ecosystem
+        CDN -->|Static Assets| Assets[HTML/CSS/JS]
+        CDN -->|Dynamic Request| SSR[Pages Functions / Workers]
+        
+        SSR -->|Auth & Logic| AuthLogic
+        SSR -->|Query Data| D1[Cloudflare D1 SQL Database]
+        SSR -->|Media Upload/Get| R2[Cloudflare R2 Storage]
+        
+        Dashboard --> SSR
+    end
+Stack Teknologi (Rekomendasi)KomponenTeknologiAlasan PemilihanFramework UtamaSvelteKit (atau Next.js)Adapter Cloudflare terbaik, ringan, mendukung SSR di Edge.RuntimeCloudflare Pages FunctionsLatency rendah (0ms cold start), terintegrasi langsung.DatabaseCloudflare D1 (SQLite)SQL Relasional, Serverless, murah, replikasi global.ORMDrizzle ORMRingan, Type-safe, performa query terbaik untuk D1.File StorageCloudflare R2Kompatibel S3, Tanpa biaya bandwidth (egress).AuthenticationLucia AuthAuth library modern yang menyimpan session di DB sendiri (D1).StylingTailwind CSSUtilitas styling cepat untuk Admin & Public theme.3. Desain Database (Flexible Schema)Agar framework ini bisa digunakan untuk jenis website apa saja (E-commerce, Blog, Portfolio), kita tidak membuat tabel kaku. Kita menggunakan pendekatan Hybrid Relational + JSON.Skema Inti (D1 SQL)-- 1. USERS & AUTH
+CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT,
+    role TEXT DEFAULT 'editor', -- 'admin', 'editor'
+    created_at INTEGER
 );
-```
 
-### Standard HTTP Status Codes
+CREATE TABLE sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    expires_at INTEGER NOT NULL
+);
 
-- `200 OK` - Success
-- `201 Created` - Resource created
-- `204 No Content` - Successful deletion
-- `400 Bad Request` - Invalid input
-- `401 Unauthorized` - Missing/invalid auth
-- `403 Forbidden` - Insufficient permissions
-- `404 Not Found` - Resource doesn't exist
-- `422 Unprocessable Entity` - Validation failed
-- `429 Too Many Requests` - Rate limit exceeded
-- `500 Internal Server Error` - Unexpected error
-- `503 Service Unavailable` - Service down
+-- 2. CONTENT TYPES (Mendefinisikan Struktur)
+-- Contoh: slug='products', name='Produk', schema_json='{"price": "number", "sku": "text"}'
+CREATE TABLE content_types (
+    slug TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    fields_schema TEXT NOT NULL -- JSON Definition untuk Admin UI Builder
+);
 
-## Resilience Patterns
+-- 3. ENTRIES (Konten Dinamis)
+CREATE TABLE entries (
+    id TEXT PRIMARY KEY,
+    type_slug TEXT NOT NULL REFERENCES content_types(slug),
+    slug TEXT UNIQUE,     -- URL akses (misal: /produk/sepatu-merah)
+    title TEXT NOT NULL,
+    data TEXT,            -- JSON BLOB: Menyimpan custom fields (harga, gambar, dll)
+    status TEXT DEFAULT 'draft', -- 'published', 'draft'
+    created_at INTEGER,
+    updated_at INTEGER
+);
 
-### Timeout Configuration
+-- 4. MEDIA ASSETS
+CREATE TABLE assets (
+    id TEXT PRIMARY KEY,
+    filename TEXT,
+    r2_key TEXT NOT NULL,
+    mime_type TEXT,
+    public_url TEXT,
+    created_at INTEGER
+);
+4. Struktur Folder (Monorepo)Struktur ini memisahkan logika publik (yang dilihat pengunjung) dan logika admin, namun tetap berbagi library yang sama./
+├── .wrangler/                  # Local dev artifacts
+├── src/
+│   ├── lib/
+│   │   ├── server/
+│   │   │   ├── db.ts           # Koneksi Drizzle ke D1
+│   │   │   ├── auth.ts         # Logic Lucia Auth
+│   │   │   └── r2_helper.ts    # Logic Upload/Delete R2
+│   │   ├── components/         # UI Components (Button, Card, dll)
+│   │   └── utils/
+│   ├── routes/
+│   │   ├── (public)/           # HALAMAN WEBSITE (Front-facing)
+│   │   │   ├── +layout.svelte
+│   │   │   ├── +page.svelte    # Homepage
+│   │   │   └── [slug]/         # Dynamic Route (Blog/Product)
+│   │   │       └── +page.server.ts # Load data from 'entries' table
+│   │   ├── (admin)/            # ADMIN DASHBOARD (Protected)
+│   │   │   ├── login/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── content-types/ # Builder Schema
+│   │   │   │   ├── entries/       # CRUD Content
+│   │   │   │   └── media/         # File Manager
+│   │   │   └── +layout.server.ts  # Cek Session/Auth Gate
+│   │   └── api/                # REST API (Optional untuk external apps)
+├── drizzle/                    # File migrasi SQL
+├── static/                     # Aset statis (favicon, robots.txt)
+├── wrangler.toml               # Konfigurasi Cloudflare
+└── package.json
+5. Implementasi Teknis & Code SnippetsA. Konfigurasi wrangler.tomlFile ini wajib ada untuk menghubungkan kode dengan resource Cloudflare.name = "my-universal-framework"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2024-01-01"
 
-| Service    | Timeout | Reason              |
-| ---------- | ------- | ------------------- |
-| Supabase   | 10000ms | Database operations |
-| Gemini AI  | 30000ms | AI generation       |
-| Cloudflare | 5000ms  | API calls           |
-| IFlow API  | 10000ms | TBD                 |
+# Database Binding
+[[d1_databases]]
+binding = "DB" 
+database_name = "prod-db"
+database_id = "xxxx-xxxx-xxxx"
 
-### Retry Strategy
+# Storage Binding
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "prod-media"
 
-```typescript
-const retryConfig = {
-  maxAttempts: 3,
-  initialDelay: 1000, // ms
-  maxDelay: 10000, // ms
-  backoffMultiplier: 2, // Exponential
-  retryableErrors: [408, 429, 500, 502, 503, 504],
+[vars]
+PUBLIC_SITE_NAME = "My Awesome Site"
+B. Koneksi Database (Drizzle ORM)Lokasi: src/lib/server/db.tsimport { drizzle } from 'drizzle-orm/d1';
+import * as schema from './schema'; // Definisi tabel
+
+export const createDb = (env: App.Platform['env']) => {
+    return drizzle(env.DB, { schema });
 };
-```
+C. Logic Routing Dinamis (Public Frontend)Lokasi: src/routes/(public)/[slug]/+page.server.tsBagian ini membuat website fleksibel. Ia mencari konten berdasarkan URL slug di database.export const load = async ({ params, platform, error }) => {
+    const db = createDb(platform.env);
+    
+    // Cari entry berdasarkan URL slug
+    const entry = await db.query.entries.findFirst({
+        where: (entries, { eq }) => eq(entries.slug, params.slug),
+        with: {
+            contentType: true // Ambil juga metadata tipenya
+        }
+    });
 
-**Implementation Status**: ✅ Complete
+    if (!entry || entry.status !== 'published') {
+        throw error(404, 'Halaman tidak ditemukan');
+    }
 
-The retry logic with exponential backoff is fully implemented:
+    // Parse JSON data string kembali ke Object
+    const dynamicData = JSON.parse(entry.data);
 
-- **Location**: `src/utils/retry.ts`
-- **Features**:
-  - Configurable retry attempts and delays
-  - Exponential backoff with configurable multiplier
-  - Max delay cap to prevent excessive waiting
-  - Retryable error detection (HTTP status codes and error codes)
-  - Operation timeout support (`withTimeout`)
-  - Callback hooks for retry attempts
-- **Testing**: Full test coverage for retry scenarios
-
-**Usage Example**:
-
-```typescript
-import { retry, withTimeout } from "./utils/retry";
-
-async function callExternalAPI() {
-  return await retry(
-    async () => {
-      return await withTimeout(
-        fetch("https://api.example.com/data"),
-        10000,
-        "External API call",
-      );
-    },
-    {
-      maxAttempts: 3,
-      initialDelay: 1000,
-      maxDelay: 10000,
-      onRetry: (attempt, error) => {
-        logger.warn(`Retry attempt ${attempt}`, { error: error.message });
-      },
-    },
-  );
-}
-```
-
-### Circuit Breaker
-
-```typescript
-const circuitBreaker = {
-  failureThreshold: 5, // Open after 5 failures
-  resetTimeout: 60000, // Try again after 60s
-  halfOpenMaxCalls: 3, // Test with 3 calls
-  monitorWindow: 60000, // Evaluate over last 60s
+    return {
+        title: entry.title,
+        type: entry.type_slug,
+        content: dynamicData
+    };
 };
-```
-
-**Implementation Status**: ✅ Complete
-
-The circuit breaker pattern is fully implemented as a reusable utility:
-
-- **Location**: `src/utils/circuit-breaker.ts`
-- **State Machine**: CLOSED → OPEN → HALF_OPEN → CLOSED
-- **Configuration**: Customizable thresholds per service
-- **Monitoring**: Built-in metrics tracking (failures, successes, state transitions)
-- **Testing**: Full test coverage including state transitions, metrics, and recovery
-
-**Usage Example**:
-
-```typescript
-import { createCircuitBreaker } from "./utils/circuit-breaker";
-
-const supabaseBreaker = createCircuitBreaker({
-  failureThreshold: 5,
-  resetTimeout: 60000,
-  onStateChange: (state, reason) => {
-    logger.info(`Circuit breaker state: ${state}`, { reason });
-  },
-});
-
-async function fetchFromSupabase() {
-  return supabaseBreaker.execute(async () => {
-    // Supabase operation here
-    return await supabase.from("users").select("*");
-  });
-}
-```
-
-## API Versioning
-
-- Current: `v1`
-- Path-based versioning: `/api/v1/...`
-- Deprecation notice in response headers: `X-API-Deprecated: true`
-- Sunset header: `Sunset: YYYY-MM-DD`
-
-## Security
-
-### Authentication
-
-- **Supabase**: Uses JWT (anon key for client, service_role for server)
-- **Internal APIs**: API keys stored in environment variables
-- **User-facing APIs**: Supabase Auth session
-
-### Headers
-
-```
-Authorization: Bearer {token}
-X-Request-ID: {uuid}
-Content-Type: application/json
-```
-
-## Rate Limiting
-
-### Client-Side (Supabase)
-
-- Per IP: 100 requests/minute
-- Per user: 1000 requests/hour
-- Burst: 10 requests/second
-
-### Internal API Protection
-
-```typescript
-const rateLimitConfig = {
-  windowMs: 60000, // 1 minute
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests, please try again later",
-};
-```
-
-## Webhook Handling
-
-### Incoming Webhooks
-
-- Verify signatures using HMAC
-- Queue for processing (don't block)
-- Retry on failure with exponential backoff
-- Max 5 retry attempts
-
-### Webhook Response
-
-```json
-{
-  "received": true,
-  "webhookId": "uuid",
-  "processingStatus": "queued|processing|complete|failed"
-}
-```
-
-## Idempotency Keys
-
-```typescript
-// Include in request headers
-Idempotency-Key: {uuid}
-
-// Check if operation already performed
-// Return cached result if duplicate
-```
-
-## Logging & Monitoring
-
-### Log Levels
-
-- `ERROR`: Service failures, critical issues
-- `WARN`: Retries, degraded performance
-- `INFO`: API calls, successful operations
-- `DEBUG`: Detailed execution flow
-
-### Metrics to Track
-
-- Request rate per endpoint
-- Error rate by error code
-- Response time (p50, p95, p99)
-- Circuit breaker state
-- Retry attempts
-
-## Backward Compatibility
-
-### API Changes
-
-- **Non-breaking**: Add optional fields, new endpoints
-- **Breaking**: Version bump, maintain old version for 6 months
-- **Deprecation**: Add deprecation warnings, document sunset date
-
-### Database Migrations
-
-- Never remove columns (add only)
-- Use views for backward compatibility
-- Document breaking changes
-
-## Environment Variables
-
-```bash
-# Supabase
-VITE_SUPABASE_URL=
-VITE_SUPABASE_KEY=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# Cloudflare
-CLOUDFLARE_ACCOUNT_ID=
-CLOUDFLARE_API_TOKEN=
-
-# Gemini AI
-GEMINI_API_KEY=
-API_KEY=
-
-# IFlow
-IFLOW_API_KEY=
-
-# App
-NODE_ENV=
-API_VERSION=v1
-```
-
-## Integration Testing
-
-### Test Coverage
-
-- Unit tests for API clients
-- Integration tests with mock services
-- End-to-end tests with staging env
-- Load testing for rate limits
-- Chaos testing for resilience
-
-### Test Data
-
-- Use fixtures for consistent testing
-- Test edge cases (timeouts, errors)
-- Validate schema compliance
+6. Fitur Admin DashboardDashboard harus bersifat "Schema Driven".Content Type Builder:Admin bisa membuat tipe konten baru (misal: "Portfolio").Admin menambah field: Client Name (Text), Project Image (Media), Year (Number).Sistem menyimpan definisi ini ke kolom fields_schema di tabel content_types.Content Editor:Saat Admin membuat Portfolio baru, UI membaca schema tadi.Jika tipe field = 'Media', tampilkan tombol "Upload to R2".Jika tipe field = 'Rich Text', tampilkan WYSIWYG editor.7. Strategi Deployment & CI/CDKarena menggunakan Cloudflare Pages, pipeline CI/CD sudah otomatis.Repository: Kode disimpan di GitHub/GitLab.Trigger: Setiap push ke branch main memicu build.Build Command: npm run build (SvelteKit/NextJS build process).Database Migration: * Opsional Otomatis: Tambahkan script migrasi di pipeline.Manual: Jalankan npx wrangler d1 migrations apply prod-db --remote dari lokal komputer developer saat ada perubahan struktur tabel.8. Rencana Pengembangan (Roadmap)Fase 1: Core FoundationSetup Repository & Wrangler.Setup Auth (Login/Logout).Setup DB Connection.Fase 2: Admin Dashboard BasicCRUD Content Types.CRUD Entries (Basic Text Fields).Fase 3: Media & StorageIntegrasi R2 Upload.Gallery Picker di Admin.Fase 4: Public Frontend EngineDynamic Routing [slug].SSR Rendering untuk SEO.
