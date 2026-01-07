@@ -1,5 +1,13 @@
 import { retry, sleep, withTimeout } from "../utils/retry";
 
+interface ErrorWithStatusCode extends Error {
+  statusCode?: number;
+}
+
+interface ErrorWithCode extends Error {
+  code?: string;
+}
+
 describe("retry", () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -16,8 +24,8 @@ describe("retry", () => {
   it("should retry on retryable error", async () => {
     jest.useFakeTimers().setSystemTime(new Date());
 
-    const error = new Error("Internal server error");
-    (error as any).statusCode = 500;
+    const error = new Error("Internal server error") as ErrorWithStatusCode;
+    error.statusCode = 500;
     const operation = jest
       .fn()
       .mockRejectedValueOnce(error)
@@ -34,8 +42,8 @@ describe("retry", () => {
   });
 
   it("should respect maxAttempts", async () => {
-    const error = new Error("Service unavailable");
-    (error as any).statusCode = 500;
+    const error = new Error("Service unavailable") as ErrorWithStatusCode;
+    error.statusCode = 500;
     const operation = jest.fn().mockRejectedValue(error);
 
     await expect(retry(operation, { maxAttempts: 2 })).rejects.toThrow(
@@ -45,8 +53,8 @@ describe("retry", () => {
   });
 
   it("should not retry on non-retryable error", async () => {
-    const error = new Error("Bad request");
-    (error as any).statusCode = 400;
+    const error = new Error("Bad request") as ErrorWithStatusCode;
+    error.statusCode = 400;
     const operation = jest.fn().mockRejectedValue(error);
 
     await expect(retry(operation)).rejects.toThrow("Bad request");
@@ -61,8 +69,8 @@ describe("retry", () => {
       delays.push(attempt);
     });
 
-    const error = new Error("Internal server error");
-    (error as any).statusCode = 500;
+    const error = new Error("Internal server error") as ErrorWithStatusCode;
+    error.statusCode = 500;
     const operation = jest
       .fn()
       .mockRejectedValueOnce(error)
@@ -84,8 +92,8 @@ describe("retry", () => {
   it("should respect maxDelay", async () => {
     jest.useFakeTimers().setSystemTime(new Date());
 
-    const error = new Error("Internal server error");
-    (error as any).statusCode = 500;
+    const error = new Error("Internal server error") as ErrorWithStatusCode;
+    error.statusCode = 500;
     const operation = jest
       .fn()
       .mockRejectedValueOnce(error)
@@ -113,8 +121,8 @@ describe("retry", () => {
   it("should retry on network error codes", async () => {
     jest.useFakeTimers().setSystemTime(new Date());
 
-    const error = new Error("Connection reset");
-    (error as any).code = "ECONNRESET";
+    const error = new Error("Connection reset") as ErrorWithCode;
+    error.code = "ECONNRESET";
     const operation = jest
       .fn()
       .mockRejectedValueOnce(error)
