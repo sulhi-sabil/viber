@@ -77,15 +77,20 @@ class RateLimiter {
   private requests: number[] = [];
   private maxRequests: number;
   private windowMs: number;
+  private lastCleanupTime: number;
+  private cleanupThreshold: number;
 
   constructor(maxRequests: number, windowMs: number) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
+    this.lastCleanupTime = Date.now();
+    this.cleanupThreshold = Math.max(100, maxRequests * 2);
   }
 
   async checkRateLimit(): Promise<void> {
     const now = Date.now();
-    this.requests = this.requests.filter((time) => now - time < this.windowMs);
+
+    this.lazyCleanup(now);
 
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = this.requests[0];
@@ -98,16 +103,43 @@ class RateLimiter {
     this.requests.push(now);
   }
 
+  private lazyCleanup(now: number): void {
+    if (this.requests.length < this.cleanupThreshold) {
+      return;
+    }
+
+    const timeSinceLastCleanup = now - this.lastCleanupTime;
+    if (timeSinceLastCleanup < this.windowMs / 2) {
+      return;
+    }
+
+    this.requests = this.requests.filter((time) => now - time < this.windowMs);
+    this.lastCleanupTime = now;
+  }
+
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   getRemainingRequests(): number {
     const now = Date.now();
-    const activeRequests = this.requests.filter(
-      (time) => now - time < this.windowMs,
-    ).length;
-    return Math.max(0, this.maxRequests - activeRequests);
+
+    if (this.requests.length < this.cleanupThreshold) {
+      const activeRequests = this.requests.filter(
+        (time) => now - time < this.windowMs,
+      ).length;
+      return Math.max(0, this.maxRequests - activeRequests);
+    }
+
+    const timeSinceLastCleanup = now - this.lastCleanupTime;
+    if (timeSinceLastCleanup >= this.windowMs / 2) {
+      this.requests = this.requests.filter(
+        (time) => now - time < this.windowMs,
+      );
+      this.lastCleanupTime = now;
+    }
+
+    return Math.max(0, this.maxRequests - this.requests.length);
   }
 }
 
