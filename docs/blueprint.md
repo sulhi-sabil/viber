@@ -168,6 +168,59 @@ Dependencies flow inward following the Dependency Inversion Principle:
 - Performance-optimized sanitization
 - Configurable output level
 
+#### RateLimiter
+
+**Purpose**: Enforces request rate limits to prevent API abuse and ensure compliance with service quotas.
+
+**Features**:
+
+- Sliding window rate limiting algorithm
+- Configurable max requests and time window
+- Lazy cleanup for performance optimization
+- Metrics tracking (total, active, remaining requests)
+- Service name support for better logging
+- Automatic waiting when limit reached
+
+**Configuration**:
+
+```typescript
+interface RateLimiterOptions {
+  maxRequests?: number; // Maximum requests in window (default: 15)
+  windowMs?: number; // Time window in milliseconds (default: 60000)
+  cleanupThreshold?: number; // Cleanup threshold (default: max(100, maxRequests * 2))
+  serviceName?: string; // Service name for logs (default: "RateLimiter")
+}
+```
+
+**Methods**:
+
+- `checkRateLimit()`: Waits if limit reached, then adds request
+- `getRemainingRequests()`: Returns number of requests available
+- `getMetrics()`: Returns detailed metrics (total, active, remaining)
+- `reset()`: Clears all tracked requests
+
+**Performance Optimizations**:
+
+- Lazy cleanup: Only filters when above threshold
+- Threshold-based: Cleanup at `Math.max(100, maxRequests * 2)` requests
+- Time-based: Cleanup at most once every `windowMs / 2` milliseconds
+- Cached results: getRemainingRequests() uses lazy cleanup
+
+**Usage Example**:
+
+```typescript
+import { RateLimiter } from "viber-integration-layer";
+
+const limiter = new RateLimiter({
+  maxRequests: 15,
+  windowMs: 60000,
+  serviceName: "GeminiAPI",
+});
+
+await limiter.checkRateLimit(); // Waits if at limit
+const remaining = limiter.getRemainingRequests(); // 14
+```
+
 #### Resilience Executor
 
 **Purpose**: Unified execution combining timeout, circuit breaker, and retry.

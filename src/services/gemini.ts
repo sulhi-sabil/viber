@@ -3,6 +3,7 @@ import { executeWithResilience } from "../utils/resilience";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+import { RateLimiter } from "../utils/rate-limiter";
 
 export interface GeminiConfig {
   apiKey: string;
@@ -73,76 +74,6 @@ const DEFAULT_CONFIG: Required<
 
 const DEFAULT_MODEL = "gemini-1.5-flash";
 
-class RateLimiter {
-  private requests: number[] = [];
-  private maxRequests: number;
-  private windowMs: number;
-  private lastCleanupTime: number;
-  private cleanupThreshold: number;
-
-  constructor(maxRequests: number, windowMs: number) {
-    this.maxRequests = maxRequests;
-    this.windowMs = windowMs;
-    this.lastCleanupTime = Date.now();
-    this.cleanupThreshold = Math.max(100, maxRequests * 2);
-  }
-
-  async checkRateLimit(): Promise<void> {
-    const now = Date.now();
-
-    this.lazyCleanup(now);
-
-    if (this.requests.length >= this.maxRequests) {
-      const oldestRequest = this.requests[0];
-      const waitTime = this.windowMs - (now - oldestRequest);
-
-      logger.warn(`Gemini rate limit reached. Waiting ${waitTime}ms`);
-      await this.sleep(waitTime);
-    }
-
-    this.requests.push(now);
-  }
-
-  private lazyCleanup(now: number): void {
-    if (this.requests.length < this.cleanupThreshold) {
-      return;
-    }
-
-    const timeSinceLastCleanup = now - this.lastCleanupTime;
-    if (timeSinceLastCleanup < this.windowMs / 2) {
-      return;
-    }
-
-    this.requests = this.requests.filter((time) => now - time < this.windowMs);
-    this.lastCleanupTime = now;
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  getRemainingRequests(): number {
-    const now = Date.now();
-
-    if (this.requests.length < this.cleanupThreshold) {
-      const activeRequests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      ).length;
-      return Math.max(0, this.maxRequests - activeRequests);
-    }
-
-    const timeSinceLastCleanup = now - this.lastCleanupTime;
-    if (timeSinceLastCleanup >= this.windowMs / 2) {
-      this.requests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      );
-      this.lastCleanupTime = now;
-    }
-
-    return Math.max(0, this.maxRequests - this.requests.length);
-  }
-}
-
 export class GeminiService {
   private apiKey: string;
   private config: Required<
@@ -178,10 +109,11 @@ export class GeminiService {
         DEFAULT_CONFIG.circuitBreakerResetTimeout,
     };
 
-    this.rateLimiter = new RateLimiter(
-      config.rateLimitRequests ?? DEFAULT_CONFIG.rateLimitRequests,
-      config.rateLimitWindow ?? DEFAULT_CONFIG.rateLimitWindow,
-    );
+    this.rateLimiter = new RateLimiter({
+      maxRequests: config.rateLimitRequests ?? DEFAULT_CONFIG.rateLimitRequests,
+      windowMs: config.rateLimitWindow ?? DEFAULT_CONFIG.rateLimitWindow,
+      serviceName: "Gemini",
+    });
 
     this.costTracker = 0;
 

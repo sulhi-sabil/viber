@@ -5,6 +5,7 @@ export * from "./utils/logger";
 export * from "./utils/retry";
 export * from "./utils/circuit-breaker";
 export * from "./utils/resilience";
+export * from "./utils/rate-limiter";
 export * from "./utils/validator";
 export * from "./utils/service-factory";
 export * from "./services/supabase";

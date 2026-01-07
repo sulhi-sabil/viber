@@ -1102,3 +1102,152 @@ Created validators in `src/migrations/validators.ts`:
 - [DA-05] Foreign Key Constraints ✅
 - [DA-06] Migration System ✅
 - [DA-07] Data Validation ✅
+
+---
+
+## [I18] Extract RateLimiter Utility
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: 07 Integration (Integration Engineer)
+
+### Description
+
+Extract RateLimiter from GeminiService into a standalone utility to complete the resilience pattern suite and make rate limiting available to all services.
+
+### Issue
+
+RateLimiter was implemented as an internal class in GeminiService, making it unavailable for other services that might need rate limiting (e.g., Supabase, Cloudflare). This violates the DRY principle and makes it harder to add rate limiting to new services consistently.
+
+### Solution
+
+Created standalone `RateLimiter` utility in `src/utils/rate-limiter.ts`:
+
+- Extracted RateLimiter logic from GeminiService
+- Added comprehensive options interface with serviceName support
+- Implemented lazy cleanup for performance optimization
+- Added getMetrics() for monitoring support
+- Added synchronous checkRateLimit and getRemainingRequests methods
+- Created factory function createRateLimiter()
+- Exported from public API (src/index.ts)
+- Updated GeminiService to use standalone utility
+
+### Acceptance Criteria
+
+- [x] Created standalone RateLimiter utility in src/utils/rate-limiter.ts
+- [x] Implemented all features from original GeminiService RateLimiter
+- [x] Added comprehensive tests (25 test cases)
+- [x] Updated GeminiService to use standalone utility
+- [x] Exported RateLimiter from src/index.ts
+- [x] All existing tests pass (310 tests)
+- [x] Linting passes without errors
+- [x] No functionality regression
+- [x] Performance optimizations preserved (lazy cleanup)
+
+### Technical Notes
+
+**Features Implemented**:
+
+- Sliding window rate limiting algorithm
+- Lazy cleanup with configurable threshold
+- Metrics tracking (totalRequests, activeRequests, remainingRequests)
+- Service name support for better logging
+- Factory function for easy instantiation
+- Full TypeScript type safety
+
+**Performance Optimizations**:
+
+- Lazy cleanup to avoid O(n) operations on every request
+- Threshold-based cleanup (Math.max(100, maxRequests \* 2))
+- Time-based cleanup frequency (windowMs / 2)
+- Cached cleanup results for getRemainingRequests()
+
+**API Changes**:
+
+- Removed: `class RateLimiter` from GeminiService (internal)
+- Added: `export { RateLimiter, createRateLimiter } from "./utils/rate-limiter"`
+- Added: `RateLimiterOptions` and `RateLimiterMetrics` interfaces
+- Updated: `GeminiService` to use standalone RateLimiter with options object
+
+**Test Coverage**:
+
+- Constructor tests (4 tests)
+- checkRateLimit tests (4 tests)
+- getRemainingRequests tests (4 tests)
+- getMetrics tests (3 tests)
+- reset tests (2 tests)
+- Performance tests (2 tests)
+- Edge cases tests (4 tests)
+- Lazy cleanup tests (2 tests)
+- Total: 25 tests, all passing
+
+### Implementation Details
+
+**Files Created**:
+
+- `src/utils/rate-limiter.ts`: Standalone RateLimiter utility (128 lines)
+- `src/utils/rate-limiter.test.ts`: Comprehensive test suite (338 lines)
+
+**Files Modified**:
+
+- `src/services/gemini.ts`: Removed internal RateLimiter class, updated to use standalone
+- `src/index.ts`: Added export for RateLimiter
+- `docs/task.md`: Added this task entry
+
+**Test Results**:
+
+- All 310 tests passing (up from 285)
+- 25 new RateLimiter tests added
+- No test failures
+- Linting passes without errors
+
+### Architectural Benefits
+
+1. **DRY Principle**: RateLimiter logic now exists in one place
+2. **Reusability**: Available for all services (Supabase, Cloudflare, etc.)
+3. **Consistency**: Same rate limiting behavior across all services
+4. **Testability**: Easier to test in isolation
+5. **Extensibility**: Easy to add new rate limiting features
+6. **Observability**: Metrics support for monitoring integration
+
+### Usage Example
+
+```typescript
+import { RateLimiter, createRateLimiter } from "viber-integration-layer";
+
+// Direct instantiation
+const limiter = new RateLimiter({
+  maxRequests: 100,
+  windowMs: 60000,
+  serviceName: "MyAPI",
+});
+
+// Using factory function
+const limiter2 = createRateLimiter({
+  maxRequests: 15,
+  windowMs: 60000,
+  serviceName: "Gemini",
+});
+
+// Use in service
+await limiter.checkRateLimit();
+const remaining = limiter.getRemainingRequests();
+const metrics = limiter.getMetrics();
+```
+
+---
+
+### Task Statistics
+
+- Total Tasks: 19
+- Backlog: 8
+- In Progress: 0
+- Complete: 11
+- Blocked: 0
+
+### Priority Breakdown
+
+- P0 (Critical): 0 remaining
+- P1 (High): 1 remaining (I03)
+- P2 (Medium): 5 remaining
+- P3 (Low): 1 remaining
