@@ -8,6 +8,8 @@ A robust, production-ready TypeScript/JavaScript integration layer with built-in
 - **Error Handling**: Standardized error types with request tracking and developer-friendly messages
 - **Logging**: Structured logging with sensitive data sanitization
 - **Service Management**: Centralized service factory for dependency injection and lifecycle management
+- **Input Validation**: Comprehensive validator utility for type checking, format validation, and sanitization
+- **Rate Limiting**: Built-in rate limiter with sliding window algorithm for API quota compliance
 - **Type Safety**: Full TypeScript support with type-safe API clients
 - **Extensible**: Easy to add new services with consistent patterns
 
@@ -202,6 +204,148 @@ const result = await executeWithResilience({
 });
 ```
 
+## Utilities
+
+### Logger
+
+Structured logging utility with automatic sensitive data sanitization and configurable log levels.
+
+```typescript
+import { logger, ConsoleLogger } from "viber-integration-layer";
+
+// Use singleton logger instance
+logger.debug("Debug message", { userId: "123" });
+logger.info("User logged in", { email: "user@example.com" });
+logger.warn("Slow query detected", { queryDuration: 5000 });
+logger.error("Database connection failed", { error: "Connection refused" });
+
+// Sensitive data automatically redacted
+logger.error("Auth failed", {
+  password: "secret123",
+  apiKey: "sk-123456",
+  email: "user@example.com",
+});
+// Output: [ERROR] Auth failed {
+//   password: "[REDACTED]",
+//   apiKey: "[REDACTED]",
+//   email: "user@example.com"
+// }
+
+// Configure log level
+logger.setLevel("debug"); // Only logs debug and above
+logger.setLevel("error"); // Only logs errors
+
+// Create custom logger instance
+const customLogger = new ConsoleLogger("warn");
+customLogger.warn("Custom warning");
+```
+
+### Validator
+
+Comprehensive input validation and sanitization utility for ensuring data integrity.
+
+```typescript
+import {
+  Validator,
+  SchemaValidator,
+  createValidator,
+} from "viber-integration-layer";
+
+// Type validation
+Validator.required(value, "username");
+Validator.string(value, "name");
+Validator.number(value, "age");
+Validator.integer(value, "count");
+Validator.boolean(value, "active");
+Validator.array(value, "items");
+
+// Format validation
+Validator.email("user@example.com");
+Validator.url("https://example.com");
+Validator.uuid("550e8400-e29b-41d4-a716-446655440000");
+
+// Length validation
+Validator.minLength(value, 8, "password");
+Validator.maxLength(value, 255, "title");
+
+// Range validation
+Validator.min(value, 18, "age");
+Validator.max(value, 100, "score");
+
+// Pattern validation
+Validator.pattern(value, /^[A-Z][a-z]+$/, "name");
+
+// Enum validation
+Validator.enum(role, ["admin", "editor", "user"], "role");
+
+// Sanitization
+Validator.sanitize(value, { trim: true, escapeHtml: true });
+Validator.sanitizeObject(data, {
+  username: { trim: true, lowercase: true },
+  email: { trim: true },
+});
+
+// Schema validation for complex objects
+const userSchema = createValidator();
+userSchema
+  .addField("name")
+  .addField("email")
+  .addField("age", Validator.integer)
+  .addField("active", Validator.boolean);
+
+const userData = userSchema.validate({
+  name: "John",
+  email: "john@example.com",
+  age: 30,
+  active: true,
+});
+
+// Partial validation (returns errors without throwing)
+const result = userSchema.validatePartial({ name: "Jane" });
+// { valid: true, errors: [] }
+```
+
+### RateLimiter
+
+Enforces request rate limits to prevent API abuse and ensure compliance with service quotas.
+
+```typescript
+import { RateLimiter, createRateLimiter } from "viber-integration-layer";
+
+// Create rate limiter
+const limiter = new RateLimiter({
+  maxRequests: 100,
+  windowMs: 60000, // 1 minute
+  serviceName: "MyAPI",
+});
+
+// Using factory function
+const limiter2 = createRateLimiter({
+  maxRequests: 15,
+  windowMs: 60000,
+  serviceName: "GeminiAPI",
+});
+
+// Check rate limit (waits if limit reached)
+await limiter.checkRateLimit();
+
+// Get remaining requests
+const remaining = limiter.getRemainingRequests();
+
+// Get detailed metrics
+const metrics = limiter.getMetrics();
+// {
+//   totalRequests: 10,
+//   activeRequests: 10,
+//   remainingRequests: 90,
+//   windowStart: 1640000000000,
+//   windowEnd: 1640000600000
+// }
+
+// Reset rate limiter
+limiter.reset();
+```
+
 ## Configuration
 
 ### Service Factory Configuration
@@ -303,6 +447,88 @@ class ServiceFactory {
   getCircuitBreakerState(serviceName: string): CircuitBreakerState;
   getAllCircuitBreakerStates(): Record<string, CircuitBreakerState>;
 }
+```
+
+### Logger
+
+```typescript
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
+class ConsoleLogger implements Logger {
+  constructor(level?: "debug" | "info" | "warn" | "error");
+  setLevel(level: "debug" | "info" | "warn" | "error"): void;
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
+const logger: Logger;
+```
+
+### Validator
+
+```typescript
+class Validator {
+  static required(value: unknown, fieldName?: string): void;
+  static string(value: unknown, fieldName?: string): void;
+  static number(value: unknown, fieldName?: string): void;
+  static integer(value: unknown, fieldName?: string): void;
+  static boolean(value: unknown, fieldName?: string): void;
+  static array(value: unknown, fieldName?: string): void;
+  static email(value: unknown, fieldName?: string): void;
+  static url(value: unknown, fieldName?: string): void;
+  static uuid(value: unknown, fieldName?: string): void;
+  static minLength(value: unknown, min: number, fieldName?: string): void;
+  static maxLength(value: unknown, max: number, fieldName?: string): void;
+  static min(value: unknown, min: number, fieldName?: string): void;
+  static max(value: unknown, max: number, fieldName?: string): void;
+  static enum<T extends string>(
+    value: unknown,
+    allowedValues: readonly T[],
+    fieldName?: string,
+  ): void;
+  static pattern(value: unknown, regex: RegExp, fieldName?: string): void;
+  static sanitize(value: unknown, options?: SanitizeOptions): unknown;
+  static sanitizeObject(
+    obj: Record<string, unknown>,
+    fieldSanitizers: Record<string, SanitizeOptions>,
+  ): Record<string, unknown>;
+}
+
+class SchemaValidator<T extends Record<string, unknown>> {
+  addField<K extends keyof T>(
+    field: K,
+    ...rules: ValidationRule[]
+  ): SchemaValidator<T>;
+  validate(data: Partial<T>): T;
+  validatePartial(data: Partial<T>): ValidationResult;
+}
+
+function createValidator(): SchemaValidator<Record<string, unknown>>;
+function validateEmail(email: unknown): boolean;
+function validateUrl(url: unknown): boolean;
+function validateUuid(uuid: unknown): boolean;
+function sanitizeInput(input: unknown, escapeHtml?: boolean): unknown;
+```
+
+### RateLimiter
+
+```typescript
+class RateLimiter {
+  constructor(options?: RateLimiterOptions);
+  checkRateLimit(): Promise<void>;
+  getRemainingRequests(): number;
+  getMetrics(): RateLimiterMetrics;
+  reset(): void;
+}
+
+function createRateLimiter(options?: RateLimiterOptions): RateLimiter;
 ```
 
 ## Development

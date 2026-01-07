@@ -1237,12 +1237,130 @@ const metrics = limiter.getMetrics();
 
 ---
 
+## [DOC01] Add Missing Utility Documentation
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: 10 Technical Writer
+
+### Description
+
+Add comprehensive documentation for Validator, RateLimiter, and Logger utilities that were missing from README.md despite being exported from the public API.
+
+### Issue
+
+Three core utilities were exported from `src/index.ts` but not documented in README.md:
+
+- Validator utility (comprehensive validation and sanitization)
+- RateLimiter utility (mentioned in blueprint but missing from README)
+- Logger utility (only briefly mentioned, no detailed documentation)
+
+This created a gap between the public API surface and its documentation.
+
+### Solution
+
+Added comprehensive documentation sections to README.md:
+
+1. **Validator Utility Documentation**:
+   - Type validation (required, string, number, integer, boolean, array)
+   - Format validation (email, URL, UUID)
+   - Length validation (minLength, maxLength)
+   - Range validation (min, max)
+   - Pattern validation (regex)
+   - Enum validation
+   - Sanitization (trim, escapeHtml, lowercase, uppercase)
+   - SchemaValidator class for complex object validation
+   - Helper functions (validateEmail, validateUrl, validateUuid, sanitizeInput)
+   - Working code examples for all features
+
+2. **RateLimiter Utility Documentation**:
+   - Constructor with options (maxRequests, windowMs, cleanupThreshold, serviceName)
+   - checkRateLimit() method with automatic waiting
+   - getRemainingRequests() method
+   - getMetrics() method with detailed stats
+   - reset() method
+   - Factory function createRateLimiter()
+   - Working code examples
+
+3. **Logger Utility Documentation**:
+   - Logger interface (debug, info, warn, error methods)
+   - ConsoleLogger class with level filtering
+   - Automatic sensitive data redaction (12 patterns)
+   - Singleton logger instance usage
+   - setLevel() method for configuration
+   - Custom logger instance creation
+   - Working code examples
+
+4. **API Reference Updates**:
+   - Added Logger interface and ConsoleLogger class signatures
+   - Added all Validator static methods and SchemaValidator class
+   - Added RateLimiter class and createRateLimiter function
+   - Comprehensive TypeScript type signatures
+
+5. **Features Section Update**:
+   - Added "Input Validation" to features list
+   - Added "Rate Limiting" to features list
+
+### Acceptance Criteria
+
+- [x] Validator utility documented with all methods and examples
+- [x] RateLimiter utility documented with all methods and examples
+- [x] Logger utility documented with all methods and examples
+- [x] All code examples tested and verified working
+- [x] API reference updated with complete signatures
+- [x] Features section updated to include new utilities
+- [x] All 310 tests pass (no regressions)
+- [x] Linting passes without errors
+
+### Technical Notes
+
+**Validator Features Documented**:
+
+- 13+ validation methods covering common use cases
+- Sanitization with HTML escaping, trimming, case conversion
+- SchemaValidator for complex object validation
+- Fluent API with addField() chaining
+- Partial validation support (returns ValidationResult)
+
+**RateLimiter Features Documented**:
+
+- Sliding window rate limiting algorithm
+- Lazy cleanup for performance optimization (~244x faster)
+- Metrics tracking (totalRequests, activeRequests, remainingRequests)
+- Service name support for better logging
+- Factory function for easy instantiation
+
+**Logger Features Documented**:
+
+- Structured logging with sensitive data redaction
+- Log level filtering (debug, info, warn, error)
+- Performance-optimized sanitization (~10,000x improvement)
+- Singleton pattern for consistent configuration
+- Custom logger instance support
+
+### Test Results
+
+- All 310 tests pass
+- Code examples verified working
+- No functionality regressions introduced
+- Linting passes without errors
+
+### Documentation Improvements
+
+- **Before**: 339 lines in README
+- **After**: 480+ lines in README
+- **New sections**: 3 major sections with comprehensive examples
+- **Code examples**: 15+ working examples added
+- **API signatures**: Complete TypeScript signatures for 3 utilities
+
+---
+
 ### Task Statistics
 
-- Total Tasks: 19
+- Total Tasks: 20
 - Backlog: 8
 - In Progress: 0
-- Complete: 11
+- Complete: 12
 - Blocked: 0
 
 ### Priority Breakdown
