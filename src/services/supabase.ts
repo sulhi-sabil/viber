@@ -7,15 +7,13 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { executeWithResilience } from "../utils/resilience";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { Validator } from "../utils/validator";
+import { ResilienceConfig } from "../types/service-config";
 
-export interface SupabaseConfig {
+export interface SupabaseConfig extends ResilienceConfig {
   url: string;
   anonKey: string;
   serviceRoleKey?: string;
-  timeout?: number;
-  maxRetries?: number;
-  circuitBreakerThreshold?: number;
-  circuitBreakerResetTimeout?: number;
 }
 
 export interface DatabaseRow {
@@ -31,7 +29,7 @@ export interface QueryOptions {
   useRetry?: boolean;
 }
 
-const DEFAULT_CONFIG: Required<
+const DEFAULT_SUPABASE_CONFIG: Required<
   Pick<
     SupabaseConfig,
     | "timeout"
@@ -52,8 +50,15 @@ export class SupabaseService {
   private circuitBreaker: CircuitBreaker;
   private config: SupabaseConfig;
 
-  constructor(config: SupabaseConfig) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+  constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
+    this.config = { ...DEFAULT_SUPABASE_CONFIG, ...config };
+
+    Validator.url(config.url, "Supabase URL");
+    Validator.string(config.anonKey, "anonKey");
+
+    if (config.serviceRoleKey) {
+      Validator.string(config.serviceRoleKey, "serviceRoleKey");
+    }
 
     this.client = createClient(config.url, config.anonKey, {
       auth: {
@@ -83,21 +88,24 @@ export class SupabaseService {
       });
     }
 
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: this.config.circuitBreakerThreshold,
-      resetTimeout: this.config.circuitBreakerResetTimeout,
-      onStateChange: (state, reason) => {
-        logger.warn(
-          `Supabase circuit breaker state changed to ${state}: ${reason}`,
-        );
-      },
-    });
+    this.circuitBreaker =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: this.config.circuitBreakerThreshold,
+        resetTimeout: this.config.circuitBreakerResetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Supabase circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
 
     logger.info("Supabase service initialized", {
       url: config.url.replace(/\/$/, ""),
       hasAdminClient: !!config.serviceRoleKey,
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
+      usesProvidedCircuitBreaker: !!circuitBreaker,
     });
   }
 
@@ -164,20 +172,30 @@ export class SupabaseService {
       orderBy?: { column: string; ascending?: boolean };
       limit?: number;
       offset?: number;
+      includeDeleted?: boolean;
     } = {},
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
-    const { columns = "*", filter, orderBy, limit, offset } = options;
+    const {
+      columns = "*",
+      filter,
+      orderBy,
+      limit,
+      offset,
+      includeDeleted = false,
+    } = options;
+
+    Validator.string(table, "table");
 
     return this.executeWithResilience(async () => {
       let query = this.client.from(table).select(columns);
 
       if (filter) {
-        query = query.filter(
-          filter.column,
-          filter.operator as any,
-          filter.value,
-        );
+        query = query.filter(filter.column, filter.operator, filter.value);
+      }
+
+      if (!includeDeleted) {
+        query = query.eq("deleted_at", null);
       }
 
       if (orderBy) {
@@ -208,14 +226,20 @@ export class SupabaseService {
     table: string,
     id: string,
     columns: string = "*",
+    includeDeleted: boolean = false,
     queryOptions: QueryOptions = {},
   ): Promise<T | null> {
+    Validator.string(table, "table");
+    Validator.string(id, "id");
+
     return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .select(columns)
-        .eq("id", id)
-        .single();
+      let query = this.client.from(table).select(columns).eq("id", id);
+
+      if (!includeDeleted) {
+        query = query.eq("deleted_at", null);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) {
         if (error.code === "PGRST116") {
@@ -233,6 +257,9 @@ export class SupabaseService {
     row: Partial<T>,
     queryOptions: QueryOptions = {},
   ): Promise<T> {
+    Validator.string(table, "table");
+    Validator.required(row, "row");
+
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client
         .from(table)
@@ -273,6 +300,10 @@ export class SupabaseService {
     updates: Partial<T>,
     queryOptions: QueryOptions = {},
   ): Promise<T> {
+    Validator.string(table, "table");
+    Validator.string(id, "id");
+    Validator.required(updates, "updates");
+
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client
         .from(table)
@@ -292,13 +323,25 @@ export class SupabaseService {
   async delete(
     table: string,
     id: string,
+    softDelete: boolean = true,
     queryOptions: QueryOptions = {},
   ): Promise<void> {
     return this.executeWithResilience(async () => {
-      const { error } = await this.client.from(table).delete().eq("id", id);
+      if (softDelete) {
+        const { error } = await this.client
+          .from(table)
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", id);
 
-      if (error) {
-        this.handleSupabaseError(error);
+        if (error) {
+          this.handleSupabaseError(error);
+        }
+      } else {
+        const { error } = await this.client.from(table).delete().eq("id", id);
+
+        if (error) {
+          this.handleSupabaseError(error);
+        }
       }
 
       return;
@@ -322,6 +365,41 @@ export class SupabaseService {
       }
 
       return data as unknown as T;
+    }, queryOptions);
+  }
+
+  async restore(
+    table: string,
+    id: string,
+    queryOptions: QueryOptions = {},
+  ): Promise<void> {
+    return this.executeWithResilience(async () => {
+      const { error } = await this.client
+        .from(table)
+        .update({ deleted_at: null })
+        .eq("id", id);
+
+      if (error) {
+        this.handleSupabaseError(error);
+      }
+
+      return;
+    }, queryOptions);
+  }
+
+  async permanentDelete(
+    table: string,
+    id: string,
+    queryOptions: QueryOptions = {},
+  ): Promise<void> {
+    return this.executeWithResilience(async () => {
+      const { error } = await this.client.from(table).delete().eq("id", id);
+
+      if (error) {
+        this.handleSupabaseError(error);
+      }
+
+      return;
     }, queryOptions);
   }
 

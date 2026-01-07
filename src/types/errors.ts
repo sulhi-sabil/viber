@@ -48,9 +48,3 @@ export interface HttpError extends Error {
   details?: ErrorDetails;
   requestId: string;
 }
-
-export interface ServiceConfig {
-  timeout: number;
-  maxRetries: number;
-  circuitBreakerThreshold: number;
-}

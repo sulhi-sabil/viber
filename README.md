@@ -1,134 +1,564 @@
-Blueprint: Universal Serverless Framework on Cloudflare PagesVersi Dokumen: 1.0Target Platform: Cloudflare Pages (Full Stack)Tujuan: Membangun kerangka kerja website fleksibel (Multi-purpose) dengan Admin Dashboard terintegrasi, biaya rendah (Serverless), dan performa tinggi (Edge).1. Ringkasan EksekutifProyek ini bertujuan membuat "Engine" website yang di-host sepenuhnya di Cloudflare. Engine ini memisahkan Logic (Code) dan Content (Data).Frontend Public: Merender konten berdasarkan data yang diambil dari DB.Admin Dashboard: Interface untuk mengelola konten dan struktur data.Backend: Berjalan di Cloudflare Pages Functions (Workers) untuk API dan rendering.2. Arsitektur SistemSistem menggunakan pendekatan Monorepo Full-Stack. Frontend dan Backend berada dalam satu repositori git dan dideploy bersamaan.Diagram Alur Datagraph TD
-    User[Visitor] -->|Request URL| CDN[Cloudflare Edge Network]
-    Admin[Admin User] -->|Manage Content| Dashboard[Admin Dashboard /admin]
-    
-    subgraph Cloudflare Ecosystem
-        CDN -->|Static Assets| Assets[HTML/CSS/JS]
-        CDN -->|Dynamic Request| SSR[Pages Functions / Workers]
-        
-        SSR -->|Auth & Logic| AuthLogic
-        SSR -->|Query Data| D1[Cloudflare D1 SQL Database]
-        SSR -->|Media Upload/Get| R2[Cloudflare R2 Storage]
-        
-        Dashboard --> SSR
-    end
-Stack Teknologi (Rekomendasi)KomponenTeknologiAlasan PemilihanFramework UtamaSvelteKit (atau Next.js)Adapter Cloudflare terbaik, ringan, mendukung SSR di Edge.RuntimeCloudflare Pages FunctionsLatency rendah (0ms cold start), terintegrasi langsung.DatabaseCloudflare D1 (SQLite)SQL Relasional, Serverless, murah, replikasi global.ORMDrizzle ORMRingan, Type-safe, performa query terbaik untuk D1.File StorageCloudflare R2Kompatibel S3, Tanpa biaya bandwidth (egress).AuthenticationLucia AuthAuth library modern yang menyimpan session di DB sendiri (D1).StylingTailwind CSSUtilitas styling cepat untuk Admin & Public theme.3. Desain Database (Flexible Schema)Agar framework ini bisa digunakan untuk jenis website apa saja (E-commerce, Blog, Portfolio), kita tidak membuat tabel kaku. Kita menggunakan pendekatan Hybrid Relational + JSON.Skema Inti (D1 SQL)-- 1. USERS & AUTH
-CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT,
-    role TEXT DEFAULT 'editor', -- 'admin', 'editor'
-    created_at INTEGER
+# Viber Integration Layer
+
+A robust, production-ready TypeScript/JavaScript integration layer with built-in resilience patterns, error handling, and monitoring capabilities for external API integrations.
+
+## Features
+
+- **Resilience Patterns**: Built-in circuit breaker, retry logic with exponential backoff, and timeout handling
+- **Error Handling**: Standardized error types with request tracking and developer-friendly messages
+- **Logging**: Structured logging with sensitive data sanitization
+- **Service Management**: Centralized service factory for dependency injection and lifecycle management
+- **Input Validation**: Comprehensive validator utility for type checking, format validation, and sanitization
+- **Rate Limiting**: Built-in rate limiter with sliding window algorithm for API quota compliance
+- **Type Safety**: Full TypeScript support with type-safe API clients
+- **Extensible**: Easy to add new services with consistent patterns
+
+## Quick Start
+
+### Installation
+
+```bash
+npm install viber-integration-layer
+```
+
+### Basic Usage
+
+```typescript
+import {
+  ServiceFactory,
+  SupabaseService,
+  GeminiService,
+} from "viber-integration-layer";
+
+// Initialize service factory
+const factory = ServiceFactory.getInstance();
+
+// Create Supabase client
+const supabase = factory.createSupabaseClient({
+  url: "https://your-project.supabase.co",
+  anonKey: "your-anon-key",
+  serviceRoleKey: "your-service-role-key", // optional
+});
+
+// Create Gemini client
+const gemini = factory.createGeminiClient({
+  apiKey: "your-gemini-api-key",
+});
+
+// Use services
+const users = await supabase.select("users");
+const text = await gemini.generateText("Hello, world!");
+```
+
+## Architecture
+
+The integration layer follows clean architecture principles with clear separation of concerns:
+
+### Service Factory Pattern
+
+The `ServiceFactory` provides centralized service initialization and management:
+
+- **Dependency Injection**: Services accept CircuitBreaker instances instead of creating them
+- **Singleton Management**: Ensures single instance per service configuration
+- **Lifecycle Control**: Easy reset and management of service instances
+- **Configuration Centralization**: CircuitBreaker configs managed centrally
+
+### Layer Structure
+
+```
+src/
+├── services/          # External API clients (Supabase, Gemini)
+├── utils/            # Reusable utilities (Circuit Breaker, Retry, Logger)
+├── types/            # TypeScript type definitions
+└── index.ts          # Public API exports
+```
+
+## Services
+
+### Supabase Service
+
+Full-featured Supabase client with resilience patterns:
+
+```typescript
+import { ServiceFactory } from "viber-integration-layer";
+
+const factory = ServiceFactory.getInstance();
+const supabase = factory.createSupabaseClient({
+  url: "https://your-project.supabase.co",
+  anonKey: "your-anon-key",
+  timeout: 10000,
+  maxRetries: 3,
+});
+
+// CRUD operations
+const user = await supabase.selectById("users", "user-123");
+await supabase.insert("users", { email: "user@example.com" });
+await supabase.update("users", "user-123", { email: "new@example.com" });
+await supabase.delete("users", "user-123");
+
+// Health check
+const health = await supabase.healthCheck();
+```
+
+### Gemini Service
+
+Google Gemini AI client with rate limiting and streaming support:
+
+```typescript
+import { ServiceFactory } from "viber-integration-layer";
+
+const factory = ServiceFactory.getInstance();
+const gemini = factory.createGeminiClient({
+  apiKey: "your-api-key",
+  timeout: 30000,
+  maxRetries: 3,
+  rateLimitRequests: 15,
+  rateLimitWindow: 60000,
+});
+
+// Generate text
+const text = await gemini.generateText("Explain quantum computing");
+
+// Generate content with options
+const response = await gemini.generateContent(
+  [{ role: "user", parts: [{ text: "Hello" }] }],
+  { temperature: 0.7, maxOutputTokens: 1024 },
 );
 
-CREATE TABLE sessions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id),
-    expires_at INTEGER NOT NULL
+// Streaming response
+await gemini.generateTextStream("Tell me a story", (chunk) =>
+  console.log(chunk.text),
 );
+```
 
--- 2. CONTENT TYPES (Mendefinisikan Struktur)
--- Contoh: slug='products', name='Produk', schema_json='{"price": "number", "sku": "text"}'
-CREATE TABLE content_types (
-    slug TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    fields_schema TEXT NOT NULL -- JSON Definition untuk Admin UI Builder
+## Resilience Patterns
+
+### Circuit Breaker
+
+Prevents cascading failures by stopping calls to failing services:
+
+```typescript
+import { CircuitBreaker, CircuitState } from "viber-integration-layer";
+
+const breaker = new CircuitBreaker({
+  failureThreshold: 5,
+  resetTimeout: 60000,
+  onStateChange: (state, reason) => {
+    console.log(`Circuit breaker ${state}: ${reason}`);
+  },
+});
+
+try {
+  const result = await breaker.execute(async () => {
+    return await riskyOperation();
+  });
+} catch (error) {
+  console.error("Operation failed:", error);
+}
+
+// Check state
+console.log(breaker.getState()); // CLOSED, OPEN, or HALF_OPEN
+```
+
+### Retry Logic
+
+Automatic retry with exponential backoff:
+
+```typescript
+import { retry } from "viber-integration-layer";
+
+const result = await retry(
+  async () => {
+    return await fetch("/api/data");
+  },
+  {
+    maxAttempts: 3,
+    retryableErrors: [408, 429, 500, 502, 503, 504],
+    onRetry: (attempt, error) => {
+      console.log(`Retry attempt ${attempt}: ${error.message}`);
+    },
+  },
 );
+```
 
--- 3. ENTRIES (Konten Dinamis)
-CREATE TABLE entries (
-    id TEXT PRIMARY KEY,
-    type_slug TEXT NOT NULL REFERENCES content_types(slug),
-    slug TEXT UNIQUE,     -- URL akses (misal: /produk/sepatu-merah)
-    title TEXT NOT NULL,
-    data TEXT,            -- JSON BLOB: Menyimpan custom fields (harga, gambar, dll)
-    status TEXT DEFAULT 'draft', -- 'published', 'draft'
-    created_at INTEGER,
-    updated_at INTEGER
-);
+### Combined Resilience
 
--- 4. MEDIA ASSETS
-CREATE TABLE assets (
-    id TEXT PRIMARY KEY,
-    filename TEXT,
-    r2_key TEXT NOT NULL,
-    mime_type TEXT,
-    public_url TEXT,
-    created_at INTEGER
-);
-4. Struktur Folder (Monorepo)Struktur ini memisahkan logika publik (yang dilihat pengunjung) dan logika admin, namun tetap berbagi library yang sama./
-├── .wrangler/                  # Local dev artifacts
-├── src/
-│   ├── lib/
-│   │   ├── server/
-│   │   │   ├── db.ts           # Koneksi Drizzle ke D1
-│   │   │   ├── auth.ts         # Logic Lucia Auth
-│   │   │   └── r2_helper.ts    # Logic Upload/Delete R2
-│   │   ├── components/         # UI Components (Button, Card, dll)
-│   │   └── utils/
-│   ├── routes/
-│   │   ├── (public)/           # HALAMAN WEBSITE (Front-facing)
-│   │   │   ├── +layout.svelte
-│   │   │   ├── +page.svelte    # Homepage
-│   │   │   └── [slug]/         # Dynamic Route (Blog/Product)
-│   │   │       └── +page.server.ts # Load data from 'entries' table
-│   │   ├── (admin)/            # ADMIN DASHBOARD (Protected)
-│   │   │   ├── login/
-│   │   │   ├── dashboard/
-│   │   │   │   ├── content-types/ # Builder Schema
-│   │   │   │   ├── entries/       # CRUD Content
-│   │   │   │   └── media/         # File Manager
-│   │   │   └── +layout.server.ts  # Cek Session/Auth Gate
-│   │   └── api/                # REST API (Optional untuk external apps)
-├── drizzle/                    # File migrasi SQL
-├── static/                     # Aset statis (favicon, robots.txt)
-├── wrangler.toml               # Konfigurasi Cloudflare
-└── package.json
-5. Implementasi Teknis & Code SnippetsA. Konfigurasi wrangler.tomlFile ini wajib ada untuk menghubungkan kode dengan resource Cloudflare.name = "my-universal-framework"
-pages_build_output_dir = ".svelte-kit/cloudflare"
-compatibility_date = "2024-01-01"
+Use the `executeWithResilience` utility for comprehensive resilience:
 
-# Database Binding
-[[d1_databases]]
-binding = "DB" 
-database_name = "prod-db"
-database_id = "xxxx-xxxx-xxxx"
+```typescript
+import { executeWithResilience } from "viber-integration-layer";
 
-# Storage Binding
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "prod-media"
+const result = await executeWithResilience({
+  operation: async () => {
+    return await externalApiCall();
+  },
+  options: {
+    timeout: 10000,
+    useCircuitBreaker: true,
+    useRetry: true,
+  },
+  circuitBreaker: myCircuitBreaker,
+  maxRetries: 3,
+  defaultTimeout: 10000,
+  timeoutOperationName: "External API call",
+});
+```
 
-[vars]
-PUBLIC_SITE_NAME = "My Awesome Site"
-B. Koneksi Database (Drizzle ORM)Lokasi: src/lib/server/db.tsimport { drizzle } from 'drizzle-orm/d1';
-import * as schema from './schema'; // Definisi tabel
+## Utilities
 
-export const createDb = (env: App.Platform['env']) => {
-    return drizzle(env.DB, { schema });
-};
-C. Logic Routing Dinamis (Public Frontend)Lokasi: src/routes/(public)/[slug]/+page.server.tsBagian ini membuat website fleksibel. Ia mencari konten berdasarkan URL slug di database.export const load = async ({ params, platform, error }) => {
-    const db = createDb(platform.env);
-    
-    // Cari entry berdasarkan URL slug
-    const entry = await db.query.entries.findFirst({
-        where: (entries, { eq }) => eq(entries.slug, params.slug),
-        with: {
-            contentType: true // Ambil juga metadata tipenya
-        }
-    });
+### Logger
 
-    if (!entry || entry.status !== 'published') {
-        throw error(404, 'Halaman tidak ditemukan');
-    }
+Structured logging utility with automatic sensitive data sanitization and configurable log levels.
 
-    // Parse JSON data string kembali ke Object
-    const dynamicData = JSON.parse(entry.data);
+```typescript
+import { logger, ConsoleLogger } from "viber-integration-layer";
 
-    return {
-        title: entry.title,
-        type: entry.type_slug,
-        content: dynamicData
-    };
-};
-6. Fitur Admin DashboardDashboard harus bersifat "Schema Driven".Content Type Builder:Admin bisa membuat tipe konten baru (misal: "Portfolio").Admin menambah field: Client Name (Text), Project Image (Media), Year (Number).Sistem menyimpan definisi ini ke kolom fields_schema di tabel content_types.Content Editor:Saat Admin membuat Portfolio baru, UI membaca schema tadi.Jika tipe field = 'Media', tampilkan tombol "Upload to R2".Jika tipe field = 'Rich Text', tampilkan WYSIWYG editor.7. Strategi Deployment & CI/CDKarena menggunakan Cloudflare Pages, pipeline CI/CD sudah otomatis.Repository: Kode disimpan di GitHub/GitLab.Trigger: Setiap push ke branch main memicu build.Build Command: npm run build (SvelteKit/NextJS build process).Database Migration: * Opsional Otomatis: Tambahkan script migrasi di pipeline.Manual: Jalankan npx wrangler d1 migrations apply prod-db --remote dari lokal komputer developer saat ada perubahan struktur tabel.8. Rencana Pengembangan (Roadmap)Fase 1: Core FoundationSetup Repository & Wrangler.Setup Auth (Login/Logout).Setup DB Connection.Fase 2: Admin Dashboard BasicCRUD Content Types.CRUD Entries (Basic Text Fields).Fase 3: Media & StorageIntegrasi R2 Upload.Gallery Picker di Admin.Fase 4: Public Frontend EngineDynamic Routing [slug].SSR Rendering untuk SEO.
+// Use singleton logger instance
+logger.debug("Debug message", { userId: "123" });
+logger.info("User logged in", { email: "user@example.com" });
+logger.warn("Slow query detected", { queryDuration: 5000 });
+logger.error("Database connection failed", { error: "Connection refused" });
+
+// Sensitive data automatically redacted
+logger.error("Auth failed", {
+  password: "secret123",
+  apiKey: "sk-123456",
+  email: "user@example.com",
+});
+// Output: [ERROR] Auth failed {
+//   password: "[REDACTED]",
+//   apiKey: "[REDACTED]",
+//   email: "user@example.com"
+// }
+
+// Configure log level
+logger.setLevel("debug"); // Only logs debug and above
+logger.setLevel("error"); // Only logs errors
+
+// Create custom logger instance
+const customLogger = new ConsoleLogger("warn");
+customLogger.warn("Custom warning");
+```
+
+### Validator
+
+Comprehensive input validation and sanitization utility for ensuring data integrity.
+
+```typescript
+import {
+  Validator,
+  SchemaValidator,
+  createValidator,
+} from "viber-integration-layer";
+
+// Type validation
+Validator.required(value, "username");
+Validator.string(value, "name");
+Validator.number(value, "age");
+Validator.integer(value, "count");
+Validator.boolean(value, "active");
+Validator.array(value, "items");
+
+// Format validation
+Validator.email("user@example.com");
+Validator.url("https://example.com");
+Validator.uuid("550e8400-e29b-41d4-a716-446655440000");
+
+// Length validation
+Validator.minLength(value, 8, "password");
+Validator.maxLength(value, 255, "title");
+
+// Range validation
+Validator.min(value, 18, "age");
+Validator.max(value, 100, "score");
+
+// Pattern validation
+Validator.pattern(value, /^[A-Z][a-z]+$/, "name");
+
+// Enum validation
+Validator.enum(role, ["admin", "editor", "user"], "role");
+
+// Sanitization
+Validator.sanitize(value, { trim: true, escapeHtml: true });
+Validator.sanitizeObject(data, {
+  username: { trim: true, lowercase: true },
+  email: { trim: true },
+});
+
+// Schema validation for complex objects
+const userSchema = createValidator();
+userSchema
+  .addField("name")
+  .addField("email")
+  .addField("age", Validator.integer)
+  .addField("active", Validator.boolean);
+
+const userData = userSchema.validate({
+  name: "John",
+  email: "john@example.com",
+  age: 30,
+  active: true,
+});
+
+// Partial validation (returns errors without throwing)
+const result = userSchema.validatePartial({ name: "Jane" });
+// { valid: true, errors: [] }
+```
+
+### RateLimiter
+
+Enforces request rate limits to prevent API abuse and ensure compliance with service quotas.
+
+```typescript
+import { RateLimiter, createRateLimiter } from "viber-integration-layer";
+
+// Create rate limiter
+const limiter = new RateLimiter({
+  maxRequests: 100,
+  windowMs: 60000, // 1 minute
+  serviceName: "MyAPI",
+});
+
+// Using factory function
+const limiter2 = createRateLimiter({
+  maxRequests: 15,
+  windowMs: 60000,
+  serviceName: "GeminiAPI",
+});
+
+// Check rate limit (waits if limit reached)
+await limiter.checkRateLimit();
+
+// Get remaining requests
+const remaining = limiter.getRemainingRequests();
+
+// Get detailed metrics
+const metrics = limiter.getMetrics();
+// {
+//   totalRequests: 10,
+//   activeRequests: 10,
+//   remainingRequests: 90,
+//   windowStart: 1640000000000,
+//   windowEnd: 1640000600000
+// }
+
+// Reset rate limiter
+limiter.reset();
+```
+
+## Configuration
+
+### Service Factory Configuration
+
+Configure circuit breakers centrally:
+
+```typescript
+import { ServiceFactory } from "viber-integration-layer";
+
+const factory = ServiceFactory.getInstance({
+  supabase: {
+    failureThreshold: 5,
+    resetTimeout: 60000,
+  },
+  gemini: {
+    failureThreshold: 3,
+    resetTimeout: 30000,
+  },
+});
+```
+
+### Logging Configuration
+
+Configure logging levels:
+
+```typescript
+import { logger } from "viber-integration-layer";
+
+logger.setLevel("debug"); // 'error', 'warn', 'info', 'debug'
+```
+
+## Error Handling
+
+All services throw standardized error types:
+
+```typescript
+import {
+  SupabaseError,
+  GeminiError,
+  RateLimitError,
+  TimeoutError,
+  InternalError,
+} from "viber-integration-layer";
+
+try {
+  await operation();
+} catch (error) {
+  if (error instanceof SupabaseError) {
+    console.error("Supabase error:", error.code, error.message);
+  } else if (error instanceof RateLimitError) {
+    console.error("Rate limited, retry after:", error.retryAfter);
+  } else {
+    console.error("Unknown error:", error);
+  }
+}
+```
+
+## Monitoring
+
+### Circuit Breaker States
+
+Monitor circuit breaker states across all services:
+
+```typescript
+import { serviceFactory } from "viber-integration-layer";
+
+const states = serviceFactory.getAllCircuitBreakerStates();
+console.log(states);
+// {
+//   supabase: { state: 'CLOSED', metrics: { ... } },
+//   gemini: { state: 'OPEN', metrics: { ... } }
+// }
+```
+
+### Reset Circuit Breakers
+
+```typescript
+// Reset specific service
+serviceFactory.resetCircuitBreaker("supabase");
+
+// Reset all
+serviceFactory.resetAllCircuitBreakers();
+```
+
+## API Reference
+
+### ServiceFactory
+
+```typescript
+class ServiceFactory {
+  static getInstance(
+    circuitBreakerConfigs?: CircuitBreakerConfigMap,
+  ): ServiceFactory;
+  createSupabaseClient(config: SupabaseConfig): SupabaseService;
+  createGeminiClient(config: GeminiConfig): GeminiService;
+  getCircuitBreaker(serviceName: string): CircuitBreaker;
+  resetCircuitBreaker(serviceName: string): void;
+  resetAllCircuitBreakers(): void;
+  getCircuitBreakerState(serviceName: string): CircuitBreakerState;
+  getAllCircuitBreakerStates(): Record<string, CircuitBreakerState>;
+}
+```
+
+### Logger
+
+```typescript
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
+class ConsoleLogger implements Logger {
+  constructor(level?: "debug" | "info" | "warn" | "error");
+  setLevel(level: "debug" | "info" | "warn" | "error"): void;
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
+const logger: Logger;
+```
+
+### Validator
+
+```typescript
+class Validator {
+  static required(value: unknown, fieldName?: string): void;
+  static string(value: unknown, fieldName?: string): void;
+  static number(value: unknown, fieldName?: string): void;
+  static integer(value: unknown, fieldName?: string): void;
+  static boolean(value: unknown, fieldName?: string): void;
+  static array(value: unknown, fieldName?: string): void;
+  static email(value: unknown, fieldName?: string): void;
+  static url(value: unknown, fieldName?: string): void;
+  static uuid(value: unknown, fieldName?: string): void;
+  static minLength(value: unknown, min: number, fieldName?: string): void;
+  static maxLength(value: unknown, max: number, fieldName?: string): void;
+  static min(value: unknown, min: number, fieldName?: string): void;
+  static max(value: unknown, max: number, fieldName?: string): void;
+  static enum<T extends string>(
+    value: unknown,
+    allowedValues: readonly T[],
+    fieldName?: string,
+  ): void;
+  static pattern(value: unknown, regex: RegExp, fieldName?: string): void;
+  static sanitize(value: unknown, options?: SanitizeOptions): unknown;
+  static sanitizeObject(
+    obj: Record<string, unknown>,
+    fieldSanitizers: Record<string, SanitizeOptions>,
+  ): Record<string, unknown>;
+}
+
+class SchemaValidator<T extends Record<string, unknown>> {
+  addField<K extends keyof T>(
+    field: K,
+    ...rules: ValidationRule[]
+  ): SchemaValidator<T>;
+  validate(data: Partial<T>): T;
+  validatePartial(data: Partial<T>): ValidationResult;
+}
+
+function createValidator(): SchemaValidator<Record<string, unknown>>;
+function validateEmail(email: unknown): boolean;
+function validateUrl(url: unknown): boolean;
+function validateUuid(uuid: unknown): boolean;
+function sanitizeInput(input: unknown, escapeHtml?: boolean): unknown;
+```
+
+### RateLimiter
+
+```typescript
+class RateLimiter {
+  constructor(options?: RateLimiterOptions);
+  checkRateLimit(): Promise<void>;
+  getRemainingRequests(): number;
+  getMetrics(): RateLimiterMetrics;
+  reset(): void;
+}
+
+function createRateLimiter(options?: RateLimiterOptions): RateLimiter;
+```
+
+## Development
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Building
+
+```bash
+npm run build
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## Best Practices
+
+1. **Use ServiceFactory**: Always create services through the factory for consistent configuration
+2. **Configure Timeouts**: Set appropriate timeouts for your use case
+3. **Monitor Circuit Breakers**: Track circuit breaker states in production
+4. **Handle Errors**: Always catch and handle errors appropriately
+5. **Type Safety**: Use TypeScript for full type safety
+
+## License
+
+MIT

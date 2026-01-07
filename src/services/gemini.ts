@@ -2,15 +2,12 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { executeWithResilience } from "../utils/resilience";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { Validator } from "../utils/validator";
+import { RateLimiter } from "../utils/rate-limiter";
+import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
 
-export interface GeminiConfig {
+export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
-  timeout?: number;
-  maxRetries?: number;
-  circuitBreakerThreshold?: number;
-  circuitBreakerResetTimeout?: number;
-  rateLimitRequests?: number;
-  rateLimitWindow?: number;
 }
 
 export interface GeminiMessage {
@@ -51,7 +48,7 @@ export interface StreamingChunk {
   };
 }
 
-const DEFAULT_CONFIG: Required<
+const DEFAULT_GEMINI_CONFIG: Required<
   Pick<
     GeminiConfig,
     | "timeout"
@@ -72,44 +69,6 @@ const DEFAULT_CONFIG: Required<
 
 const DEFAULT_MODEL = "gemini-1.5-flash";
 
-class RateLimiter {
-  private requests: number[] = [];
-  private maxRequests: number;
-  private windowMs: number;
-
-  constructor(maxRequests: number, windowMs: number) {
-    this.maxRequests = maxRequests;
-    this.windowMs = windowMs;
-  }
-
-  async checkRateLimit(): Promise<void> {
-    const now = Date.now();
-    this.requests = this.requests.filter((time) => now - time < this.windowMs);
-
-    if (this.requests.length >= this.maxRequests) {
-      const oldestRequest = this.requests[0];
-      const waitTime = this.windowMs - (now - oldestRequest);
-
-      logger.warn(`Gemini rate limit reached. Waiting ${waitTime}ms`);
-      await this.sleep(waitTime);
-    }
-
-    this.requests.push(now);
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  getRemainingRequests(): number {
-    const now = Date.now();
-    const activeRequests = this.requests.filter(
-      (time) => now - time < this.windowMs,
-    ).length;
-    return Math.max(0, this.maxRequests - activeRequests);
-  }
-}
-
 export class GeminiService {
   private apiKey: string;
   private config: Required<
@@ -125,45 +84,53 @@ export class GeminiService {
   private rateLimiter: RateLimiter;
   private costTracker: number;
 
-  constructor(config: GeminiConfig) {
+  constructor(config: GeminiConfig, circuitBreaker?: CircuitBreaker) {
     if (!config.apiKey) {
       throw new InternalError("Gemini API key is required");
     }
 
+    Validator.string(config.apiKey, "apiKey");
+    Validator.minLength(config.apiKey, 10, "apiKey");
+
     this.apiKey = config.apiKey;
     this.config = {
-      timeout: config.timeout ?? DEFAULT_CONFIG.timeout,
-      maxRetries: config.maxRetries ?? DEFAULT_CONFIG.maxRetries,
+      timeout: config.timeout ?? DEFAULT_GEMINI_CONFIG.timeout,
+      maxRetries: config.maxRetries ?? DEFAULT_GEMINI_CONFIG.maxRetries,
       circuitBreakerThreshold:
         config.circuitBreakerThreshold ??
-        DEFAULT_CONFIG.circuitBreakerThreshold,
+        DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold,
       circuitBreakerResetTimeout:
         config.circuitBreakerResetTimeout ??
-        DEFAULT_CONFIG.circuitBreakerResetTimeout,
+        DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout,
     };
 
-    this.rateLimiter = new RateLimiter(
-      config.rateLimitRequests ?? DEFAULT_CONFIG.rateLimitRequests,
-      config.rateLimitWindow ?? DEFAULT_CONFIG.rateLimitWindow,
-    );
+    this.rateLimiter = new RateLimiter({
+      maxRequests:
+        config.rateLimitRequests ?? DEFAULT_GEMINI_CONFIG.rateLimitRequests,
+      windowMs: config.rateLimitWindow ?? DEFAULT_GEMINI_CONFIG.rateLimitWindow,
+      serviceName: "Gemini",
+    });
 
     this.costTracker = 0;
 
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: this.config.circuitBreakerThreshold,
-      resetTimeout: this.config.circuitBreakerResetTimeout,
-      onStateChange: (state, reason) => {
-        logger.warn(
-          `Gemini circuit breaker state changed to ${state}: ${reason}`,
-        );
-      },
-    });
+    this.circuitBreaker =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: this.config.circuitBreakerThreshold,
+        resetTimeout: this.config.circuitBreakerResetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Gemini circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
 
     logger.info("Gemini service initialized", {
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
       rateLimitRequests: config.rateLimitRequests,
       rateLimitWindow: config.rateLimitWindow,
+      usesProvidedCircuitBreaker: !!circuitBreaker,
     });
   }
 
@@ -171,6 +138,8 @@ export class GeminiService {
     messages: GeminiMessage[],
     options: GeminiRequestOptions = {},
   ): Promise<GeminiResponse> {
+    Validator.array(messages, "messages");
+
     return this.executeWithResilience(async () => {
       await this.rateLimiter.checkRateLimit();
 
@@ -233,6 +202,8 @@ export class GeminiService {
       onChunk?: (chunk: StreamingChunk) => void;
     } = {},
   ): Promise<void> {
+    Validator.array(messages, "messages");
+
     return this.executeWithResilience(async () => {
       await this.rateLimiter.checkRateLimit();
 
@@ -328,6 +299,10 @@ export class GeminiService {
     prompt: string,
     options: GeminiRequestOptions = {},
   ): Promise<string> {
+    Validator.string(prompt, "prompt");
+    Validator.minLength(prompt, 1, "prompt");
+    Validator.maxLength(prompt, 100000, "prompt");
+
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
     ];
@@ -346,6 +321,10 @@ export class GeminiService {
     prompt: string,
     options: GeminiRequestOptions & { onChunk?: (text: string) => void } = {},
   ): Promise<void> {
+    Validator.string(prompt, "prompt");
+    Validator.minLength(prompt, 1, "prompt");
+    Validator.maxLength(prompt, 100000, "prompt");
+
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
     ];
