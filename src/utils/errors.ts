@@ -1,18 +1,18 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import {
   ErrorCode,
   ErrorSeverity,
   ApiError,
   ErrorContext,
   HttpError,
-} from '../types/errors';
+} from "../types/errors";
 
 export { ErrorCode, ErrorSeverity };
 
 export class AppError extends Error implements HttpError {
   statusCode: number;
   code: ErrorCode;
-  details?: any;
+  details?: Record<string, unknown>;
   requestId: string;
   severity: ErrorSeverity;
   isOperational: boolean;
@@ -23,7 +23,7 @@ export class AppError extends Error implements HttpError {
     statusCode: number = 500,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     isOperational: boolean = true,
-    details?: any
+    details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -39,60 +39,45 @@ export class AppError extends Error implements HttpError {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       ErrorCode.VALIDATION_ERROR,
       message,
       422,
       ErrorSeverity.LOW,
       true,
-      details
+      details,
     );
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized access') {
-    super(
-      ErrorCode.UNAUTHORIZED,
-      message,
-      401,
-      ErrorSeverity.MEDIUM
-    );
+  constructor(message: string = "Unauthorized access") {
+    super(ErrorCode.UNAUTHORIZED, message, 401, ErrorSeverity.MEDIUM);
   }
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message: string = 'Forbidden') {
-    super(
-      ErrorCode.FORBIDDEN,
-      message,
-      403,
-      ErrorSeverity.MEDIUM
-    );
+  constructor(message: string = "Forbidden") {
+    super(ErrorCode.FORBIDDEN, message, 403, ErrorSeverity.MEDIUM);
   }
 }
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super(
-      ErrorCode.NOT_FOUND,
-      `${resource} not found`,
-      404,
-      ErrorSeverity.LOW
-    );
+    super(ErrorCode.NOT_FOUND, `${resource} not found`, 404, ErrorSeverity.LOW);
   }
 }
 
 export class RateLimitError extends AppError {
-  constructor(message: string = 'Rate limit exceeded', retryAfter?: number) {
+  constructor(message: string = "Rate limit exceeded", retryAfter?: number) {
     super(
       ErrorCode.RATE_LIMIT_EXCEEDED,
       message,
       429,
       ErrorSeverity.MEDIUM,
       true,
-      { retryAfter }
+      { retryAfter },
     );
   }
 }
@@ -103,7 +88,7 @@ export class ServiceUnavailableError extends AppError {
       ErrorCode.SERVICE_UNAVAILABLE,
       message || `${service} is currently unavailable`,
       503,
-      ErrorSeverity.HIGH
+      ErrorSeverity.HIGH,
     );
   }
 }
@@ -114,66 +99,69 @@ export class TimeoutError extends AppError {
       ErrorCode.TIMEOUT,
       `${operation} timed out after ${timeout}ms`,
       504,
-      ErrorSeverity.HIGH
+      ErrorSeverity.HIGH,
     );
   }
 }
 
 export class InternalError extends AppError {
-  constructor(message: string = 'An unexpected error occurred', details?: any) {
+  constructor(
+    message: string = "An unexpected error occurred",
+    details?: Record<string, unknown>,
+  ) {
     super(
       ErrorCode.INTERNAL_ERROR,
       message,
       500,
       ErrorSeverity.HIGH,
       false,
-      details
+      details,
     );
   }
 }
 
 export class SupabaseError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       ErrorCode.SUPABASE_ERROR,
       message,
       500,
       ErrorSeverity.HIGH,
       true,
-      details
+      details,
     );
   }
 }
 
 export class GeminiError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       ErrorCode.GEMINI_ERROR,
       message,
       500,
       ErrorSeverity.HIGH,
       true,
-      details
+      details,
     );
   }
 }
 
 export class CloudflareError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(
       ErrorCode.CLOUDFLARE_ERROR,
       message,
       500,
       ErrorSeverity.HIGH,
       true,
-      details
+      details,
     );
   }
 }
 
 export function createApiError(
   error: Error | AppError,
-  context?: ErrorContext
+  context?: ErrorContext,
 ): ApiError {
   const appError = error as AppError;
   const requestId = appError.requestId || uuidv4();
@@ -181,7 +169,7 @@ export function createApiError(
   return {
     error: {
       code: appError.code || ErrorCode.INTERNAL_ERROR,
-      message: appError.message || 'An unexpected error occurred',
+      message: appError.message || "An unexpected error occurred",
       details: appError.details || context,
       requestId,
       severity: appError.severity || ErrorSeverity.MEDIUM,
@@ -223,24 +211,26 @@ export function mapHttpStatusCodeToErrorCode(statusCode: number): ErrorCode {
 }
 
 export function wrapError(
-  error: any,
+  error: Error | unknown,
   message?: string,
-  errorCode?: ErrorCode
+  errorCode?: ErrorCode,
 ): AppError {
   if (error instanceof AppError) {
     return error;
   }
 
+  const errorObj = error instanceof Error ? error : new Error(String(error));
+
   if (message) {
     return new InternalError(message, {
-      originalError: error.message,
-      stack: error.stack,
+      originalError: errorObj.message,
+      stack: errorObj.stack,
     });
   }
 
-  return new InternalError(error.message || 'An unexpected error occurred', {
-    originalError: error.message,
-    stack: error.stack,
+  return new InternalError(errorObj.message || "An unexpected error occurred", {
+    originalError: errorObj.message,
+    stack: errorObj.stack,
     code: errorCode,
   });
 }

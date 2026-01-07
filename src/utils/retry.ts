@@ -1,5 +1,5 @@
-import { logger } from './logger';
-import { InternalError, TimeoutError } from './errors';
+import { logger } from "./logger";
+import { InternalError, TimeoutError } from "./errors";
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -17,23 +17,15 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelay: 10000,
   backoffMultiplier: 2,
   retryableErrors: [408, 429, 500, 502, 503, 504],
-  retryableErrorCodes: [
-    'ECONNRESET',
-    'ECONNREFUSED',
-    'ETIMEDOUT',
-    'ENOTFOUND',
-  ],
+  retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "ENOTFOUND"],
   onRetry: () => {},
 };
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function calculateDelay(
-  attempt: number,
-  options: RetryOptions
-): number {
+export function calculateDelay(attempt: number, options: RetryOptions): number {
   const {
     initialDelay = DEFAULT_RETRY_OPTIONS.initialDelay,
     backoffMultiplier = DEFAULT_RETRY_OPTIONS.backoffMultiplier,
@@ -46,15 +38,11 @@ export function calculateDelay(
 
 export async function retry<T>(
   operation: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const finalOptions = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  const {
-    maxAttempts,
-    retryableErrors,
-    retryableErrorCodes,
-    onRetry,
-  } = finalOptions;
+  const { maxAttempts, retryableErrors, retryableErrorCodes, onRetry } =
+    finalOptions;
 
   let lastError: Error | undefined;
   let attempt = 1;
@@ -62,21 +50,25 @@ export async function retry<T>(
   while (attempt <= maxAttempts) {
     try {
       const result = await operation();
-      
+
       if (attempt > 1) {
         logger.info(`Operation succeeded on attempt ${attempt}`);
       }
-      
+
       return result;
     } catch (error) {
       lastError = error as Error;
-      
-      const shouldRetry = isRetryable(error, retryableErrors, retryableErrorCodes);
-      
+
+      const shouldRetry = isRetryable(
+        error,
+        retryableErrors,
+        retryableErrorCodes,
+      );
+
       if (!shouldRetry || attempt >= maxAttempts) {
         if (attempt >= maxAttempts && maxAttempts > 1) {
           logger.warn(
-            `Operation failed after ${maxAttempts} attempts: ${lastError?.message || 'Unknown error'}`
+            `Operation failed after ${maxAttempts} attempts: ${lastError?.message || "Unknown error"}`,
           );
         }
         throw lastError;
@@ -84,7 +76,7 @@ export async function retry<T>(
 
       const delay = calculateDelay(attempt, finalOptions);
       logger.warn(
-        `Attempt ${attempt} failed: ${lastError?.message || 'Unknown error'}. Retrying in ${delay}ms...`
+        `Attempt ${attempt} failed: ${lastError?.message || "Unknown error"}. Retrying in ${delay}ms...`,
       );
 
       if (onRetry) {
@@ -96,20 +88,27 @@ export async function retry<T>(
     }
   }
 
-  throw lastError || new InternalError('Retry operation failed');
+  throw lastError || new InternalError("Retry operation failed");
 }
 
 function isRetryable(
-  error: any,
+  error: unknown,
   retryableErrors: number[],
-  retryableErrorCodes: string[]
+  retryableErrorCodes: string[],
 ): boolean {
-  if (error?.isOperational === false) {
+  const errorObj = error as {
+    isOperational?: boolean;
+    statusCode?: number;
+    status?: number;
+    code?: string;
+  };
+
+  if (errorObj?.isOperational === false) {
     return false;
   }
 
-  const statusCode = error?.statusCode || error?.status;
-  const errorCode = error?.code;
+  const statusCode = errorObj?.statusCode || errorObj?.status;
+  const errorCode = errorObj?.code;
 
   if (statusCode && retryableErrors.includes(statusCode)) {
     return true;
@@ -125,15 +124,15 @@ function isRetryable(
 export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-  operationName: string = 'operation'
+  operationName: string = "operation",
 ): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
       setTimeout(
         () => reject(new TimeoutError(operationName, timeoutMs)),
-        timeoutMs
-      )
+        timeoutMs,
+      ),
     ),
   ]);
 }
