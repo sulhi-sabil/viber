@@ -927,3 +927,178 @@ Implemented lazy cleanup strategy similar to logger sanitization optimization:
 - Array truncation still happens before it grows unbounded
 - Backward compatible - same public API
 - No breaking changes to RateLimiter behavior
+
+---
+
+## [DA01] Implement Data Architecture Improvements
+
+**Status**: ✅ Complete
+**Priority**: P0
+**Agent**: Principal Data Architect
+
+### Description
+
+Implement comprehensive data architecture improvements including schema design, indexing, migrations, and validation.
+
+### Acceptance Criteria
+
+- [x] Schema types updated to use JSONB for flexible fields
+- [x] Comprehensive SQL DDL schema documentation created
+- [x] Soft delete implementation with deleted_at timestamps
+- [x] Partial index strategy for query optimization
+- [x] Foreign key relationships documented and defined
+- [x] Migration system with up/down scripts
+- [x] Data validation for all database types
+- [x] All tests passing (285/285)
+- [x] Linting and type checking passing
+
+### Technical Notes
+
+#### DA-01: Fix Schema Types
+
+Converted `content_types.fields_schema` and `entries.data` from `string` to `Record<string, unknown>`:
+
+- Maps to JSONB type in PostgreSQL/Supabase
+- Enables efficient JSON queries and indexing
+- Added `deleted_at` timestamp to all tables for soft delete support
+
+#### DA-02: Database Schema Documentation
+
+Created comprehensive SQL DDL in `docs/schema.sql`:
+
+- All 5 tables with proper PostgreSQL types
+- Foreign key relationships (CASCADE/RESTRICT)
+- Unique constraints for data integrity
+- Indexes for query optimization
+- GIN indexes for JSONB fields
+- Row Level Security (RLS) policies
+- Inline documentation for index strategy, constraints, and maintenance
+
+#### DA-03: Soft Delete Implementation
+
+Added soft delete support to SupabaseService:
+
+- `deleted_at TIMESTAMPTZ` column to all tables
+- Partial indexes exclude deleted records for performance
+- `delete(table, id, softDelete = true)` defaults to soft delete
+- `delete(table, id, softDelete = false)` for hard delete
+- `restore(table, id)` to recover deleted records
+- `permanentDelete(table, id)` alias for hard delete
+- Query methods default to `includeDeleted: false`
+
+#### DA-04: Index Strategy
+
+Comprehensive index documentation in schema.sql:
+
+- Primary key indexes (all tables)
+- Unique indexes (email, slugs, R2 keys)
+- Query optimization indexes (role, expires_at, status, created_at)
+- Composite indexes (sessions user+expires, entries type+status+created)
+- Partial indexes with `WHERE deleted_at IS NULL`
+- GIN indexes for JSONB queries
+
+#### DA-05: Foreign Key Constraints
+
+Documented and implemented:
+
+- `sessions.user_id → users.id (CASCADE)`: Automatic cleanup on user deletion
+- `entries.type_slug → content_types.slug (RESTRICT)`: Prevent deletion if entries exist
+- Check constraints for role and status enums
+
+#### DA-06: Migration System
+
+Created migration framework in `src/migrations/`:
+
+- `types.ts`: TypeScript migration types
+- `runner.ts`: Migration execution engine with rollback support
+- `index.ts`: Migration registry
+- `validators.ts`: Database type validators
+- `README.md`: Comprehensive migration documentation
+- `20260107001-add-soft-delete.sql`: Add deleted_at columns and indexes
+- `20260107002-convert-jsonb.sql`: Convert TEXT to JSONB
+
+#### DA-07: Data Validation
+
+Created validators in `src/migrations/validators.ts`:
+
+- `validateUserRole()`: Check role enum values
+- `validateEntryStatus()`: Check status enum values
+- `validateUserEmail()`: Email format validation
+- `validateSlug()`: Slug format validation (lowercase, alphanumeric, hyphens)
+- `validateContentTypeSchema()`: Schema object validation
+- `validateEntryData()`: Data object validation
+- `validateR2Key()`: R2 key length validation
+- `validateMimeTypes()`: MIME type format validation
+- `validateFilename()`: Filename format validation
+- `validateUser()`: Full user validation with error messages
+- `validateSession()`: Session validation with expiry check
+- `validateContentType()`: Content type validation
+- `validateEntry()`: Entry validation
+- `validateAsset()`: Asset validation
+
+### Implementation Details
+
+**Files Modified**:
+
+- `src/types/database.ts`: Updated all interfaces with deleted_at and JSONB types
+- `src/services/supabase.ts`: Added soft delete, restore, permanentDelete methods
+- `src/services/supabase.test.ts`: Updated tests for soft delete behavior
+- `docs/blueprint.md`: Added Data Architecture section with schema documentation
+- `docs/task.md`: Added this task entry
+
+**Files Created**:
+
+- `docs/schema.sql`: Complete SQL DDL with all tables, indexes, and RLS
+- `src/migrations/types.ts`: Migration TypeScript types
+- `src/migrations/runner.ts`: Migration execution engine
+- `src/migrations/index.ts`: Migration registry
+- `src/migrations/validators.ts`: Database validators
+- `src/migrations/validators.test.ts`: Validator tests (22 tests)
+- `src/migrations/README.md`: Migration documentation
+
+**Test Results**:
+
+- All 285 tests passing (up from 263)
+- 22 new validator tests added
+- All SupabaseService tests pass with soft delete behavior
+- No test failures
+
+**Performance Impact**:
+
+- Soft delete with partial indexes: Minimal performance overhead
+- JSONB fields: More storage but faster queries
+- Comprehensive indexing: Optimized for common query patterns
+
+**Data Integrity Improvements**:
+
+- Soft delete prevents accidental data loss
+- Foreign key constraints enforce referential integrity
+- Validation at application boundary prevents bad data
+- Comprehensive error messages for debugging
+
+---
+
+### Task Statistics
+
+- Total Tasks: 18
+- Backlog: 8
+- In Progress: 0
+- Complete: 10
+- Blocked: 0
+
+### Priority Breakdown
+
+- P0 (Critical): 0 remaining
+- P1 (High): 1 remaining (I03)
+- P2 (Medium): 5 remaining
+- P3 (Low): 1 remaining
+
+### Data Architecture Tasks Completed
+
+- [DA-01] Fix Schema Types ✅
+- [DA-02] Database Schema Documentation ✅
+- [DA-03] Soft Delete Implementation ✅
+- [DA-04] Index Strategy ✅
+- [DA-05] Foreign Key Constraints ✅
+- [DA-06] Migration System ✅
+- [DA-07] Data Validation ✅

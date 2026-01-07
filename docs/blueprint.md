@@ -200,6 +200,180 @@ Features:
 - Error severity levels
 - Operational vs non-operational flag
 
+## Data Architecture
+
+### Data Model
+
+The integration layer uses a well-structured data model with:
+
+**Core Tables**:
+
+- `users`: User accounts with role-based access
+- `sessions`: User session management
+- `content_types`: Flexible content type definitions
+- `entries`: Dynamic content entries with JSONB data
+- `assets`: File storage references (R2/S3)
+
+**Schema Features**:
+
+- JSONB fields for flexible data (`fields_schema`, `data`)
+- Soft delete support via `deleted_at` timestamps
+- Foreign key relationships with CASCADE/RESTRICT
+- Comprehensive indexing for query optimization
+- Row Level Security (RLS) for access control
+
+### Index Strategy
+
+**Primary Indexes**:
+
+- All tables have primary key indexes on `id`
+
+**Unique Indexes**:
+
+- `users.email`: Enforce unique email addresses
+- `content_types.slug`: Enforce unique content type slugs
+- `assets.r2_key`: Enforce unique R2 storage keys
+- `entries(type_slug, slug)`: Enforce unique slugs per content type (for published entries)
+
+**Query Optimization Indexes**:
+
+- `users.role`: Filter users by role
+- `sessions.expires_at`: Cleanup expired sessions
+- `sessions(user_id, expires_at)`: Composite index for session queries
+- `content_types.slug`: Fast content type lookup
+- `entries.slug`: Fast entry lookup by slug
+- `entries.status`: Filter entries by status
+- `entries.created_at`: Order entries by creation date
+- `entries(type_slug, status, created_at)`: Composite index for entry listing
+- `assets.r2_key`: Fast asset lookup by R2 key
+- `assets.mime_type`: Filter assets by MIME type
+
+**Partial Indexes** (Performance Optimization):
+
+- All query indexes use `WHERE deleted_at IS NULL` clause
+- Significantly reduces index size and improves query performance
+- Only indexes active records, not deleted ones
+
+**JSONB Indexes** (PostgreSQL GIN):
+
+- `content_types.fields_schema`: JSONB queries on field schemas
+- `entries.data`: JSONB queries on entry data
+- Enables efficient JSON containment and path queries
+
+### Foreign Key Relationships
+
+```
+sessions.user_id → users.id (CASCADE)
+- When a user is deleted, all their sessions are automatically deleted
+
+entries.type_slug → content_types.slug (RESTRICT)
+- Prevents deletion of content types that have entries
+- Must delete entries first before deleting content type
+```
+
+**Why CASCADE vs RESTRICT**:
+
+- CASCADE: Users can be deleted with sessions (automatic cleanup)
+- RESTRICT: Content types are structural, prevent deletion if used (data integrity)
+
+### Soft Delete Strategy
+
+**Implementation**:
+
+- All tables have `deleted_at TIMESTAMPTZ` column
+- NULL = record is active
+- NOT NULL = record is deleted (soft delete)
+
+**Benefits**:
+
+- Audit trail: See when records were deleted
+- Recovery: Can restore deleted records
+- Safety: Prevents accidental data loss
+- Compliance: Meets data retention requirements
+
+**Query Filtering**:
+
+- SupabaseService defaults to filtering out deleted records
+- Use `includeDeleted: true` to query deleted records
+- Use `restore()` to recover deleted records
+- Use `permanentDelete()` to permanently remove records
+
+**Performance Impact**:
+
+- Partial indexes exclude deleted records from index size
+- Queries remain fast despite soft delete
+- Additional storage overhead minimal (timestamps only)
+
+### Data Validation
+
+**Database-Level Constraints**:
+
+- Foreign key constraints enforce referential integrity
+- Unique constraints prevent duplicate data
+- Check constraints validate data format
+- Enum-like constraints via CHECK clauses
+
+**Application-Level Validation**:
+
+- TypeScript validators for all database types (see `src/migrations/validators.ts`)
+- Email format validation
+- Slug format validation (lowercase, alphanumeric, hyphens)
+- Role validation (`admin` | `editor`)
+- Status validation (`published` | `draft`)
+- MIME type validation for assets
+
+**Validation Flow**:
+
+1. Input validation at application boundary
+2. Type checking via TypeScript
+3. Schema validation via Supabase client
+4. Database constraint enforcement
+5. Error handling with descriptive messages
+
+### Migration System
+
+**Purpose**: Safe, versioned database schema changes
+
+**Structure**:
+
+```
+src/migrations/
+├── types.ts           # TypeScript migration types
+├── runner.ts          # Migration execution engine
+├── index.ts           # Migration registry
+├── validators.ts      # Database type validators
+├── README.md          # Migration documentation
+└── 202601070*.sql   # SQL migration files
+```
+
+**Migration Files**:
+
+- `20260107001-add-soft-delete.sql`: Add soft delete support
+- `20260107002-convert-jsonb.sql`: Convert JSON fields to JSONB
+
+**Features**:
+
+- Versioned migrations (YYYYMMDDVV format)
+- Reversible (up/down scripts)
+- Transaction-based (BEGIN/COMMIT)
+- Manual execution via Supabase SQL Editor
+- Programmatic runner for future automation
+
+**Execution**:
+
+1. Open Supabase SQL Editor
+2. Copy `-- Up migration` section
+3. Execute and verify
+4. Rollback with `-- Down migration` section if needed
+
+**Best Practices**:
+
+- Always write down scripts
+- Test in development first
+- Keep migrations small and focused
+- Use transactions for atomicity
+- Check for existence before creating
+
 ## Data Flow
 
 ### Request Flow (Supabase Example)

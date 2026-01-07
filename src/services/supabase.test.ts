@@ -101,7 +101,8 @@ describe("SupabaseService", () => {
       ];
 
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: mockData,
           error: null,
         }),
@@ -116,7 +117,8 @@ describe("SupabaseService", () => {
 
     it("should select with columns filter", async () => {
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: [],
           error: null,
         }),
@@ -135,13 +137,19 @@ describe("SupabaseService", () => {
         { id: "1", name: "John", email: "john@example.com", age: 30 },
       ];
 
-      mockSupabaseClient.from.mockReturnValue({
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
-        filter: jest.fn().mockResolvedValue({
+        eq: jest.fn().mockReturnThis(),
+        filter: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
           data: mockData,
           error: null,
         }),
-      });
+      };
+
+      mockSupabaseClient.from.mockReturnValue(mockQuery);
 
       const service = new SupabaseService(mockConfig);
       await service.select<TestRow>("users", {
@@ -162,6 +170,7 @@ describe("SupabaseService", () => {
     it("should select with order by", async () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         filter: jest.fn().mockReturnThis(),
         order: jest.fn().mockResolvedValue({
           data: [],
@@ -185,6 +194,7 @@ describe("SupabaseService", () => {
     it("should select with limit", async () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
         limit: jest.fn().mockResolvedValue({
           data: [],
           error: null,
@@ -202,6 +212,8 @@ describe("SupabaseService", () => {
     it("should select with offset", async () => {
       mockSupabaseClient.from.mockReturnValue({
         select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
         range: jest.fn().mockResolvedValue({
           data: [],
           error: null,
@@ -225,7 +237,8 @@ describe("SupabaseService", () => {
       };
 
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: null,
           error: mockError,
         }),
@@ -239,7 +252,8 @@ describe("SupabaseService", () => {
 
     it("should return empty array when no data", async () => {
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: null,
           error: null,
         }),
@@ -481,9 +495,9 @@ describe("SupabaseService", () => {
   });
 
   describe("delete", () => {
-    it("should delete a row", async () => {
+    it("should delete a row (soft delete)", async () => {
       mockSupabaseClient.from.mockReturnValue({
-        delete: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockResolvedValue({
           error: null,
         }),
@@ -492,13 +506,28 @@ describe("SupabaseService", () => {
       const service = new SupabaseService(mockConfig);
       await service.delete("users", "1");
 
+      expect(mockSupabaseClient.from().update).toHaveBeenCalled();
+      expect(mockSupabaseClient.from().eq).toHaveBeenCalledWith("id", "1");
+    });
+
+    it("should permanently delete a row (hard delete)", async () => {
+      mockSupabaseClient.from.mockReturnValue({
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      });
+
+      const service = new SupabaseService(mockConfig);
+      await service.delete("users", "1", false);
+
       expect(mockSupabaseClient.from().delete).toHaveBeenCalled();
       expect(mockSupabaseClient.from().eq).toHaveBeenCalledWith("id", "1");
     });
 
     it("should handle delete error", async () => {
       mockSupabaseClient.from.mockReturnValue({
-        delete: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockResolvedValue({
           error: { code: "42P01", message: "Table not found" },
         }),
@@ -721,7 +750,8 @@ describe("SupabaseService", () => {
   describe("error handling", () => {
     it("should throw InternalError for unknown errors", async () => {
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: null,
           error: { message: "Network timeout" },
         }),
@@ -742,7 +772,8 @@ describe("SupabaseService", () => {
       };
 
       mockSupabaseClient.from.mockReturnValue({
-        select: jest.fn().mockResolvedValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockResolvedValue({
           data: null,
           error: mockError,
         }),

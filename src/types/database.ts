@@ -4,25 +4,29 @@ export interface User extends DatabaseRow {
   email: string;
   password_hash?: string;
   role: "admin" | "editor";
+  deleted_at?: string;
 }
 
 export interface Session extends DatabaseRow {
   user_id: string;
   expires_at: number;
+  deleted_at?: string;
 }
 
 export interface ContentType extends DatabaseRow {
   slug: string;
   name: string;
-  fields_schema: string;
+  fields_schema: Record<string, unknown>;
+  deleted_at?: string;
 }
 
 export interface Entry extends DatabaseRow {
   type_slug: string;
   slug?: string;
   title: string;
-  data: string;
+  data: Record<string, unknown>;
   status: "published" | "draft";
+  deleted_at?: string;
 }
 
 export interface Asset extends DatabaseRow {
@@ -30,6 +34,7 @@ export interface Asset extends DatabaseRow {
   r2_key: string;
   mime_type?: string;
   public_url?: string;
+  deleted_at?: string;
 }
 
 export interface DatabaseSchema {

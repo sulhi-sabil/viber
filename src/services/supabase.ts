@@ -175,10 +175,18 @@ export class SupabaseService {
       orderBy?: { column: string; ascending?: boolean };
       limit?: number;
       offset?: number;
+      includeDeleted?: boolean;
     } = {},
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
-    const { columns = "*", filter, orderBy, limit, offset } = options;
+    const {
+      columns = "*",
+      filter,
+      orderBy,
+      limit,
+      offset,
+      includeDeleted = false,
+    } = options;
 
     Validator.string(table, "table");
 
@@ -187,6 +195,10 @@ export class SupabaseService {
 
       if (filter) {
         query = query.filter(filter.column, filter.operator, filter.value);
+      }
+
+      if (!includeDeleted) {
+        query = query.eq("deleted_at", null);
       }
 
       if (orderBy) {
@@ -217,17 +229,20 @@ export class SupabaseService {
     table: string,
     id: string,
     columns: string = "*",
+    includeDeleted: boolean = false,
     queryOptions: QueryOptions = {},
   ): Promise<T | null> {
     Validator.string(table, "table");
     Validator.string(id, "id");
 
     return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .select(columns)
-        .eq("id", id)
-        .single();
+      let query = this.client.from(table).select(columns).eq("id", id);
+
+      if (!includeDeleted) {
+        query = query.eq("deleted_at", null);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) {
         if (error.code === "PGRST116") {
@@ -311,13 +326,25 @@ export class SupabaseService {
   async delete(
     table: string,
     id: string,
+    softDelete: boolean = true,
     queryOptions: QueryOptions = {},
   ): Promise<void> {
     return this.executeWithResilience(async () => {
-      const { error } = await this.client.from(table).delete().eq("id", id);
+      if (softDelete) {
+        const { error } = await this.client
+          .from(table)
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", id);
 
-      if (error) {
-        this.handleSupabaseError(error);
+        if (error) {
+          this.handleSupabaseError(error);
+        }
+      } else {
+        const { error } = await this.client.from(table).delete().eq("id", id);
+
+        if (error) {
+          this.handleSupabaseError(error);
+        }
       }
 
       return;
@@ -341,6 +368,41 @@ export class SupabaseService {
       }
 
       return data as unknown as T;
+    }, queryOptions);
+  }
+
+  async restore(
+    table: string,
+    id: string,
+    queryOptions: QueryOptions = {},
+  ): Promise<void> {
+    return this.executeWithResilience(async () => {
+      const { error } = await this.client
+        .from(table)
+        .update({ deleted_at: null })
+        .eq("id", id);
+
+      if (error) {
+        this.handleSupabaseError(error);
+      }
+
+      return;
+    }, queryOptions);
+  }
+
+  async permanentDelete(
+    table: string,
+    id: string,
+    queryOptions: QueryOptions = {},
+  ): Promise<void> {
+    return this.executeWithResilience(async () => {
+      const { error } = await this.client.from(table).delete().eq("id", id);
+
+      if (error) {
+        this.handleSupabaseError(error);
+      }
+
+      return;
     }, queryOptions);
   }
 
