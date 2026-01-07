@@ -52,7 +52,7 @@ export class SupabaseService {
   private circuitBreaker: CircuitBreaker;
   private config: SupabaseConfig;
 
-  constructor(config: SupabaseConfig) {
+  constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     this.client = createClient(config.url, config.anonKey, {
@@ -83,21 +83,24 @@ export class SupabaseService {
       });
     }
 
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: this.config.circuitBreakerThreshold,
-      resetTimeout: this.config.circuitBreakerResetTimeout,
-      onStateChange: (state, reason) => {
-        logger.warn(
-          `Supabase circuit breaker state changed to ${state}: ${reason}`,
-        );
-      },
-    });
+    this.circuitBreaker =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: this.config.circuitBreakerThreshold,
+        resetTimeout: this.config.circuitBreakerResetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Supabase circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
 
     logger.info("Supabase service initialized", {
       url: config.url.replace(/\/$/, ""),
       hasAdminClient: !!config.serviceRoleKey,
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
+      usesProvidedCircuitBreaker: !!circuitBreaker,
     });
   }
 

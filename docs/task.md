@@ -620,3 +620,106 @@ Created `src/utils/resilience.ts` with a reusable `executeWithResilience` functi
 
 - Logger sanitization: ~10,000x improvement (0.144ms for 500 iterations)
 - Retry logic: O(1) error checking (was O(n))
+
+---
+
+## [A01] Implement Service Factory Pattern
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: Code Architect
+
+### Description
+
+Implement Service Factory pattern to decouple service initialization from business logic, improving testability and maintainability.
+
+### Issue
+
+Services were directly instantiating CircuitBreaker instances, creating tight coupling between services and resilience infrastructure. This made testing difficult and inconsistent configuration across services.
+
+### Solution
+
+Created `src/utils/service-factory.ts` with centralized service management:
+
+- ServiceFactory singleton for dependency injection
+- CircuitBreaker configuration centralized
+- Services accept CircuitBreaker via constructor (Dependency Inversion)
+- Improved testability with ability to inject mock CircuitBreakers
+- Service lifecycle management (create, reset, get)
+
+### Acceptance Criteria
+
+- [x] Created ServiceFactory utility with singleton pattern
+- [x] CircuitBreaker configuration centralized in factory
+- [x] Refactored SupabaseService to accept CircuitBreaker in constructor
+- [x] Refactored GeminiService to accept CircuitBreaker in constructor
+- [x] Backward compatibility maintained (services work without factory)
+- [x] Factory provides service lifecycle management
+- [x] Exported from src/index.ts
+- [x] All existing tests pass (199/199)
+- [x] Documentation updated (README.md)
+
+### Technical Notes
+
+- Dependency Inversion Principle: Services depend on abstractions (CircuitBreaker interface)
+- Factory pattern: Centralized creation and management of service instances
+- Singleton pattern: Single ServiceFactory instance for consistent configuration
+- Backward compatibility: Services create their own CircuitBreaker if none provided
+- Testability: Easy to inject mock CircuitBreaker in unit tests
+
+### Implementation Details
+
+- Created `src/utils/service-factory.ts` with ServiceFactory class
+- Modified `src/services/supabase.ts`: constructor accepts optional CircuitBreaker
+- Modified `src/services/gemini.ts`: constructor accepts optional CircuitBreaker
+- Added CircuitBreakerConfigMap interface for factory configuration
+- Added service caching for reuse of same configuration
+- Added circuit breaker state monitoring methods
+- Full TypeScript type safety throughout
+
+### Architectural Benefits
+
+1. **Separation of Concerns**: Services focus on business logic, factory handles infrastructure
+2. **Testability**: Easy to inject mocks for isolated unit testing
+3. **Consistency**: Centralized configuration ensures uniform resilience patterns
+4. **Maintainability**: Changes to resilience patterns require single point modification
+5. **Flexibility**: Different CircuitBreaker configs per environment or service
+6. **Clean Architecture**: Dependencies flow inward, services depend on abstractions
+
+### Usage Example
+
+```typescript
+import { ServiceFactory } from "viber-integration-layer";
+
+const factory = ServiceFactory.getInstance({
+  supabase: {
+    failureThreshold: 5,
+    resetTimeout: 60000,
+  },
+  gemini: {
+    failureThreshold: 3,
+    resetTimeout: 30000,
+  },
+});
+
+const supabase = factory.createSupabaseClient({ url, anonKey });
+const gemini = factory.createGeminiClient({ apiKey });
+```
+
+---
+
+### Priority Breakdown
+
+- P0 (Critical): 0 remaining
+- P1 (High): 1 remaining (I03)
+- P2 (Medium): 5 remaining
+- P3 (Low): 1 remaining
+
+### Performance Optimizations Completed
+
+- Logger sanitization: ~10,000x improvement (0.144ms for 500 iterations)
+- Retry logic: O(1) error checking (was O(n))
+
+### Architectural Improvements Completed
+
+- Service Factory pattern: Centralized service management with dependency injection

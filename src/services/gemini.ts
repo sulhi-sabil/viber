@@ -125,7 +125,7 @@ export class GeminiService {
   private rateLimiter: RateLimiter;
   private costTracker: number;
 
-  constructor(config: GeminiConfig) {
+  constructor(config: GeminiConfig, circuitBreaker?: CircuitBreaker) {
     if (!config.apiKey) {
       throw new InternalError("Gemini API key is required");
     }
@@ -149,21 +149,24 @@ export class GeminiService {
 
     this.costTracker = 0;
 
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: this.config.circuitBreakerThreshold,
-      resetTimeout: this.config.circuitBreakerResetTimeout,
-      onStateChange: (state, reason) => {
-        logger.warn(
-          `Gemini circuit breaker state changed to ${state}: ${reason}`,
-        );
-      },
-    });
+    this.circuitBreaker =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: this.config.circuitBreakerThreshold,
+        resetTimeout: this.config.circuitBreakerResetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Gemini circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
 
     logger.info("Gemini service initialized", {
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
       rateLimitRequests: config.rateLimitRequests,
       rateLimitWindow: config.rateLimitWindow,
+      usesProvidedCircuitBreaker: !!circuitBreaker,
     });
   }
 
