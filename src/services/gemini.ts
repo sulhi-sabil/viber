@@ -2,6 +2,7 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { executeWithResilience } from "../utils/resilience";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { Validator } from "../utils/validator";
 
 export interface GeminiConfig {
   apiKey: string;
@@ -130,6 +131,9 @@ export class GeminiService {
       throw new InternalError("Gemini API key is required");
     }
 
+    Validator.string(config.apiKey, "apiKey");
+    Validator.minLength(config.apiKey, 10, "apiKey");
+
     this.apiKey = config.apiKey;
     this.config = {
       timeout: config.timeout ?? DEFAULT_CONFIG.timeout,
@@ -174,6 +178,8 @@ export class GeminiService {
     messages: GeminiMessage[],
     options: GeminiRequestOptions = {},
   ): Promise<GeminiResponse> {
+    Validator.array(messages, "messages");
+
     return this.executeWithResilience(async () => {
       await this.rateLimiter.checkRateLimit();
 
@@ -236,6 +242,8 @@ export class GeminiService {
       onChunk?: (chunk: StreamingChunk) => void;
     } = {},
   ): Promise<void> {
+    Validator.array(messages, "messages");
+
     return this.executeWithResilience(async () => {
       await this.rateLimiter.checkRateLimit();
 
@@ -331,6 +339,10 @@ export class GeminiService {
     prompt: string,
     options: GeminiRequestOptions = {},
   ): Promise<string> {
+    Validator.string(prompt, "prompt");
+    Validator.minLength(prompt, 1, "prompt");
+    Validator.maxLength(prompt, 100000, "prompt");
+
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
     ];
@@ -349,6 +361,10 @@ export class GeminiService {
     prompt: string,
     options: GeminiRequestOptions & { onChunk?: (text: string) => void } = {},
   ): Promise<void> {
+    Validator.string(prompt, "prompt");
+    Validator.minLength(prompt, 1, "prompt");
+    Validator.maxLength(prompt, 100000, "prompt");
+
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
     ];

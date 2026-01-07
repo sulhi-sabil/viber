@@ -16,7 +16,7 @@ describe("GeminiService", () => {
     resetGeminiClient();
 
     geminiService = new GeminiService({
-      apiKey: "test-api-key",
+      apiKey: "test-api-key-12345678",
       timeout: 30000,
       maxRetries: 3,
       circuitBreakerThreshold: 5,
@@ -42,7 +42,7 @@ describe("GeminiService", () => {
 
     it("should initialize with default config", () => {
       const service = new GeminiService({
-        apiKey: "test-key",
+        apiKey: "test-api-key-12345678",
       });
 
       expect(service).toBeInstanceOf(GeminiService);
@@ -50,7 +50,7 @@ describe("GeminiService", () => {
 
     it("should initialize with custom config", () => {
       const service = new GeminiService({
-        apiKey: "test-key",
+        apiKey: "test-api-key-12345678",
         timeout: 60000,
         maxRetries: 5,
       });
@@ -381,7 +381,7 @@ describe("GeminiService", () => {
 
     it("should reject requests when circuit is open", async () => {
       const service = new GeminiService({
-        apiKey: "test-key",
+        apiKey: "test-api-key-12345678",
         circuitBreakerThreshold: 2,
         circuitBreakerResetTimeout: 10000,
       });
@@ -401,7 +401,7 @@ describe("GeminiService", () => {
 
     it("should allow manual reset of circuit breaker", () => {
       const service = new GeminiService({
-        apiKey: "test-key",
+        apiKey: "test-api-key-12345678",
       });
 
       service.resetCircuitBreaker();
@@ -522,21 +522,21 @@ describe("GeminiService", () => {
     it("should create singleton instance", () => {
       resetGeminiClient();
 
-      const instance1 = createGeminiClient({ apiKey: "test-key" });
-      const instance2 = createGeminiClient({ apiKey: "test-key" });
+      const instance1 = createGeminiClient({ apiKey: "test-api-key-12345678" });
+      const instance2 = createGeminiClient({ apiKey: "test-api-key-12345678" });
 
       expect(instance1).toBe(instance2);
     });
 
     it("should return existing instance", () => {
-      const instance = createGeminiClient({ apiKey: "test-key" });
+      const instance = createGeminiClient({ apiKey: "test-api-key-12345678" });
       const retrievedInstance = getGeminiClient();
 
       expect(retrievedInstance).toBe(instance);
     });
 
     it("should allow resetting instance", () => {
-      createGeminiClient({ apiKey: "test-key" });
+      createGeminiClient({ apiKey: "test-api-key-12345678" });
       resetGeminiClient();
 
       const instance = getGeminiClient();
@@ -568,7 +568,7 @@ describe("GeminiService", () => {
       );
 
       const service = new GeminiService({
-        apiKey: "test-key",
+        apiKey: "test-api-key-12345678",
         timeout: 100,
       });
 

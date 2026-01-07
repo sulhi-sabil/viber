@@ -7,6 +7,7 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { executeWithResilience } from "../utils/resilience";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
+import { Validator } from "../utils/validator";
 
 export interface SupabaseConfig {
   url: string;
@@ -54,6 +55,13 @@ export class SupabaseService {
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+
+    Validator.url(config.url, "Supabase URL");
+    Validator.string(config.anonKey, "anonKey");
+
+    if (config.serviceRoleKey) {
+      Validator.string(config.serviceRoleKey, "serviceRoleKey");
+    }
 
     this.client = createClient(config.url, config.anonKey, {
       auth: {
@@ -172,6 +180,8 @@ export class SupabaseService {
   ): Promise<T[]> {
     const { columns = "*", filter, orderBy, limit, offset } = options;
 
+    Validator.string(table, "table");
+
     return this.executeWithResilience(async () => {
       let query = this.client.from(table).select(columns);
 
@@ -209,6 +219,9 @@ export class SupabaseService {
     columns: string = "*",
     queryOptions: QueryOptions = {},
   ): Promise<T | null> {
+    Validator.string(table, "table");
+    Validator.string(id, "id");
+
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client
         .from(table)
@@ -232,6 +245,9 @@ export class SupabaseService {
     row: Partial<T>,
     queryOptions: QueryOptions = {},
   ): Promise<T> {
+    Validator.string(table, "table");
+    Validator.required(row, "row");
+
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client
         .from(table)
@@ -272,6 +288,10 @@ export class SupabaseService {
     updates: Partial<T>,
     queryOptions: QueryOptions = {},
   ): Promise<T> {
+    Validator.string(table, "table");
+    Validator.string(id, "id");
+    Validator.required(updates, "updates");
+
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client
         .from(table)

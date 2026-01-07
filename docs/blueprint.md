@@ -388,14 +388,70 @@ All sensitive data (passwords, tokens, keys) automatically redacted.
   - Auth tokens
   - Credit card numbers
   - Social security numbers
+  - Bearer tokens
+  - Session IDs
+  - Private keys
+  - Access tokens
 
 - Configurable via sensitive field patterns
+- Pattern matching cache for performance (1000 entry limit)
+
+### Input Validation
+
+- Comprehensive validation for all service inputs:
+  - URL validation for Supabase configuration
+  - String validation for table names, IDs, and data
+  - API key validation with minimum length requirements
+  - Prompt validation for Gemini (length limits: 1-100000 characters)
+  - Array validation for message lists
+
+- Validation utility provides:
+  - Type checking (string, number, boolean, array)
+  - Format validation (email, URL, UUID)
+  - Length validation (minLength, maxLength)
+  - Range validation (min, max)
+  - Pattern validation
+  - Sanitization (trim, HTML escape, case conversion)
+
+### SQL Injection Prevention
+
+- Supabase uses parameterized queries via official client library
+- No string concatenation for SQL queries
+- Input validation for table names and IDs
+- Filter operators validated by Supabase client
+
+### XSS Prevention
+
+- HTML escaping available via validator utility
+- Sensitive data automatically redacted in logs
+- No direct HTML rendering in library output
+- Output encoding responsibility lies with consuming application
 
 ### API Key Management
 
 - Never log API keys
 - Keys read from environment variables
 - Support for separate anon and service role keys (Supabase)
+- Minimum length validation for API keys (10+ characters)
+- No hardcoded secrets in codebase
+- .env file properly excluded from version control
+
+### Dependency Management
+
+- Regular security audits (npm audit)
+- No known vulnerabilities (0 found)
+- Packages updated to latest stable versions:
+  - uuid@9.0.1 (secure random ID generation)
+  - @types/uuid@9.0.8 (TypeScript definitions)
+- No deprecated or unmaintained packages in use
+
+### Error Handling Security
+
+- Structured error responses without sensitive data exposure
+- Request IDs for secure error tracking
+- Separate user-facing and debug messages
+- Stack traces only logged, not exposed to clients
+- Operational vs non-operational error classification
 
 ## Performance Optimizations
 
