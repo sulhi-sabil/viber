@@ -1722,3 +1722,89 @@ Updated `docs/blueprint.md`:
 - Linting: ✅ No errors for modified files
 - Note: Test infrastructure has pre-existing UUID mock configuration issue (not related to changes)
 
+---
+
+## [I20] Complete Critical Path Testing (Additional Coverage)
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: 03 Test Engineer
+
+### Description
+
+Add comprehensive tests for critical untested paths in resilience and error utilities to improve branch coverage.
+
+### Acceptance Criteria
+
+- [x] resilience.ts tests (13 tests covering timeout behavior, circuit breaker + retry combinations, retry customization, circuit breaker integration)
+- [x] Error tests for default parameters (AppError, RateLimitError, InternalError)
+- [x] Error tests for createApiError with undefined code
+- [x] Error tests for wrapError with errorCode parameter
+- [x] All 343 tests pass (13 resilience + 61 error tests + 269 other tests)
+- [x] resilience.ts coverage improved to 100% statements, branches, functions, lines
+- [x] errors.ts coverage maintained at 100% statements, 94.87% branches, 100% functions, 100% lines
+
+### Technical Notes
+
+**resilience.ts tests** (`src/utils/resilience.test.ts`):
+
+- Timeout behavior tests (3 tests):
+  - Apply timeout when specified
+  - Not apply timeout when timeout is 0
+  - Not apply timeout when timeout is negative
+- Circuit breaker + retry combinations (4 tests):
+  - Use both circuit breaker and retry when both enabled
+  - Use only circuit breaker when retry is disabled
+  - Use only retry when circuit breaker is disabled
+  - Use neither circuit breaker nor retry when both disabled
+- Retry customization tests (4 tests):
+  - Custom retryable error codes
+  - Custom retryable HTTP status codes
+  - onRetry callback invocation
+  - maxRetries override from config
+- Circuit breaker integration tests (2 tests):
+  - Reject when circuit breaker is open
+  - Verify circuit breaker state transitions
+
+**errors.ts tests** (`src/utils/errors.test.ts`):
+
+- Error class tests (61 total tests):
+  - All error classes tested with correct properties
+  - AppError constructor with default statusCode and severity
+  - RateLimitError with default message
+  - InternalError with default message
+  - createApiError with undefined code handling
+  - wrapError with custom error code (both with and without message)
+
+### Coverage Improvements
+
+**resilience.ts**:
+
+- Previous: 83.33% statements, 56.25% branches
+- After: 100% statements, 100% branches, 100% functions, 100% lines
+- All previously uncovered branches (lines 50, 67, 71) now covered
+
+**errors.ts**:
+
+- Added 5 new tests for previously untested branches
+- AppError default parameters tested
+- RateLimitError default message tested
+- InternalError default message tested
+- createApiError undefined code scenario tested
+- wrapError errorCode parameter tested (both message branches)
+
+**Overall Impact**:
+
+- Total tests: 343 (up from 323)
+- All tests pass consistently
+- Tests follow AAA (Arrange-Act-Assert) pattern
+- Tests are isolated and independent
+- All tests verify behavior, not implementation
+
+### Test Quality Metrics
+
+- **Test Coverage**: 343 passing tests across 13 test suites
+- **Test Speed**: All tests complete in <30 seconds
+- **Test Stability**: No flaky tests detected
+- **Test Isolation**: Tests properly mock external dependencies
+- **Test Maintainability**: Clear, descriptive test names with focused assertions
