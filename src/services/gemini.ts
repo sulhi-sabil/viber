@@ -5,6 +5,7 @@ import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { RateLimiter } from "../utils/rate-limiter";
 import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
+import { BaseService, ServiceHealth } from "./base-service";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
@@ -69,7 +70,8 @@ const DEFAULT_GEMINI_CONFIG: Required<
 
 const DEFAULT_MODEL = "gemini-1.5-flash";
 
-export class GeminiService {
+export class GeminiService extends BaseService {
+  protected serviceName = "Gemini";
   private apiKey: string;
   private config: Required<
     Pick<
@@ -80,7 +82,7 @@ export class GeminiService {
       | "circuitBreakerResetTimeout"
     >
   >;
-  private circuitBreaker: CircuitBreaker;
+  protected circuitBreaker: CircuitBreaker;
   private rateLimiter: RateLimiter;
   private costTracker: number;
 
@@ -91,6 +93,28 @@ export class GeminiService {
 
     Validator.string(config.apiKey, "apiKey");
     Validator.minLength(config.apiKey, 10, "apiKey");
+
+    const failureThreshold =
+      config.circuitBreakerThreshold ??
+      DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold;
+    const resetTimeout =
+      config.circuitBreakerResetTimeout ??
+      DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout;
+
+    const cb =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold,
+        resetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Gemini circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
+
+    super(cb);
+    this.circuitBreaker = cb;
 
     this.apiKey = config.apiKey;
     this.config = {
@@ -112,18 +136,6 @@ export class GeminiService {
     });
 
     this.costTracker = 0;
-
-    this.circuitBreaker =
-      circuitBreaker ??
-      new CircuitBreaker({
-        failureThreshold: this.config.circuitBreakerThreshold,
-        resetTimeout: this.config.circuitBreakerResetTimeout,
-        onStateChange: (state, reason) => {
-          logger.warn(
-            `Gemini circuit breaker state changed to ${state}: ${reason}`,
-          );
-        },
-      });
 
     logger.info("Gemini service initialized", {
       timeout: this.config.timeout,
@@ -399,11 +411,7 @@ export class GeminiService {
     });
   }
 
-  async healthCheck(): Promise<{
-    healthy: boolean;
-    latency: number;
-    error?: string;
-  }> {
+  async healthCheck(): Promise<ServiceHealth> {
     const start = Date.now();
 
     try {
@@ -446,22 +454,6 @@ export class GeminiService {
         error: errorMessage,
       };
     }
-  }
-
-  getCircuitBreakerState() {
-    return {
-      state: this.circuitBreaker.getState(),
-      metrics: this.circuitBreaker.getMetrics(),
-    };
-  }
-
-  getCircuitBreaker(): CircuitBreaker {
-    return this.circuitBreaker;
-  }
-
-  resetCircuitBreaker(): void {
-    logger.warn("Manually resetting Gemini circuit breaker");
-    this.circuitBreaker.reset();
   }
 
   getCostTracker(): number {

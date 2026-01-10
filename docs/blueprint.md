@@ -65,8 +65,19 @@ The integration layer follows a clean, layered architecture:
 Dependencies flow inward following the Dependency Inversion Principle:
 
 - **Application Layer** → Depends on **Services Layer** interfaces
-- **Services Layer** → Depends on **Utilities Layer** abstractions
+- **Services Layer** → Depends on **BaseService** (abstract class) and **Utilities Layer** abstractions
+- **BaseService** → Depends on **CircuitBreaker** from Utilities Layer
 - **Utilities Layer** → Independent, no dependencies on upper layers
+
+### Key Patterns
+
+1. **BaseService Pattern**: Abstract base class providing common circuit breaker and health check functionality
+2. **Service Factory Pattern**: Centralized service creation and lifecycle management
+3. **Dependency Injection**: Services accept dependencies via constructor
+4. **Singleton Pattern**: Single ServiceFactory instance for consistency
+5. **Circuit Breaker Pattern**: Prevents cascading failures
+6. **Retry Pattern**: Automatic retry with exponential backoff
+7. **Strategy Pattern**: Pluggable error handling and retry strategies
 
 ### Key Patterns
 
@@ -78,6 +89,24 @@ Dependencies flow inward following the Dependency Inversion Principle:
 6. **Strategy Pattern**: Pluggable error handling and retry strategies
 
 ## Component Descriptions
+
+### BaseService
+
+**Purpose**: Abstract base class for all service implementations, providing common circuit breaker and health check functionality.
+
+**Responsibilities**:
+
+- Circuit breaker state management
+- Health check interface definition
+- Service name identification for logging
+- Common reset methods for circuit breaker
+
+**Key Methods**:
+
+- `getCircuitBreakerState()`: Get circuit breaker state and metrics
+- `getCircuitBreaker()`: Get circuit breaker instance
+- `resetCircuitBreaker()`: Reset circuit breaker state
+- `healthCheck()`: Abstract method for service health monitoring
 
 ### ServiceFactory
 
@@ -100,6 +129,35 @@ Dependencies flow inward following the Dependency Inversion Principle:
 
 ### Services Layer
 
+#### BaseService (Abstract Class)
+
+**Purpose**: Base class for all external service implementations, providing common circuit breaker and health check functionality.
+
+**Features**:
+
+- Circuit breaker management (getCircuitBreakerState, getCircuitBreaker, resetCircuitBreaker)
+- Service name identification for logging
+- Abstract healthCheck method for service monitoring
+
+**Usage**:
+
+All services extend BaseService to inherit common resilience patterns:
+
+```typescript
+class MyService extends BaseService {
+  protected serviceName = "MyService";
+
+  constructor(config: MyConfig, circuitBreaker?: CircuitBreaker) {
+    super(circuitBreaker);
+    // ...service-specific initialization
+  }
+
+  async healthCheck(): Promise<ServiceHealth> {
+    // ...health check implementation
+  }
+}
+```
+
 #### SupabaseService
 
 **Purpose**: Robust Supabase database client with resilience patterns.
@@ -108,7 +166,7 @@ Dependencies flow inward following the Dependency Inversion Principle:
 
 - CRUD operations (select, insert, update, delete, upsert)
 - Query building with filters, ordering, pagination
-- Circuit breaker integration
+- Circuit breaker integration (inherited from BaseService)
 - Retry logic with exponential backoff
 - Health check with latency measurement
 - Admin client support
@@ -124,7 +182,7 @@ Dependencies flow inward following the Dependency Inversion Principle:
 - Streaming responses
 - Rate limiting (configurable)
 - Token usage tracking
-- Circuit breaker integration
+- Circuit breaker integration (inherited from BaseService)
 
 ### Utilities Layer
 
@@ -763,21 +821,67 @@ Recommended alerts:
 
 To add a new service:
 
-1. Create service class in `src/services/`
-2. Accept CircuitBreaker in constructor
-3. Use `executeWithResilience` for resilience
-4. Add factory method in `ServiceFactory`
-5. Export from `src/index.ts`
+1. Create service class in `src/services/` extending `BaseService`
+2. Set `protected serviceName` property for logging
+3. Accept CircuitBreaker in constructor and call `super(circuitBreaker)`
+4. Implement `healthCheck()` method returning `ServiceHealth`
+5. Use `executeWithResilience` for resilience
+6. Add factory method in `ServiceFactory`
+7. Export from `src/index.ts`
 
 Example:
 
 ```typescript
-export class MyService {
+import { BaseService, ServiceHealth } from "./base-service";
+import { CircuitBreaker } from "../utils/circuit-breaker";
+import { executeWithResilience } from "../utils/resilience";
+
+export class MyService extends BaseService {
+  protected serviceName = "MyService";
+
   constructor(
     private config: MyConfig,
-    circuitBreaker?: CircuitBreaker
+    circuitBreaker?: CircuitBreaker,
   ) {
-    this.circuitBreaker = circuitBreaker ?? new CircuitBreaker({...});
+    const cb =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: 5,
+        resetTimeout: 60000,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `MyService circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
+
+    super(cb);
+
+    // Service-specific initialization
+  }
+
+  async healthCheck(): Promise<ServiceHealth> {
+    const start = Date.now();
+
+    try {
+      await this.executeWithResilience(
+        async () => {
+          // Health check logic
+        },
+        { timeout: 5000, useCircuitBreaker: false, useRetry: false },
+      );
+
+      return {
+        healthy: true,
+        latency: Date.now() - start,
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        latency: Date.now() - start,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 
   async doSomething() {

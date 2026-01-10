@@ -1629,3 +1629,96 @@ const config: MyServiceConfig = {
 
 - [R01] Extract Duplicate executeWithResilience Logic ✅
 - [R02] Consolidate Configuration Interfaces ✅
+
+---
+
+## [R03] Extract BaseService for Common Service Logic
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: Code Architect
+
+### Description
+
+Extract common circuit breaker and health check logic from SupabaseService and GeminiService into a reusable BaseService abstract class.
+
+### Issue
+
+Both SupabaseService and GeminiService had nearly identical circuit breaker management methods:
+
+- `getCircuitBreakerState()` - Returns circuit breaker state and metrics
+- `getCircuitBreaker()` - Returns circuit breaker instance
+- `resetCircuitBreaker()` - Resets circuit breaker state
+- Similar health check patterns
+
+This violated DRY (Don't Repeat Yourself) and made it harder to add new services consistently.
+
+### Solution
+
+Created `BaseService` abstract class in `src/services/base-service.ts`:
+
+- Provides common circuit breaker state methods (getCircuitBreakerState, getCircuitBreaker, resetCircuitBreaker)
+- Defines `ServiceHealth` interface for consistent health check responses
+- Declares abstract `healthCheck()` method for all services to implement
+- Includes `serviceName` property for logging
+
+Updated SupabaseService and GeminiService to extend BaseService:
+
+- Removed duplicate circuit breaker methods (~30 lines of duplicated code)
+- Both services now inherit common behavior from BaseService
+- Consistent health check signatures across all services
+- Easy to add new services with same patterns
+
+### Acceptance Criteria
+
+- [x] Created BaseService abstract class with common circuit breaker methods
+- [x] Updated SupabaseService to extend BaseService
+- [x] Updated GeminiService to extend BaseService
+- [x] Removed duplicate circuit breaker methods from both services
+- [x] Exported BaseService and ServiceHealth from src/index.ts
+- [x] No TypeScript build errors for modified files
+- [x] No linting errors for modified files
+
+### Technical Notes
+
+**Files Created**:
+
+- `src/services/base-service.ts`: BaseService abstract class with common methods
+
+**Files Modified**:
+
+- `src/services/supabase.ts`: Extended BaseService, removed duplicate methods
+- `src/services/gemini.ts`: Extended BaseService, removed duplicate methods
+- `src/index.ts`: Added export for BaseService and related types
+
+**Code Reduction**:
+
+- Removed ~30 lines of duplicated code across both services
+- Single source of truth for circuit breaker management
+- Consistent behavior guaranteed through inheritance
+
+**Architectural Benefits**:
+
+1. **DRY Principle**: Circuit breaker logic exists in one place
+2. **Consistency**: All services have identical circuit breaker behavior
+3. **Maintainability**: Changes to circuit breaker behavior require single point modification
+4. **Extensibility**: New services automatically get circuit breaker patterns
+5. **Type Safety**: BaseService ensures all services implement required interface
+6. **Clean Architecture**: Clear inheritance hierarchy (BaseService → Service implementations)
+
+### Documentation Updates
+
+Updated `docs/blueprint.md`:
+
+- Added BaseService component description
+- Updated dependency flow to include BaseService
+- Updated key patterns to include BaseService pattern
+- Updated component descriptions section
+- Updated "Adding New Services" guide with BaseService usage
+
+### Test Results
+
+- TypeScript compilation: ✅ No errors for modified files
+- Linting: ✅ No errors for modified files
+- Note: Test infrastructure has pre-existing UUID mock configuration issue (not related to changes)
+

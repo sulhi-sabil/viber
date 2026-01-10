@@ -9,5 +9,6 @@ export * from "./utils/resilience";
 export * from "./utils/rate-limiter";
 export * from "./utils/validator";
 export * from "./utils/service-factory";
+export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
