@@ -9,6 +9,74 @@
 
 ---
 
+## [CI01] Fix workflow-monitor.yml Permissions
+
+**Status**: ❌ Blocked
+**Priority**: P0
+**Agent**: Principal DevOps Engineer
+
+### Description
+
+The `workflow-monitor.yml` workflow is failing because it lacks the `actions: write` permission required to trigger other workflows using `gh workflow run`.
+
+### Issue
+
+Error from workflow run:
+
+```
+could not create workflow dispatch event: HTTP 403: Resource not accessible by integration
+```
+
+The GitHub Actions integration has insufficient permissions to trigger workflow dispatch events.
+
+### Root Cause
+
+`workflow-monitor.yml` currently has:
+
+```yaml
+permissions:
+  actions: read # ❌ Insufficient for triggering workflows
+  contents: write
+```
+
+Needs to be:
+
+```yaml
+permissions:
+  actions: write # ✅ Required for gh workflow run
+  contents: write
+```
+
+### Acceptance Criteria
+
+- [ ] Update `.github/workflows/workflow-monitor.yml` to change `actions: read` to `actions: write`
+- [ ] Verify workflow-monitor runs successfully
+- [ ] Verify on-push and on-pull workflows can be triggered by workflow-monitor
+
+### Technical Notes
+
+**Blocking Issue**: GitHub App lacks `workflows` permission to push workflow file changes.
+
+**Manual Fix Required**:
+
+1. Repository owner must update `.github/workflows/workflow-monitor.yml`
+2. Change `actions: read` to `actions: write` in permissions section
+3. Commit and push changes
+
+**Impact**:
+
+- workflow-monitor.yml runs every 30 minutes via cron
+- Monitors on-push and on-pull workflow status
+- Triggers workflows if they're not running
+- Currently failing on "Trigger on-pull if not running" step
+
+**Workaround**:
+
+- Disable workflow-monitor.yml until permissions issue resolved
+- Run on-push and on-pull workflows manually or via normal triggers
+
+---
+
 ## [I01] Set Up Supabase Client
 
 **Status**: ✅ Complete
