@@ -1,7 +1,7 @@
 export enum CircuitState {
-  CLOSED = 'closed',
-  OPEN = 'open',
-  HALF_OPEN = 'half_open',
+  CLOSED = "closed",
+  OPEN = "open",
+  HALF_OPEN = "half_open",
 }
 
 export interface CircuitBreakerOptions {
@@ -29,6 +29,7 @@ export class CircuitBreaker {
   private failures: number[] = [];
   private successes: number[] = [];
   private mergedOptions: Required<CircuitBreakerOptions>;
+  private lastCleanupTime = 0;
 
   constructor(options: CircuitBreakerOptions = {}) {
     this.mergedOptions = { ...DEFAULT_CIRCUIT_BREAKER_OPTIONS, ...options };
@@ -37,9 +38,11 @@ export class CircuitBreaker {
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.state === CircuitState.OPEN) {
       if (this.shouldAttemptReset()) {
-        this.transitionToHalfOpen('Reset timeout elapsed');
+        this.transitionToHalfOpen("Reset timeout elapsed");
       } else {
-        throw new Error('Circuit breaker is OPEN. Requests are temporarily blocked.');
+        throw new Error(
+          "Circuit breaker is OPEN. Requests are temporarily blocked.",
+        );
       }
     }
 
@@ -59,9 +62,9 @@ export class CircuitBreaker {
 
     if (this.state === CircuitState.HALF_OPEN) {
       this.halfOpenCallCount++;
-      
+
       if (this.halfOpenCallCount >= this.mergedOptions.halfOpenMaxCalls) {
-        this.transitionToClosed('Half-open calls succeeded');
+        this.transitionToClosed("Half-open calls succeeded");
       }
     } else {
       this.failureCount = Math.max(0, this.failureCount - 1);
@@ -74,10 +77,10 @@ export class CircuitBreaker {
     this.failures.push(Date.now());
 
     if (this.state === CircuitState.HALF_OPEN) {
-      this.transitionToOpen('Half-open call failed');
+      this.transitionToOpen("Half-open call failed");
     } else if (this.failureCount >= this.mergedOptions.failureThreshold) {
       this.transitionToOpen(
-        `Failure threshold (${this.mergedOptions.failureThreshold}) reached`
+        `Failure threshold (${this.mergedOptions.failureThreshold}) reached`,
       );
     }
   }
@@ -117,8 +120,8 @@ export class CircuitBreaker {
   }
 
   getMetrics() {
-    this.cleanupOldMetrics();
-    
+    this.cleanupOldMetricsLazy();
+
     return {
       state: this.state,
       failureCount: this.failureCount,
@@ -129,12 +132,30 @@ export class CircuitBreaker {
     };
   }
 
-  private cleanupOldMetrics(): void {
+  private cleanupOldMetricsLazy(): void {
     const now = Date.now();
+    const totalItems = this.failures.length + this.successes.length;
+
+    const cleanupThreshold = Math.max(
+      100,
+      this.mergedOptions.failureThreshold * 10,
+    );
+    const timeSinceLastCleanup = now - this.lastCleanupTime;
+    const minCleanupInterval = this.mergedOptions.monitorWindow / 2;
+
+    if (
+      totalItems <= cleanupThreshold &&
+      timeSinceLastCleanup < minCleanupInterval
+    ) {
+      return;
+    }
+
     const cutoff = now - this.mergedOptions.monitorWindow;
-    
+
     this.failures = this.failures.filter((time: number) => time > cutoff);
     this.successes = this.successes.filter((time: number) => time > cutoff);
+
+    this.lastCleanupTime = now;
   }
 
   reset(): void {
@@ -145,10 +166,13 @@ export class CircuitBreaker {
     this.halfOpenCallCount = 0;
     this.failures = [];
     this.successes = [];
-    this.mergedOptions.onStateChange?.(CircuitState.CLOSED, 'Manual reset');
+    this.lastCleanupTime = 0;
+    this.mergedOptions.onStateChange?.(CircuitState.CLOSED, "Manual reset");
   }
 }
 
-export function createCircuitBreaker(options?: CircuitBreakerOptions): CircuitBreaker {
+export function createCircuitBreaker(
+  options?: CircuitBreakerOptions,
+): CircuitBreaker {
   return new CircuitBreaker(options);
 }

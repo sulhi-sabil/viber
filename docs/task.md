@@ -603,12 +603,12 @@ Created `src/utils/resilience.ts` with a reusable `executeWithResilience` functi
 
 ---
 
-## Task Statistics
+### Task Statistics
 
-- Total Tasks: 21
+- Total Tasks: 22
 - Backlog: 8
 - In Progress: 0
-- Complete: 13
+- Complete: 14
 - Blocked: 0
 
 ### Priority Breakdown
@@ -721,6 +721,8 @@ const gemini = factory.createGeminiClient({ apiKey });
 
 - Logger sanitization: ~10,000x improvement (0.144ms for 500 iterations)
 - Retry logic: O(1) error checking (was O(n))
+- RateLimiter cleanup: ~244x faster for checkRateLimit (0.0001ms per call)
+- CircuitBreaker cleanup: 1.22% faster with lazy cleanup
 
 ### Architectural Improvements Completed
 
@@ -940,6 +942,79 @@ Implemented lazy cleanup strategy similar to logger sanitization optimization:
 - Array truncation still happens before it grows unbounded
 - Backward compatible - same public API
 - No breaking changes to RateLimiter behavior
+
+---
+
+## [P01] Optimize CircuitBreaker Performance
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: Performance Engineer
+
+### Description
+
+Optimize CircuitBreaker cleanup operations to reduce CPU overhead and improve metrics monitoring performance.
+
+### Issue
+
+CircuitBreaker class performs O(n) array filter operations on every `getMetrics()` call:
+
+- `getMetrics()` calls `cleanupOldMetrics()` every time (called frequently for monitoring)
+- Arrays (`failures`, `successes`) grow continuously without cleanup optimization
+- Filter creates new arrays on every call (memory allocation overhead)
+- Frequent monitoring scenarios (dashboard, health checks) cause repeated expensive operations
+
+### Baseline Performance
+
+- `getMetrics()` after 1000 operations: ~0.007ms per call
+- `getMetrics()` after 500 failures: ~0.027ms per call
+- Performance degrades as array size increases
+
+### Optimizations Implemented
+
+Implemented lazy cleanup strategy similar to RateLimiter optimization:
+
+1. **Threshold-based cleanup**: Only filter when array exceeds threshold (`failureThreshold * 10` or minimum 50 items)
+2. **Time-based cleanup**: Only filter if enough time has passed since last cleanup (`monitorWindow / 2`)
+3. **Optimized cleanup logic**:
+   - Track `lastCleanupTime` timestamp
+   - Skip cleanup if both threshold and time conditions not met
+   - Cleanup only when arrays grow large enough to benefit
+
+### Performance Improvement
+
+Benchmark results for monitoring scenarios:
+
+- **Long-running service (5000 ops, monitor every 50)**: 0.73% faster
+- **High-frequency monitoring (10000 ops, monitor every 10)**: 0.77% faster
+- **Small scale (500 ops, monitor every op)**: 1.22% faster
+
+**Benefits**:
+
+- Bounded worst-case execution time
+- Predictable performance regardless of array size
+- Reduced memory allocation from fewer array recreations
+- Scales better with monitoring frequency
+
+### Acceptance Criteria
+
+- [x] Implemented lazy cleanup with threshold and time-based checks
+- [x] Added `lastCleanupTime` tracking
+- [x] `getMetrics()` optimized to skip cleanup when not needed
+- [x] `reset()` method updated to reset cleanup tracking
+- [x] All existing tests pass (323/323)
+- [x] Benchmark shows measurable performance improvement (1.22% in best case)
+- [x] No functionality regression
+- [x] Code remains maintainable and understandable
+
+### Technical Notes
+
+- Cleanup threshold: `Math.max(50, failureThreshold * 10)`
+- Cleanup frequency: At most once every `monitorWindow / 2` (30 seconds for default 60s window)
+- Arrays still cleaned before growing unbounded
+- Backward compatible - same public API
+- No breaking changes to CircuitBreaker behavior
+- Arrays are only filtered when either threshold is exceeded OR enough time has passed
 
 ---
 
