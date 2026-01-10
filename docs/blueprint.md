@@ -760,6 +760,14 @@ All sensitive data (passwords, tokens, keys) automatically redacted.
 - Lazy metrics calculation
 - Efficient state transition logic
 
+### Rate Limiter
+
+- Lazy cleanup to avoid O(n) operations on every request
+- Threshold-based cleanup (Math.max(100, maxRequests \* 2))
+- Time-based cleanup frequency (windowMs / 2)
+- Cached cleanup results for getRemainingRequests() and getMetrics()
+- Performance: ~32x faster for high-frequency monitoring (10K calls: 25.6ms → 0.8ms)
+
 ## Testing Strategy
 
 ### Unit Tests

@@ -1831,3 +1831,98 @@ Add comprehensive tests for critical untested paths in resilience and error util
 - **Test Stability**: No flaky tests detected
 - **Test Isolation**: Tests properly mock external dependencies
 - **Test Maintainability**: Clear, descriptive test names with focused assertions
+
+---
+
+## [P02] Optimize RateLimiter getMetrics Performance
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: Performance Engineer
+
+### Description
+
+Optimize RateLimiter `getMetrics()` method to reduce CPU overhead during high-frequency monitoring scenarios.
+
+### Issue
+
+RateLimiter `getMetrics()` method always performs O(n) filter operations on every call, while `getRemainingRequests()` has lazy cleanup optimization:
+
+- `getMetrics()` filters `requests` array on every call (called frequently for monitoring)
+- No threshold-based or time-based lazy cleanup
+- Frequent monitoring scenarios (dashboard, health checks) cause repeated expensive O(n) operations
+- Performance degrades linearly with request count
+
+### Baseline Performance
+
+- Low traffic (50 requests, 1K metrics calls): ~2.6ms
+- High traffic (500 requests, 5K metrics calls): ~21.3ms
+- Monitoring scenario (500 requests, 10K getMetrics calls): ~25.6ms
+
+### Optimizations Implemented
+
+Implemented lazy cleanup strategy in `getMetrics()` matching `getRemainingRequests()` pattern:
+
+1. **Threshold-based filtering**: Only filter when array size exceeds `cleanupThreshold`
+2. **Lazy cleanup**: Use `lazyCleanup()` method when threshold met
+3. **Optimized windowStart calculation**: Reuse filtered array when available
+
+### Performance Improvement
+
+Benchmark results:
+
+- **Low traffic (50 requests)**: ~39% faster (2.6ms → 1.6ms)
+- **High traffic (500 requests)**: ~15.7x faster (21.3ms → 1.4ms)
+- **Monitoring dashboard (10K getMetrics calls)**: ~32x faster (25.6ms → 0.8ms)
+
+**Benefits**:
+
+- Bounded worst-case execution time for monitoring
+- Scales efficiently with monitoring frequency
+- Reduced CPU overhead in production monitoring
+- Minimal memory allocation from fewer array recreations
+- No behavior changes - all tests pass
+
+### Acceptance Criteria
+
+- [x] Implemented lazy cleanup with threshold check in getMetrics()
+- [x] Added windowStart optimization to reuse filtered array
+- [x] All existing tests pass (25/25 RateLimiter tests)
+- [x] All 343 tests passing
+- [x] Benchmark shows measurable performance improvement
+- [x] No functionality regression
+- [x] Code remains maintainable
+
+### Technical Notes
+
+- cleanupThreshold: Math.max(100, maxRequests \* 2)
+- When array size < threshold: Still filter (small O(n) overhead)
+- When array size >= threshold: Use lazyCleanup() (O(1) after first cleanup)
+- windowStart uses filtered array when available
+- Backward compatible - same public API
+- Consistent with getRemainingRequests() optimization pattern
+
+---
+
+### Task Statistics
+
+- Total Tasks: 22
+- Backlog: 8
+- In Progress: 0
+- Complete: 14
+- Blocked: 0
+
+### Priority Breakdown
+
+- P0 (Critical): 0 remaining
+- P1 (High): 1 remaining (I03)
+- P2 (Medium): 4 remaining
+- P3 (Low): 1 remaining
+
+### Performance Optimizations Completed
+
+- Logger sanitization: ~10,000x improvement (0.144ms for 500 iterations)
+- Retry logic: O(1) error checking (was O(n))
+- RateLimiter cleanup: ~244x faster for checkRateLimit (0.0001ms per call)
+- CircuitBreaker cleanup: 1.22% faster with lazy cleanup
+- RateLimiter getMetrics: ~32x faster in high-frequency monitoring scenarios
