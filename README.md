@@ -26,13 +26,13 @@ npm install viber-integration-layer
 
 ```typescript
 import {
-  ServiceFactory,
+  serviceFactory,
   SupabaseService,
   GeminiService,
 } from "viber-integration-layer";
 
-// Initialize service factory
-const factory = ServiceFactory.getInstance();
+// Use pre-configured service factory singleton
+// Or create your own: const factory = ServiceFactory.getInstance();
 
 // Create Supabase client
 const supabase = factory.createSupabaseClient({
@@ -63,6 +63,16 @@ The `ServiceFactory` provides centralized service initialization and management:
 - **Singleton Management**: Ensures single instance per service configuration
 - **Lifecycle Control**: Easy reset and management of service instances
 - **Configuration Centralization**: CircuitBreaker configs managed centrally
+
+A pre-configured `serviceFactory` singleton is exported for convenience:
+
+```typescript
+import { serviceFactory } from "viber-integration-layer";
+
+// Directly create services without manual factory initialization
+const supabase = serviceFactory.createSupabaseClient({ url, anonKey });
+const gemini = serviceFactory.createGeminiClient({ apiKey });
+```
 
 ### Layer Structure
 
@@ -523,11 +533,24 @@ console.log(states);
 ### Reset Circuit Breakers
 
 ```typescript
-// Reset specific service
+// Reset specific service circuit breaker
 serviceFactory.resetCircuitBreaker("supabase");
 
-// Reset all
+// Reset all circuit breakers
 serviceFactory.resetAllCircuitBreakers();
+```
+
+### Reset Services
+
+```typescript
+// Reset specific service instance (clears from cache)
+serviceFactory.resetService("supabase-https://project.supabase.co");
+
+// Reset all service instances (clears entire cache)
+serviceFactory.resetAllServices();
+
+// Reset entire factory instance (including circuit breakers)
+ServiceFactory.resetInstance();
 ```
 
 ## API Reference
@@ -539,14 +562,20 @@ class ServiceFactory {
   static getInstance(
     circuitBreakerConfigs?: CircuitBreakerConfigMap,
   ): ServiceFactory;
+  static resetInstance(): void;
   createSupabaseClient(config: SupabaseConfig): SupabaseService;
   createGeminiClient(config: GeminiConfig): GeminiService;
   getCircuitBreaker(serviceName: string): CircuitBreaker;
   resetCircuitBreaker(serviceName: string): void;
   resetAllCircuitBreakers(): void;
+  getService(serviceName: string): unknown;
+  resetService(serviceName: string): void;
+  resetAllServices(): void;
   getCircuitBreakerState(serviceName: string): CircuitBreakerState;
   getAllCircuitBreakerStates(): Record<string, CircuitBreakerState>;
 }
+
+export const serviceFactory: ServiceFactory;
 ```
 
 ### Logger
@@ -611,6 +640,8 @@ class SchemaValidator<T extends Record<string, unknown>> {
 }
 
 function createValidator(): SchemaValidator<Record<string, unknown>>;
+
+// Utility functions
 function validateEmail(email: unknown): boolean;
 function validateUrl(url: unknown): boolean;
 function validateUuid(uuid: unknown): boolean;

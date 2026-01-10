@@ -322,9 +322,29 @@ Create a webhook handling system for:
 
 ## [I08] Create API Documentation
 
-**Status**: ✅ Complete  
-**Priority**: P3  
+**Status**: ✅ Complete (Updated)
+**Priority**: P3
 **Agent**: 10 Technical Writer
+
+### Latest Updates (Jan 10, 2026)
+
+Fixed documentation gaps identified in API reference:
+
+**ServiceFactory Updates**:
+
+- Added missing `resetInstance()` method for testing and singleton reset
+- Added missing `getService(serviceName)` method for service retrieval
+- Added missing `resetService(serviceName)` method for individual service reset
+- Added missing `resetAllServices()` method for bulk service reset
+- Added `serviceFactory` constant export documentation
+
+**Validator Utility Functions**:
+
+- Clarified that `validateEmail`, `validateUrl`, and `validateUuid` are utility functions
+- Added documentation for `sanitizeInput` utility function
+- All utility functions return boolean (true/false) for validation checks
+
+**Acceptance Criteria**
 
 ### Description
 
