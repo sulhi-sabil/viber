@@ -21,7 +21,7 @@ jobs:
         continue-on-error: true
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Check running workflows
         id: check_workflows
@@ -53,7 +53,7 @@ jobs:
           echo "on_push_running=$on_push_running" >> $GITHUB_OUTPUT
           echo "on_pull_running=$on_pull_running" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger on-push if not running
         if: steps.check_workflows.outputs.on_push_running == 'false'
@@ -62,7 +62,7 @@ jobs:
           gh workflow run on-push.yml
           echo "✓ on-push workflow triggered successfully"
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger on-pull if not running
         if: steps.check_workflows.outputs.on_pull_running == 'false'
@@ -71,7 +71,7 @@ jobs:
           gh workflow run on-pull.yml
           echo "✓ on-pull workflow triggered successfully"
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Both workflows running
         if: steps.check_workflows.outputs.on_push_running == 'true' && steps.check_workflows.outputs.on_pull_running == 'true'
