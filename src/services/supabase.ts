@@ -435,46 +435,13 @@ export class SupabaseService extends BaseService {
   }
 
   async healthCheck(): Promise<ServiceHealth> {
-    const start = Date.now();
+    return this.executeHealthCheck(async () => {
+      const { error } = await this.client.from("users").select("id").limit(1);
 
-    try {
-      await this.executeWithResilience(
-        async () => {
-          const { error } = await this.client
-            .from("users")
-            .select("id")
-            .limit(1);
-          if (error && error.code !== "PGRST116") {
-            throw error;
-          }
-        },
-        { timeout: 5000, useCircuitBreaker: false, useRetry: false },
-      );
-
-      const latency = Date.now() - start;
-
-      logger.info("Supabase health check passed", { latency });
-
-      return {
-        healthy: true,
-        latency,
-      };
-    } catch (error) {
-      const latency = Date.now() - start;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-
-      logger.error("Supabase health check failed", {
-        error: errorMessage,
-        latency,
-      });
-
-      return {
-        healthy: false,
-        latency,
-        error: errorMessage,
-      };
-    }
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+    });
   }
 }
 

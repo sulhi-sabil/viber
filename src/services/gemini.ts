@@ -412,48 +412,17 @@ export class GeminiService extends BaseService {
   }
 
   async healthCheck(): Promise<ServiceHealth> {
-    const start = Date.now();
-
-    try {
-      await this.executeWithResilience(
-        async () => {
-          const response = await this.generateText("Hello", {
-            timeout: 5000,
-            useCircuitBreaker: false,
-            useRetry: false,
-          });
-
-          if (!response) {
-            throw new Error("Empty response from Gemini");
-          }
-        },
-        { timeout: 5000, useCircuitBreaker: false, useRetry: false },
-      );
-
-      const latency = Date.now() - start;
-
-      logger.info("Gemini health check passed", { latency });
-
-      return {
-        healthy: true,
-        latency,
-      };
-    } catch (error) {
-      const latency = Date.now() - start;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-
-      logger.error("Gemini health check failed", {
-        error: errorMessage,
-        latency,
+    return this.executeHealthCheck(async () => {
+      const response = await this.generateText("Hello", {
+        timeout: 5000,
+        useCircuitBreaker: false,
+        useRetry: false,
       });
 
-      return {
-        healthy: false,
-        latency,
-        error: errorMessage,
-      };
-    }
+      if (!response) {
+        throw new Error("Empty response from Gemini");
+      }
+    });
   }
 
   getCostTracker(): number {

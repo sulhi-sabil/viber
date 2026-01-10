@@ -31,5 +31,39 @@ export abstract class BaseService {
     this.circuitBreaker.reset();
   }
 
+  protected async executeHealthCheck(
+    operation: () => Promise<void>,
+  ): Promise<ServiceHealth> {
+    const start = Date.now();
+
+    try {
+      await operation();
+
+      const latency = Date.now() - start;
+
+      logger.info(`${this.serviceName} health check passed`, { latency });
+
+      return {
+        healthy: true,
+        latency,
+      };
+    } catch (error) {
+      const latency = Date.now() - start;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      logger.error(`${this.serviceName} health check failed`, {
+        error: errorMessage,
+        latency,
+      });
+
+      return {
+        healthy: false,
+        latency,
+        error: errorMessage,
+      };
+    }
+  }
+
   public abstract healthCheck(): Promise<ServiceHealth>;
 }
