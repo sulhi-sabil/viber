@@ -13,7 +13,7 @@ module.exports = {
     },
   },
   moduleNameMapper: {
-    "^uuid$": "<rootDir>/node_modules/uuid/dist-wrapper.js",
+    "^uuid$": "<rootDir>/node_modules/uuid/dist/index.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 };

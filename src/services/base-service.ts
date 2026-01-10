@@ -15,18 +15,18 @@ export abstract class BaseService {
     this.circuitBreaker = circuitBreaker;
   }
 
-  protected getCircuitBreakerState() {
+  public getCircuitBreakerState() {
     return {
       state: this.circuitBreaker.getState(),
       metrics: this.circuitBreaker.getMetrics(),
     };
   }
 
-  protected getCircuitBreaker(): CircuitBreaker {
+  public getCircuitBreaker(): CircuitBreaker {
     return this.circuitBreaker;
   }
 
-  protected resetCircuitBreaker(): void {
+  public resetCircuitBreaker(): void {
     logger.warn(`Manually resetting ${this.serviceName} circuit breaker`);
     this.circuitBreaker.reset();
   }
