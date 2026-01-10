@@ -7,6 +7,7 @@ export * from "./utils/retry";
 export * from "./utils/circuit-breaker";
 export * from "./utils/resilience";
 export * from "./utils/rate-limiter";
+export * from "./utils/idempotency";
 export * from "./utils/validator";
 export * from "./utils/service-factory";
 export * from "./services/base-service";

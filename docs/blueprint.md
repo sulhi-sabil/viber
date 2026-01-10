@@ -87,6 +87,7 @@ Dependencies flow inward following the Dependency Inversion Principle:
 4. **Circuit Breaker Pattern**: Prevents cascading failures
 5. **Retry Pattern**: Automatic retry with exponential backoff
 6. **Strategy Pattern**: Pluggable error handling and retry strategies
+7. **Idempotency Pattern**: Safe operation handling with deduplication and caching
 
 ## Component Descriptions
 
@@ -277,6 +278,131 @@ const limiter = new RateLimiter({
 
 await limiter.checkRateLimit(); // Waits if at limit
 const remaining = limiter.getRemainingRequests(); // 14
+```
+
+#### IdempotencyManager
+
+**Purpose**: Ensures safe operation handling by preventing duplicate executions and returning cached responses for repeat requests.
+
+**Features**:
+
+- UUID validation for idempotency keys
+- Request deduplication with cached responses
+- Configurable TTL for cached responses (default: 24h)
+- Pluggable storage backend (in-memory, Redis, database)
+- Manual invalidation for explicit cache busting
+
+**Configuration**:
+
+```typescript
+interface IdempotencyManagerOptions {
+  ttlMs?: number; // Time-to-live for cached responses (default: 24 hours)
+  store?: IdempotencyStore; // Custom storage backend (default: InMemoryIdempotencyStore)
+}
+```
+
+**Interfaces**:
+
+```typescript
+interface IdempotencyStore {
+  get<T>(key: string): Promise<StoredResponse<T> | null>;
+  set<T>(key: string, value: StoredResponse<T>, ttl: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+interface IdempotencyResult<T> {
+  data: T;
+  cached: boolean;
+  idempotencyKey: string;
+  timestamp: number;
+}
+
+interface StoredResponse<T> {
+  data: T;
+  timestamp: number;
+}
+```
+
+**Methods**:
+
+- `execute(idempotencyKey, operation)`: Executes operation and caches result, or returns cached response
+- `invalidate(idempotencyKey)`: Removes cached response for specific key
+- `clear()`: Clears all cached responses
+
+**Usage Example**:
+
+```typescript
+import {
+  IdempotencyManager,
+  createIdempotencyManager,
+} from "viber-integration-layer";
+
+const manager = createIdempotencyManager();
+
+// Execute payment with idempotency
+const result = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    return await processPayment({ amount: 100, currency: "USD" });
+  },
+);
+
+console.log(result.cached); // false (first execution)
+
+// Retry with same idempotency key
+const retryResult = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    // This won't execute - returns cached result
+    return await processPayment({ amount: 100, currency: "USD" });
+  },
+);
+
+console.log(retryResult.cached); // true (cached response)
+```
+
+**Custom Storage Example**:
+
+```typescript
+import { IdempotencyStore } from "viber-integration-layer";
+
+class RedisStore implements IdempotencyStore {
+  constructor(private redis: RedisClient) {}
+
+  async get<T>(key: string): Promise<StoredResponse<T> | null> {
+    const data = await this.redis.get(`idempotency:${key}`);
+    return data ? JSON.parse(data) : null;
+  }
+
+  async set<T>(
+    key: string,
+    value: StoredResponse<T>,
+    ttl: number,
+  ): Promise<void> {
+    await this.redis.setex(
+      `idempotency:${key}`,
+      Math.floor(ttl / 1000),
+      JSON.stringify(value),
+    );
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redis.del(`idempotency:${key}`);
+  }
+
+  async clear(): Promise<void> {
+    const keys = await this.redis.keys("idempotency:*");
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+}
+
+const manager = createIdempotencyManager({
+  ttlMs: 60 * 60 * 1000, // 1 hour
+  store: new RedisStore(redisClient),
+});
 ```
 
 #### Resilience Executor
@@ -930,4 +1056,5 @@ export class MyService extends BaseService {
 - ✅ Comprehensive error handling
 - ✅ Production-ready monitoring
 - ✅ Extensible for new services
+- ✅ Idempotency support for safe operations
 - ✅ Zero regressions in existing functionality
