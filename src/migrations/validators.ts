@@ -99,18 +99,21 @@ export function validateUser(user: {
 
 export function validateSession(session: {
   user_id: string;
-  expires_at: number;
+  expires_at: string;
 }): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   Validator.string(session.user_id, "user_id");
 
-  if (typeof session.expires_at !== "number") {
-    errors.push("expires_at must be a number");
-  }
-
-  if (session.expires_at < Date.now()) {
-    errors.push("Session has expired");
+  if (typeof session.expires_at !== "string") {
+    errors.push("expires_at must be a string");
+  } else {
+    const expiryDate = new Date(session.expires_at);
+    if (isNaN(expiryDate.getTime())) {
+      errors.push("expires_at must be a valid ISO timestamp");
+    } else if (expiryDate < new Date()) {
+      errors.push("Session has expired");
+    }
   }
 
   return {
@@ -184,6 +187,7 @@ export function validateAsset(asset: {
   r2_key: string;
   mime_type?: string;
   public_url?: string;
+  entry_id?: string;
 }): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -197,6 +201,10 @@ export function validateAsset(asset: {
 
   if (asset.mime_type && !validateMimeTypes(asset.mime_type)) {
     errors.push(`Invalid mime_type: ${asset.mime_type}`);
+  }
+
+  if (asset.entry_id) {
+    Validator.uuid(asset.entry_id, "entry_id");
   }
 
   return {

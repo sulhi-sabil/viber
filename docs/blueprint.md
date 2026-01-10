@@ -320,18 +320,20 @@ The integration layer uses a well-structured data model with:
 **Core Tables**:
 
 - `users`: User accounts with role-based access
-- `sessions`: User session management
-- `content_types`: Flexible content type definitions
+- `sessions`: User session management (TIMESTAMPTZ for timezone consistency)
+- `content_types`: Flexible content type definitions (with created_at DESC index)
 - `entries`: Dynamic content entries with JSONB data
-- `assets`: File storage references (R2/S3)
+- `assets`: File storage references (R2/S3, with entry relationship)
 
 **Schema Features**:
 
 - JSONB fields for flexible data (`fields_schema`, `data`)
 - Soft delete support via `deleted_at` timestamps
 - Foreign key relationships with CASCADE/RESTRICT
-- Comprehensive indexing for query optimization
+- Comprehensive indexing for query optimization (including created_at indexes on content_types/assets)
 - Row Level Security (RLS) for access control
+- Timestamp consistency constraints (`updated_at >= created_at`) on all tables
+- Asset-entry relationship with `entry_id` foreign key
 
 ### Index Strategy
 

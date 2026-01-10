@@ -1041,6 +1041,291 @@ Benchmark results for monitoring scenarios:
 
 ---
 
+## [DA02] Fix Sessions Timestamp Type Inconsistency
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: Principal Data Architect
+
+### Description
+
+Fix `sessions.expires_at` type inconsistency by converting from BIGINT (milliseconds timestamp) to TIMESTAMPTZ for consistency with other timestamp fields.
+
+### Issue
+
+The `sessions.expires_at` field was stored as BIGINT (milliseconds since epoch) while all other timestamps in the database use TIMESTAMPTZ. This inconsistency caused:
+
+- Confusion in queries (need to convert between types)
+- No automatic timezone handling
+- Inconsistent API design
+
+### Solution
+
+Created migration `20260110001-fix-sessions-timestamp.sql` to:
+
+1. Add new TIMESTAMPTZ column `expires_at_new`
+2. Convert existing BIGINT timestamps (milliseconds) to TIMESTAMPTZ
+3. Drop indexes on old column
+4. Drop old column
+5. Rename new column to original name
+6. Recreate indexes with proper TIMESTAMPTZ type
+7. Update cleanup function to use TIMESTAMPTZ comparison
+
+### Acceptance Criteria
+
+- [x] Migration file created with reversible up/down scripts
+- [x] Schema.sql updated with TIMESTAMPTZ type
+- [x] Database types (database.ts) updated for string expires_at
+- [x] Validator updated to handle ISO timestamp strings
+- [x] Tests updated and passing (344 tests)
+- [x] Linting passes
+
+### Technical Notes
+
+**Migration Details**:
+
+- File: `src/migrations/20260110001-fix-sessions-timestamp.sql`
+- Version: 20260110001
+- Reversible: Yes (full down script)
+- Transaction-based: Yes (BEGIN/COMMIT)
+
+**Type Changes**:
+
+- `sessions.expires_at`: BIGINT → TIMESTAMPTZ
+- `Session.expires_at` in database.ts: number → string
+- `validateSession` validator now expects ISO timestamp strings
+
+**Benefits**:
+
+1. **Consistency**: All timestamps use same type (TIMESTAMPTZ)
+2. **Timezone Support**: Automatic timezone handling in queries
+3. **Simpler API**: No conversion needed in application code
+4. **Better Indexing**: TIMESTAMPTZ indexes support native date comparisons
+
+**Files Modified**:
+
+- `src/migrations/20260110001-fix-sessions-timestamp.sql`: Created
+- `src/migrations/index.ts`: Added migration to registry
+- `docs/schema.sql`: Updated sessions table definition
+- `docs/schema.sql`: Updated cleanup function
+- `src/types/database.ts`: Updated Session interface
+- `src/migrations/validators.ts`: Updated validateSession function
+- `src/migrations/validators.test.ts`: Updated session tests
+
+---
+
+## [DA03] Add Timestamp Validation Constraints
+
+**Status**: ✅ Complete
+**Priority**: P2
+**Agent**: Principal Data Architect
+
+### Description
+
+Add check constraints to ensure `updated_at >= created_at` for all tables to prevent data integrity issues.
+
+### Issue
+
+No constraints existed to ensure timestamp consistency across tables. This could lead to:
+
+- `updated_at` earlier than `created_at` (logical impossibility)
+- Data corruption from incorrect updates
+- Inconsistent audit trails
+
+### Solution
+
+Created migration `20260110002-add-timestamp-constraints.sql` to add check constraints:
+
+1. `chk_users_timestamps`: Ensure users.updated_at >= users.created_at
+2. `chk_sessions_timestamps`: Ensure sessions.updated_at >= sessions.created_at
+3. `chk_content_types_timestamps`: Ensure content_types.updated_at >= content_types.created_at
+4. `chk_entries_timestamps`: Ensure entries.updated_at >= entries.created_at
+5. `chk_assets_timestamps`: Ensure assets.updated_at >= assets.created_at
+
+### Acceptance Criteria
+
+- [x] Migration file created with reversible up/down scripts
+- [x] Schema.sql updated with check constraints
+- [x] All tables have timestamp validation
+- [x] Tests passing (344 tests)
+- [x] Linting passes
+
+### Technical Notes
+
+**Migration Details**:
+
+- File: `src/migrations/20260110002-add-timestamp-constraints.sql`
+- Version: 20260110002
+- Reversible: Yes (full down script)
+- Transaction-based: Yes (BEGIN/COMMIT)
+
+**Constraints Added**:
+
+```sql
+ALTER TABLE users ADD CONSTRAINT chk_users_timestamps
+  CHECK (updated_at >= created_at);
+
+-- Repeated for sessions, content_types, entries, assets
+```
+
+**Benefits**:
+
+1. **Data Integrity**: Prevents logically impossible timestamp combinations
+2. **Audit Trail**: Ensures consistent chronological order
+3. **Database-Level Enforcement**: Constraints enforced by PostgreSQL, not just application logic
+
+**Files Modified**:
+
+- `src/migrations/20260110002-add-timestamp-constraints.sql`: Created
+- `src/migrations/index.ts`: Added migration to registry
+- `docs/schema.sql`: Added 5 check constraints (one per table)
+
+---
+
+## [DA04] Add Asset-Entry Foreign Key Relationship
+
+**Status**: ✅ Complete
+**Priority**: P2
+**Agent**: Principal Data Architect
+
+### Description
+
+Add foreign key relationship between `assets` and `entries` to enable querying assets by entry and improve data integrity.
+
+### Issue
+
+Assets had no relationship to entries, making it impossible to:
+
+- Query all assets for a specific entry
+- Enforce referential integrity
+- Cascade updates/deletes appropriately
+
+### Solution
+
+Created migration `20260110003-add-asset-entry-relationship.sql` to:
+
+1. Add `entry_id UUID` column to assets table
+2. Add foreign key constraint: `assets.entry_id REFERENCES entries(id) ON DELETE SET NULL`
+3. Create index `idx_assets_entry_id` for fast lookup
+4. Mark column as nullable (assets can exist without entries)
+
+### Acceptance Criteria
+
+- [x] Migration file created with reversible up/down scripts
+- [x] Schema.sql updated with entry_id column and foreign key
+- [x] Database types (database.ts) updated for entry_id field
+- [x] Validator updated to handle optional entry_id
+- [x] Test added for entry_id validation
+- [x] Tests passing (344 tests)
+- [x] Linting passes
+
+### Technical Notes
+
+**Migration Details**:
+
+- File: `src/migrations/20260110003-add-asset-entry-relationship.sql`
+- Version: 20260110003
+- Reversible: Yes (full down script)
+- Transaction-based: Yes (BEGIN/COMMIT)
+
+**Foreign Key Details**:
+
+- `assets.entry_id UUID REFERENCES entries(id) ON DELETE SET NULL`
+- Nullable: Yes (assets can exist without entry)
+- On Delete: SET NULL (remains when entry deleted, unlinked)
+
+**Benefits**:
+
+1. **Data Integrity**: Assets linked to entries with referential integrity
+2. **Query Performance**: Index enables fast asset lookup by entry
+3. **Flexibility**: Nullable allows assets without entries (standalone uploads)
+
+**Files Modified**:
+
+- `src/migrations/20260110003-add-asset-entry-relationship.sql`: Created
+- `src/migrations/index.ts`: Added migration to registry
+- `docs/schema.sql`: Added entry_id column and foreign key
+- `docs/schema.sql`: Added idx_assets_entry_id index
+- `src/types/database.ts`: Updated Asset interface with entry_id
+- `src/migrations/validators.ts`: Updated validateAsset function
+- `src/migrations/validators.test.ts`: Added test for entry_id validation
+
+---
+
+## [DA05] Add Missing Created_at Indexes
+
+**Status**: ✅ Complete
+**Priority**: P3
+**Agent**: Principal Data Architect
+
+### Description
+
+Add `created_at DESC` indexes to `content_types` and `assets` tables for time-based query optimization.
+
+### Issue
+
+The `entries` table had a `created_at DESC` index for time-based queries, but `content_types` and `assets` tables lacked this index, leading to:
+
+- Slower queries when sorting by creation date
+- Sequential scans instead of index lookups
+- Inconsistent query performance across tables
+
+### Solution
+
+Created migration `20260110004-add-created-at-indexes.sql` to add:
+
+1. `idx_content_types_created_at`: Index on `created_at DESC WHERE deleted_at IS NULL`
+2. `idx_assets_created_at`: Index on `created_at DESC WHERE deleted_at IS NULL`
+
+Both indexes use:
+
+- DESC order for most recent first queries
+- Partial index `WHERE deleted_at IS NULL` for active records only
+
+### Acceptance Criteria
+
+- [x] Migration file created with reversible up/down scripts
+- [x] Schema.sql updated with created_at indexes
+- [x] All time-based query tables now have created_at indexes
+- [x] Tests passing (344 tests)
+- [x] Linting passes
+
+### Technical Notes
+
+**Migration Details**:
+
+- File: `src/migrations/20260110004-add-created-at-indexes.sql`
+- Version: 20260110004
+- Reversible: Yes (full down script)
+- Transaction-based: Yes (BEGIN/COMMIT)
+
+**Indexes Added**:
+
+```sql
+CREATE INDEX idx_content_types_created_at
+  ON content_types(created_at DESC)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_assets_created_at
+  ON assets(created_at DESC)
+  WHERE deleted_at IS NULL;
+```
+
+**Benefits**:
+
+1. **Query Performance**: Time-based queries now use indexes
+2. **Consistency**: All tables have consistent index strategy
+3. **Storage Efficiency**: Partial indexes reduce index size
+
+**Files Modified**:
+
+- `src/migrations/20260110004-add-created-at-indexes.sql`: Created
+- `src/migrations/index.ts`: Added migration to registry
+- `docs/schema.sql`: Added idx_content_types_created_at index
+- `docs/schema.sql`: Added idx_assets_created_at index
+
+---
+
 ## [DA01] Implement Data Architecture Improvements
 
 **Status**: ✅ Complete
@@ -1635,10 +1920,10 @@ const config: MyServiceConfig = {
 
 ### Task Statistics
 
-- Total Tasks: 21
+- Total Tasks: 26
 - Backlog: 8
 - In Progress: 0
-- Complete: 13
+- Complete: 18
 - Blocked: 0
 
 ### Priority Breakdown
@@ -1647,6 +1932,13 @@ const config: MyServiceConfig = {
 - P1 (High): 1 remaining (I03)
 - P2 (Medium): 4 remaining
 - P3 (Low): 1 remaining
+
+### Data Architecture Tasks Completed
+
+- [DA02] Fix Sessions Timestamp Type Inconsistency ✅
+- [DA03] Add Timestamp Validation Constraints ✅
+- [DA04] Add Asset-Entry Foreign Key Relationship ✅
+- [DA05] Add Missing Created_at Indexes ✅
 
 ### Refactoring Completed
 
