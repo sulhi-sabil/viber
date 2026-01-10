@@ -10,6 +10,7 @@ A robust, production-ready TypeScript/JavaScript integration layer with built-in
 - **Service Management**: Centralized service factory for dependency injection and lifecycle management
 - **Input Validation**: Comprehensive validator utility for type checking, format validation, and sanitization
 - **Rate Limiting**: Built-in rate limiter with sliding window algorithm for API quota compliance
+- **Idempotency**: Idempotency manager for safe operation handling with UUID validation
 - **Type Safety**: Full TypeScript support with type-safe API clients
 - **Extensible**: Easy to add new services with consistent patterns
 
@@ -25,13 +26,13 @@ npm install viber-integration-layer
 
 ```typescript
 import {
-  ServiceFactory,
+  serviceFactory,
   SupabaseService,
   GeminiService,
 } from "viber-integration-layer";
 
-// Initialize service factory
-const factory = ServiceFactory.getInstance();
+// Use pre-configured service factory singleton
+// Or create your own: const factory = ServiceFactory.getInstance();
 
 // Create Supabase client
 const supabase = factory.createSupabaseClient({
@@ -62,6 +63,16 @@ The `ServiceFactory` provides centralized service initialization and management:
 - **Singleton Management**: Ensures single instance per service configuration
 - **Lifecycle Control**: Easy reset and management of service instances
 - **Configuration Centralization**: CircuitBreaker configs managed centrally
+
+A pre-configured `serviceFactory` singleton is exported for convenience:
+
+```typescript
+import { serviceFactory } from "viber-integration-layer";
+
+// Directly create services without manual factory initialization
+const supabase = serviceFactory.createSupabaseClient({ url, anonKey });
+const gemini = serviceFactory.createGeminiClient({ apiKey });
+```
 
 ### Layer Structure
 
@@ -346,6 +357,105 @@ const metrics = limiter.getMetrics();
 limiter.reset();
 ```
 
+### IdempotencyManager
+
+Ensures safe operation handling by preventing duplicate executions and returning cached responses for repeat requests.
+
+```typescript
+import {
+  IdempotencyManager,
+  createIdempotencyManager,
+} from "viber-integration-layer";
+
+// Create idempotency manager with default TTL (24h)
+const manager = createIdempotencyManager();
+
+// Create with custom TTL (1 hour)
+const managerWithCustomTTL = createIdempotencyManager({
+  ttlMs: 60 * 60 * 1000,
+});
+
+// Execute operation with idempotency key
+const result = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    // Your operation here (e.g., payment, user creation)
+    return await createUser({ email: "user@example.com" });
+  },
+);
+
+console.log(result.data); // Operation result
+console.log(result.cached); // false (first execution)
+console.log(result.idempotencyKey); // "550e8400-e29b-41d4-a716-446655440000"
+
+// Repeat request with same key - returns cached result
+const duplicateResult = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    // This won't execute - cached result returned instead
+    return await createUser({ email: "user@example.com" });
+  },
+);
+
+console.log(duplicateResult.cached); // true (cached from previous request)
+console.log(duplicateResult.data === result.data); // true
+
+// Invalidate cached response when needed
+await manager.invalidate("550e8400-e29b-41d4-a716-446655440000");
+
+// Clear all cached responses
+await manager.clear();
+```
+
+#### Custom Storage Backend
+
+Use a custom storage backend (Redis, database, etc.) for distributed scenarios:
+
+```typescript
+import {
+  IdempotencyManager,
+  type IdempotencyStore,
+} from "viber-integration-layer";
+
+// Implement custom storage backend
+class RedisStore implements IdempotencyStore {
+  constructor(private redis: RedisClient) {}
+
+  async get<T>(key: string): Promise<StoredResponse<T> | null> {
+    const data = await this.redis.get(`idempotency:${key}`);
+    return data ? JSON.parse(data) : null;
+  }
+
+  async set<T>(
+    key: string,
+    value: StoredResponse<T>,
+    ttl: number,
+  ): Promise<void> {
+    await this.redis.setex(
+      `idempotency:${key}`,
+      Math.floor(ttl / 1000),
+      JSON.stringify(value),
+    );
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redis.del(`idempotency:${key}`);
+  }
+
+  async clear(): Promise<void> {
+    const keys = await this.redis.keys("idempotency:*");
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+}
+
+// Use custom storage
+const manager = createIdempotencyManager({
+  store: new RedisStore(redisClient),
+});
+```
+
 ## Configuration
 
 ### Service Factory Configuration
@@ -423,11 +533,24 @@ console.log(states);
 ### Reset Circuit Breakers
 
 ```typescript
-// Reset specific service
+// Reset specific service circuit breaker
 serviceFactory.resetCircuitBreaker("supabase");
 
-// Reset all
+// Reset all circuit breakers
 serviceFactory.resetAllCircuitBreakers();
+```
+
+### Reset Services
+
+```typescript
+// Reset specific service instance (clears from cache)
+serviceFactory.resetService("supabase-https://project.supabase.co");
+
+// Reset all service instances (clears entire cache)
+serviceFactory.resetAllServices();
+
+// Reset entire factory instance (including circuit breakers)
+ServiceFactory.resetInstance();
 ```
 
 ## API Reference
@@ -439,14 +562,20 @@ class ServiceFactory {
   static getInstance(
     circuitBreakerConfigs?: CircuitBreakerConfigMap,
   ): ServiceFactory;
+  static resetInstance(): void;
   createSupabaseClient(config: SupabaseConfig): SupabaseService;
   createGeminiClient(config: GeminiConfig): GeminiService;
   getCircuitBreaker(serviceName: string): CircuitBreaker;
   resetCircuitBreaker(serviceName: string): void;
   resetAllCircuitBreakers(): void;
+  getService(serviceName: string): unknown;
+  resetService(serviceName: string): void;
+  resetAllServices(): void;
   getCircuitBreakerState(serviceName: string): CircuitBreakerState;
   getAllCircuitBreakerStates(): Record<string, CircuitBreakerState>;
 }
+
+export const serviceFactory: ServiceFactory;
 ```
 
 ### Logger
@@ -511,6 +640,8 @@ class SchemaValidator<T extends Record<string, unknown>> {
 }
 
 function createValidator(): SchemaValidator<Record<string, unknown>>;
+
+// Utility functions
 function validateEmail(email: unknown): boolean;
 function validateUrl(url: unknown): boolean;
 function validateUuid(uuid: unknown): boolean;
@@ -529,6 +660,48 @@ class RateLimiter {
 }
 
 function createRateLimiter(options?: RateLimiterOptions): RateLimiter;
+```
+
+### IdempotencyManager
+
+```typescript
+class IdempotencyManager {
+  constructor(options?: IdempotencyManagerOptions);
+  execute<T>(
+    idempotencyKey: string,
+    operation: () => Promise<T>,
+  ): Promise<IdempotencyResult<T>>;
+  invalidate(idempotencyKey: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+function createIdempotencyManager(
+  options?: IdempotencyManagerOptions,
+): IdempotencyManager;
+
+interface IdempotencyManagerOptions {
+  ttlMs?: number; // Default: 24 hours
+  store?: IdempotencyStore; // Default: InMemoryIdempotencyStore
+}
+
+interface IdempotencyResult<T> {
+  data: T;
+  cached: boolean;
+  idempotencyKey: string;
+  timestamp: number;
+}
+
+interface IdempotencyStore {
+  get<T>(key: string): Promise<StoredResponse<T> | null>;
+  set<T>(key: string, value: StoredResponse<T>, ttl: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+interface StoredResponse<T> {
+  data: T;
+  timestamp: number;
+}
 ```
 
 ## Development

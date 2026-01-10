@@ -9,7 +9,7 @@ export interface User extends DatabaseRow {
 
 export interface Session extends DatabaseRow {
   user_id: string;
-  expires_at: number;
+  expires_at: string;
   deleted_at?: string;
 }
 
@@ -34,6 +34,7 @@ export interface Asset extends DatabaseRow {
   r2_key: string;
   mime_type?: string;
   public_url?: string;
+  entry_id?: string;
   deleted_at?: string;
 }
 

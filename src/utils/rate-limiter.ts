@@ -94,16 +94,28 @@ export class RateLimiter {
 
   getMetrics(): RateLimiterMetrics {
     const now = Date.now();
-    const activeRequests = this.requests.filter(
-      (time) => now - time < this.windowMs,
-    ).length;
+
+    let activeRequests: number;
+    let activeRequestsArray: number[];
+
+    if (this.requests.length < this.cleanupThreshold) {
+      activeRequestsArray = this.requests.filter(
+        (time) => now - time < this.windowMs,
+      );
+      activeRequests = activeRequestsArray.length;
+    } else {
+      this.lazyCleanup(now);
+      activeRequestsArray = this.requests;
+      activeRequests = this.requests.length;
+    }
 
     return {
       totalRequests: this.requests.length,
       activeRequests,
       remainingRequests: Math.max(0, this.maxRequests - activeRequests),
-      windowStart: this.requests.length > 0 ? this.requests[0] : now,
-      windowEnd: this.requests.length > 0 ? now : now,
+      windowStart:
+        activeRequestsArray.length > 0 ? activeRequestsArray[0] : now,
+      windowEnd: now,
     };
   }
 

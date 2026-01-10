@@ -1,4 +1,5 @@
 import {
+  AppError,
   ValidationError,
   UnauthorizedError,
   ForbiddenError,
@@ -81,6 +82,35 @@ describe("Error Classes", () => {
     expect(error.isOperational).toBe(false);
     expect(error.details).toEqual(details);
   });
+
+  it("should create AppError with default statusCode", () => {
+    const error = new AppError(ErrorCode.VALIDATION_ERROR, "Test error");
+
+    expect(error.statusCode).toBe(500);
+  });
+
+  it("should create AppError with default severity", () => {
+    const error = new AppError(ErrorCode.VALIDATION_ERROR, "Test error", 404);
+
+    expect(error.severity).toBe(ErrorSeverity.MEDIUM);
+  });
+
+  it("should create RateLimitError with default message", () => {
+    const error = new RateLimitError();
+
+    expect(error.code).toBe(ErrorCode.RATE_LIMIT_EXCEEDED);
+    expect(error.message).toBe("Rate limit exceeded");
+    expect(error.statusCode).toBe(429);
+    expect(error.details).toEqual({ retryAfter: undefined });
+  });
+
+  it("should create InternalError with default message", () => {
+    const error = new InternalError();
+
+    expect(error.code).toBe(ErrorCode.INTERNAL_ERROR);
+    expect(error.message).toBe("An unexpected error occurred");
+    expect(error.isOperational).toBe(false);
+  });
 });
 
 describe("Service-Specific Errors", () => {
@@ -136,6 +166,15 @@ describe("createApiError", () => {
 
     expect(apiError.error.code).toBe(ErrorCode.INTERNAL_ERROR);
     expect(apiError.error.message).toBe("Unexpected error");
+  });
+
+  it("should handle AppError with undefined code", () => {
+    const error = new Error("Test error") as any;
+    delete error.code;
+    error.isOperational = true;
+    const apiError = createApiError(error);
+
+    expect(apiError.error.code).toBe(ErrorCode.INTERNAL_ERROR);
   });
 });
 
@@ -207,6 +246,35 @@ describe("wrapError", () => {
 
     expect(wrapped).toBeInstanceOf(InternalError);
     expect(wrapped.message).toBe("Something went wrong");
+  });
+
+  it("should wrap Error with custom error code and no custom message", () => {
+    const error = new Error("Custom error");
+    const wrapped = wrapError(error, undefined, ErrorCode.VALIDATION_ERROR);
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("Custom error");
+    expect(wrapped.details).toEqual({
+      originalError: "Custom error",
+      stack: expect.any(String),
+      code: ErrorCode.VALIDATION_ERROR,
+    });
+  });
+
+  it("should wrap Error with custom message and error code (message path)", () => {
+    const error = new Error("Custom error");
+    const wrapped = wrapError(
+      error,
+      "Failed to process",
+      ErrorCode.VALIDATION_ERROR,
+    );
+
+    expect(wrapped).toBeInstanceOf(InternalError);
+    expect(wrapped.message).toBe("Failed to process");
+    expect(wrapped.details).toEqual({
+      originalError: "Custom error",
+      stack: expect.any(String),
+    });
   });
 });
 

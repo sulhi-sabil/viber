@@ -29,6 +29,62 @@ export const migrations: Migration[] = [
       );
     },
   },
+  {
+    name: "Fix sessions.expires_at type inconsistency",
+    version: "20260110001",
+    up: async () => {
+      console.log(
+        "  Migration 20260110001: Execute 20260110001-fix-sessions-timestamp.sql manually in Supabase SQL Editor",
+      );
+    },
+    down: async () => {
+      console.log(
+        "  Rollback 20260110001: Execute down migration in 20260110001-fix-sessions-timestamp.sql manually",
+      );
+    },
+  },
+  {
+    name: "Add timestamp validation constraints",
+    version: "20260110002",
+    up: async () => {
+      console.log(
+        "  Migration 20260110002: Execute 20260110002-add-timestamp-constraints.sql manually in Supabase SQL Editor",
+      );
+    },
+    down: async () => {
+      console.log(
+        "  Rollback 20260110002: Execute down migration in 20260110002-add-timestamp-constraints.sql manually",
+      );
+    },
+  },
+  {
+    name: "Add asset-entry foreign key relationship",
+    version: "20260110003",
+    up: async () => {
+      console.log(
+        "  Migration 20260110003: Execute 20260110003-add-asset-entry-relationship.sql manually in Supabase SQL Editor",
+      );
+    },
+    down: async () => {
+      console.log(
+        "  Rollback 20260110003: Execute down migration in 20260110003-add-asset-entry-relationship.sql manually",
+      );
+    },
+  },
+  {
+    name: "Add missing created_at indexes",
+    version: "20260110004",
+    up: async () => {
+      console.log(
+        "  Migration 20260110004: Execute 20260110004-add-created-at-indexes.sql manually in Supabase SQL Editor",
+      );
+    },
+    down: async () => {
+      console.log(
+        "  Rollback 20260110004: Execute down migration in 20260110004-add-created-at-indexes.sql manually",
+      );
+    },
+  },
 ];
 
 export function createMigrationRunner(supabase: unknown): MigrationRunner {

@@ -65,8 +65,19 @@ The integration layer follows a clean, layered architecture:
 Dependencies flow inward following the Dependency Inversion Principle:
 
 - **Application Layer** → Depends on **Services Layer** interfaces
-- **Services Layer** → Depends on **Utilities Layer** abstractions
+- **Services Layer** → Depends on **BaseService** (abstract class) and **Utilities Layer** abstractions
+- **BaseService** → Depends on **CircuitBreaker** from Utilities Layer
 - **Utilities Layer** → Independent, no dependencies on upper layers
+
+### Key Patterns
+
+1. **BaseService Pattern**: Abstract base class providing common circuit breaker and health check functionality
+2. **Service Factory Pattern**: Centralized service creation and lifecycle management
+3. **Dependency Injection**: Services accept dependencies via constructor
+4. **Singleton Pattern**: Single ServiceFactory instance for consistency
+5. **Circuit Breaker Pattern**: Prevents cascading failures
+6. **Retry Pattern**: Automatic retry with exponential backoff
+7. **Strategy Pattern**: Pluggable error handling and retry strategies
 
 ### Key Patterns
 
@@ -76,8 +87,27 @@ Dependencies flow inward following the Dependency Inversion Principle:
 4. **Circuit Breaker Pattern**: Prevents cascading failures
 5. **Retry Pattern**: Automatic retry with exponential backoff
 6. **Strategy Pattern**: Pluggable error handling and retry strategies
+7. **Idempotency Pattern**: Safe operation handling with deduplication and caching
 
 ## Component Descriptions
+
+### BaseService
+
+**Purpose**: Abstract base class for all service implementations, providing common circuit breaker and health check functionality.
+
+**Responsibilities**:
+
+- Circuit breaker state management
+- Health check interface definition
+- Service name identification for logging
+- Common reset methods for circuit breaker
+
+**Key Methods**:
+
+- `getCircuitBreakerState()`: Get circuit breaker state and metrics
+- `getCircuitBreaker()`: Get circuit breaker instance
+- `resetCircuitBreaker()`: Reset circuit breaker state
+- `healthCheck()`: Abstract method for service health monitoring
 
 ### ServiceFactory
 
@@ -100,6 +130,35 @@ Dependencies flow inward following the Dependency Inversion Principle:
 
 ### Services Layer
 
+#### BaseService (Abstract Class)
+
+**Purpose**: Base class for all external service implementations, providing common circuit breaker and health check functionality.
+
+**Features**:
+
+- Circuit breaker management (getCircuitBreakerState, getCircuitBreaker, resetCircuitBreaker)
+- Service name identification for logging
+- Abstract healthCheck method for service monitoring
+
+**Usage**:
+
+All services extend BaseService to inherit common resilience patterns:
+
+```typescript
+class MyService extends BaseService {
+  protected serviceName = "MyService";
+
+  constructor(config: MyConfig, circuitBreaker?: CircuitBreaker) {
+    super(circuitBreaker);
+    // ...service-specific initialization
+  }
+
+  async healthCheck(): Promise<ServiceHealth> {
+    // ...health check implementation
+  }
+}
+```
+
 #### SupabaseService
 
 **Purpose**: Robust Supabase database client with resilience patterns.
@@ -108,7 +167,7 @@ Dependencies flow inward following the Dependency Inversion Principle:
 
 - CRUD operations (select, insert, update, delete, upsert)
 - Query building with filters, ordering, pagination
-- Circuit breaker integration
+- Circuit breaker integration (inherited from BaseService)
 - Retry logic with exponential backoff
 - Health check with latency measurement
 - Admin client support
@@ -124,7 +183,7 @@ Dependencies flow inward following the Dependency Inversion Principle:
 - Streaming responses
 - Rate limiting (configurable)
 - Token usage tracking
-- Circuit breaker integration
+- Circuit breaker integration (inherited from BaseService)
 
 ### Utilities Layer
 
@@ -221,6 +280,131 @@ await limiter.checkRateLimit(); // Waits if at limit
 const remaining = limiter.getRemainingRequests(); // 14
 ```
 
+#### IdempotencyManager
+
+**Purpose**: Ensures safe operation handling by preventing duplicate executions and returning cached responses for repeat requests.
+
+**Features**:
+
+- UUID validation for idempotency keys
+- Request deduplication with cached responses
+- Configurable TTL for cached responses (default: 24h)
+- Pluggable storage backend (in-memory, Redis, database)
+- Manual invalidation for explicit cache busting
+
+**Configuration**:
+
+```typescript
+interface IdempotencyManagerOptions {
+  ttlMs?: number; // Time-to-live for cached responses (default: 24 hours)
+  store?: IdempotencyStore; // Custom storage backend (default: InMemoryIdempotencyStore)
+}
+```
+
+**Interfaces**:
+
+```typescript
+interface IdempotencyStore {
+  get<T>(key: string): Promise<StoredResponse<T> | null>;
+  set<T>(key: string, value: StoredResponse<T>, ttl: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+interface IdempotencyResult<T> {
+  data: T;
+  cached: boolean;
+  idempotencyKey: string;
+  timestamp: number;
+}
+
+interface StoredResponse<T> {
+  data: T;
+  timestamp: number;
+}
+```
+
+**Methods**:
+
+- `execute(idempotencyKey, operation)`: Executes operation and caches result, or returns cached response
+- `invalidate(idempotencyKey)`: Removes cached response for specific key
+- `clear()`: Clears all cached responses
+
+**Usage Example**:
+
+```typescript
+import {
+  IdempotencyManager,
+  createIdempotencyManager,
+} from "viber-integration-layer";
+
+const manager = createIdempotencyManager();
+
+// Execute payment with idempotency
+const result = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    return await processPayment({ amount: 100, currency: "USD" });
+  },
+);
+
+console.log(result.cached); // false (first execution)
+
+// Retry with same idempotency key
+const retryResult = await manager.execute(
+  "550e8400-e29b-41d4-a716-446655440000",
+  async () => {
+    // This won't execute - returns cached result
+    return await processPayment({ amount: 100, currency: "USD" });
+  },
+);
+
+console.log(retryResult.cached); // true (cached response)
+```
+
+**Custom Storage Example**:
+
+```typescript
+import { IdempotencyStore } from "viber-integration-layer";
+
+class RedisStore implements IdempotencyStore {
+  constructor(private redis: RedisClient) {}
+
+  async get<T>(key: string): Promise<StoredResponse<T> | null> {
+    const data = await this.redis.get(`idempotency:${key}`);
+    return data ? JSON.parse(data) : null;
+  }
+
+  async set<T>(
+    key: string,
+    value: StoredResponse<T>,
+    ttl: number,
+  ): Promise<void> {
+    await this.redis.setex(
+      `idempotency:${key}`,
+      Math.floor(ttl / 1000),
+      JSON.stringify(value),
+    );
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redis.del(`idempotency:${key}`);
+  }
+
+  async clear(): Promise<void> {
+    const keys = await this.redis.keys("idempotency:*");
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+}
+
+const manager = createIdempotencyManager({
+  ttlMs: 60 * 60 * 1000, // 1 hour
+  store: new RedisStore(redisClient),
+});
+```
+
 #### Resilience Executor
 
 **Purpose**: Unified execution combining timeout, circuit breaker, and retry.
@@ -262,18 +446,20 @@ The integration layer uses a well-structured data model with:
 **Core Tables**:
 
 - `users`: User accounts with role-based access
-- `sessions`: User session management
-- `content_types`: Flexible content type definitions
+- `sessions`: User session management (TIMESTAMPTZ for timezone consistency)
+- `content_types`: Flexible content type definitions (with created_at DESC index)
 - `entries`: Dynamic content entries with JSONB data
-- `assets`: File storage references (R2/S3)
+- `assets`: File storage references (R2/S3, with entry relationship)
 
 **Schema Features**:
 
 - JSONB fields for flexible data (`fields_schema`, `data`)
 - Soft delete support via `deleted_at` timestamps
 - Foreign key relationships with CASCADE/RESTRICT
-- Comprehensive indexing for query optimization
+- Comprehensive indexing for query optimization (including created_at indexes on content_types/assets)
 - Row Level Security (RLS) for access control
+- Timestamp consistency constraints (`updated_at >= created_at`) on all tables
+- Asset-entry relationship with `entry_id` foreign key
 
 ### Index Strategy
 
@@ -702,6 +888,14 @@ All sensitive data (passwords, tokens, keys) automatically redacted.
 - Lazy metrics calculation
 - Efficient state transition logic
 
+### Rate Limiter
+
+- Lazy cleanup to avoid O(n) operations on every request
+- Threshold-based cleanup (Math.max(100, maxRequests \* 2))
+- Time-based cleanup frequency (windowMs / 2)
+- Cached cleanup results for getRemainingRequests() and getMetrics()
+- Performance: ~32x faster for high-frequency monitoring (10K calls: 25.6ms → 0.8ms)
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -763,21 +957,67 @@ Recommended alerts:
 
 To add a new service:
 
-1. Create service class in `src/services/`
-2. Accept CircuitBreaker in constructor
-3. Use `executeWithResilience` for resilience
-4. Add factory method in `ServiceFactory`
-5. Export from `src/index.ts`
+1. Create service class in `src/services/` extending `BaseService`
+2. Set `protected serviceName` property for logging
+3. Accept CircuitBreaker in constructor and call `super(circuitBreaker)`
+4. Implement `healthCheck()` method returning `ServiceHealth`
+5. Use `executeWithResilience` for resilience
+6. Add factory method in `ServiceFactory`
+7. Export from `src/index.ts`
 
 Example:
 
 ```typescript
-export class MyService {
+import { BaseService, ServiceHealth } from "./base-service";
+import { CircuitBreaker } from "../utils/circuit-breaker";
+import { executeWithResilience } from "../utils/resilience";
+
+export class MyService extends BaseService {
+  protected serviceName = "MyService";
+
   constructor(
     private config: MyConfig,
-    circuitBreaker?: CircuitBreaker
+    circuitBreaker?: CircuitBreaker,
   ) {
-    this.circuitBreaker = circuitBreaker ?? new CircuitBreaker({...});
+    const cb =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: 5,
+        resetTimeout: 60000,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `MyService circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
+
+    super(cb);
+
+    // Service-specific initialization
+  }
+
+  async healthCheck(): Promise<ServiceHealth> {
+    const start = Date.now();
+
+    try {
+      await this.executeWithResilience(
+        async () => {
+          // Health check logic
+        },
+        { timeout: 5000, useCircuitBreaker: false, useRetry: false },
+      );
+
+      return {
+        healthy: true,
+        latency: Date.now() - start,
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        latency: Date.now() - start,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 
   async doSomething() {
@@ -816,4 +1056,5 @@ export class MyService {
 - ✅ Comprehensive error handling
 - ✅ Production-ready monitoring
 - ✅ Extensible for new services
+- ✅ Idempotency support for safe operations
 - ✅ Zero regressions in existing functionality

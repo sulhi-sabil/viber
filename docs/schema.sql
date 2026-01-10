@@ -37,6 +37,10 @@ CREATE INDEX idx_users_deleted_at ON users(deleted_at);
 ALTER TABLE users ADD CONSTRAINT chk_users_password_or_null
     CHECK (password_hash IS NOT NULL OR role = 'editor');
 
+-- Check constraint for timestamp consistency
+ALTER TABLE users ADD CONSTRAINT chk_users_timestamps
+    CHECK (updated_at >= created_at);
+
 -- ============================================================================
 -- TABLE: sessions
 -- ============================================================================
@@ -44,7 +48,7 @@ ALTER TABLE users ADD CONSTRAINT chk_users_password_or_null
 CREATE TABLE sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at BIGINT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ
@@ -57,6 +61,10 @@ CREATE INDEX idx_sessions_deleted_at ON sessions(deleted_at);
 
 -- Composite index for session cleanup queries
 CREATE INDEX idx_sessions_user_expires ON sessions(user_id, expires_at) WHERE deleted_at IS NULL;
+
+-- Check constraint for timestamp consistency
+ALTER TABLE sessions ADD CONSTRAINT chk_sessions_timestamps
+    CHECK (updated_at >= created_at);
 
 -- ============================================================================
 -- TABLE: content_types
@@ -78,6 +86,15 @@ CREATE INDEX idx_content_types_deleted_at ON content_types(deleted_at);
 
 -- GIN index for JSONB queries on fields_schema
 CREATE INDEX idx_content_types_fields_schema ON content_types USING GIN(fields_schema);
+
+-- Created at index for time-based queries
+CREATE INDEX idx_content_types_created_at
+  ON content_types(created_at DESC)
+  WHERE deleted_at IS NULL;
+
+-- Check constraint for timestamp consistency
+ALTER TABLE content_types ADD CONSTRAINT chk_content_types_timestamps
+    CHECK (updated_at >= created_at);
 
 -- ============================================================================
 -- TABLE: entries
@@ -115,6 +132,10 @@ CREATE INDEX idx_entries_type_status_created
     ON entries(type_slug, status, created_at DESC)
     WHERE deleted_at IS NULL;
 
+-- Check constraint for timestamp consistency
+ALTER TABLE entries ADD CONSTRAINT chk_entries_timestamps
+    CHECK (updated_at >= created_at);
+
 -- ============================================================================
 -- TABLE: assets
 -- ============================================================================
@@ -125,6 +146,7 @@ CREATE TABLE assets (
     r2_key VARCHAR(500) UNIQUE NOT NULL,
     mime_type VARCHAR(100),
     public_url TEXT,
+    entry_id UUID REFERENCES entries(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ
@@ -133,7 +155,13 @@ CREATE TABLE assets (
 -- Indexes for assets table
 CREATE INDEX idx_assets_r2_key ON assets(r2_key) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_mime_type ON assets(mime_type) WHERE deleted_at IS NULL;
+CREATE INDEX idx_assets_entry_id ON assets(entry_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_assets_created_at ON assets(created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_deleted_at ON assets(deleted_at);
+
+-- Check constraint for timestamp consistency
+ALTER TABLE assets ADD CONSTRAINT chk_assets_timestamps
+    CHECK (updated_at >= created_at);
 
 -- ============================================================================
 -- FUNCTIONS AND TRIGGERS
@@ -311,7 +339,7 @@ DECLARE
     deleted_count INTEGER;
 BEGIN
     DELETE FROM sessions
-    WHERE expires_at < EXTRACT(EPOCH FROM NOW()) * 1000
+    WHERE expires_at < NOW()
     RETURNING id INTO deleted_count;
 
     RETURN COALESCE(deleted_count, 0);

@@ -99,9 +99,10 @@ describe("Database Validators", () => {
 
   describe("validateSession", () => {
     it("should validate valid session", () => {
+      const expiryDate = new Date(Date.now() + 3600000).toISOString();
       const result = validateSession({
         user_id: "123",
-        expires_at: Date.now() + 3600000,
+        expires_at: expiryDate,
       });
 
       expect(result.valid).toBe(true);
@@ -109,9 +110,10 @@ describe("Database Validators", () => {
     });
 
     it("should detect expired session", () => {
+      const expiryDate = new Date(Date.now() - 3600000).toISOString();
       const result = validateSession({
         user_id: "123",
-        expires_at: Date.now() - 3600000,
+        expires_at: expiryDate,
       });
 
       expect(result.valid).toBe(false);
@@ -201,6 +203,18 @@ describe("Database Validators", () => {
         filename: "image.png",
         r2_key: "assets/image.png",
         mime_type: "image/png",
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it("should validate asset with entry_id", () => {
+      const result = validateAsset({
+        filename: "image.png",
+        r2_key: "assets/image.png",
+        mime_type: "image/png",
+        entry_id: "550e8400-e29b-41d4-a716-446655440000",
       });
 
       expect(result.valid).toBe(true);

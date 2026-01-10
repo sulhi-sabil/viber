@@ -9,6 +9,7 @@ import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { ResilienceConfig } from "../types/service-config";
+import { BaseService, ServiceHealth } from "./base-service";
 
 export interface SupabaseConfig extends ResilienceConfig {
   url: string;
@@ -44,21 +45,44 @@ const DEFAULT_SUPABASE_CONFIG: Required<
   circuitBreakerResetTimeout: 60000,
 };
 
-export class SupabaseService {
+export class SupabaseService extends BaseService {
+  protected serviceName = "Supabase";
   public client: SupabaseClient;
   public adminClient: SupabaseClient | null = null;
-  private circuitBreaker: CircuitBreaker;
+  protected circuitBreaker: CircuitBreaker;
   private config: SupabaseConfig;
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
-    this.config = { ...DEFAULT_SUPABASE_CONFIG, ...config };
-
     Validator.url(config.url, "Supabase URL");
     Validator.string(config.anonKey, "anonKey");
 
     if (config.serviceRoleKey) {
       Validator.string(config.serviceRoleKey, "serviceRoleKey");
     }
+
+    const failureThreshold =
+      config.circuitBreakerThreshold ??
+      DEFAULT_SUPABASE_CONFIG.circuitBreakerThreshold;
+    const resetTimeout =
+      config.circuitBreakerResetTimeout ??
+      DEFAULT_SUPABASE_CONFIG.circuitBreakerResetTimeout;
+
+    const cb =
+      circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold,
+        resetTimeout,
+        onStateChange: (state, reason) => {
+          logger.warn(
+            `Supabase circuit breaker state changed to ${state}: ${reason}`,
+          );
+        },
+      });
+
+    super(cb);
+    this.circuitBreaker = cb;
+
+    this.config = { ...DEFAULT_SUPABASE_CONFIG, ...config };
 
     this.client = createClient(config.url, config.anonKey, {
       auth: {
@@ -87,18 +111,6 @@ export class SupabaseService {
         },
       });
     }
-
-    this.circuitBreaker =
-      circuitBreaker ??
-      new CircuitBreaker({
-        failureThreshold: this.config.circuitBreakerThreshold,
-        resetTimeout: this.config.circuitBreakerResetTimeout,
-        onStateChange: (state, reason) => {
-          logger.warn(
-            `Supabase circuit breaker state changed to ${state}: ${reason}`,
-          );
-        },
-      });
 
     logger.info("Supabase service initialized", {
       url: config.url.replace(/\/$/, ""),
@@ -422,67 +434,14 @@ export class SupabaseService {
     }, queryOptions);
   }
 
-  async healthCheck(): Promise<{
-    healthy: boolean;
-    latency: number;
-    error?: string;
-  }> {
-    const start = Date.now();
+  async healthCheck(): Promise<ServiceHealth> {
+    return this.executeHealthCheck(async () => {
+      const { error } = await this.client.from("users").select("id").limit(1);
 
-    try {
-      await this.executeWithResilience(
-        async () => {
-          const { error } = await this.client
-            .from("users")
-            .select("id")
-            .limit(1);
-          if (error && error.code !== "PGRST116") {
-            throw error;
-          }
-        },
-        { timeout: 5000, useCircuitBreaker: false, useRetry: false },
-      );
-
-      const latency = Date.now() - start;
-
-      logger.info("Supabase health check passed", { latency });
-
-      return {
-        healthy: true,
-        latency,
-      };
-    } catch (error) {
-      const latency = Date.now() - start;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-
-      logger.error("Supabase health check failed", {
-        error: errorMessage,
-        latency,
-      });
-
-      return {
-        healthy: false,
-        latency,
-        error: errorMessage,
-      };
-    }
-  }
-
-  getCircuitBreakerState() {
-    return {
-      state: this.circuitBreaker.getState(),
-      metrics: this.circuitBreaker.getMetrics(),
-    };
-  }
-
-  getCircuitBreaker(): CircuitBreaker {
-    return this.circuitBreaker;
-  }
-
-  resetCircuitBreaker(): void {
-    logger.warn("Manually resetting Supabase circuit breaker");
-    this.circuitBreaker.reset();
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+    });
   }
 }
 
