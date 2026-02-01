@@ -1758,11 +1758,11 @@ Add comprehensive tests for the migration system (MigrationRunner and migration 
 
 ### Task Statistics
 
-- Total Tasks: 23
-- Backlog: 7
+- Total Tasks: 35
+- Backlog: 6
 - In Progress: 0
-- Complete: 15
-- Blocked: 0
+- Complete: 28
+- Blocked: 1
 
 ### Priority Breakdown
 
@@ -2149,11 +2149,11 @@ const config: MyServiceConfig = {
 
 ### Task Statistics
 
-- Total Tasks: 26
-- Backlog: 8
+- Total Tasks: 35
+- Backlog: 6
 - In Progress: 0
-- Complete: 18
-- Blocked: 0
+- Complete: 28
+- Blocked: 1
 
 ### Priority Breakdown
 
@@ -2501,11 +2501,11 @@ Benchmark results:
 
 ### Task Statistics
 
-- Total Tasks: 22
-- Backlog: 8
+- Total Tasks: 35
+- Backlog: 6
 - In Progress: 0
-- Complete: 14
-- Blocked: 0
+- Complete: 28
+- Blocked: 1
 
 ### Priority Breakdown
 

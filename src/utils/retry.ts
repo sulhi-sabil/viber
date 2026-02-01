@@ -22,7 +22,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
 };
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms).unref());
 }
 
 export function calculateDelay(
@@ -142,11 +142,12 @@ export function withTimeout<T>(
 ): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(
+    new Promise<T>((_, reject) => {
+      const timer = setTimeout(
         () => reject(new TimeoutError(operationName, timeoutMs)),
         timeoutMs,
-      ),
-    ),
+      );
+      timer.unref();
+    }),
   ]);
 }
