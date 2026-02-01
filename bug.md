@@ -5,7 +5,7 @@
 ### Active Bugs
 
 [ ] bug: npm deprecated warnings - inflight@1.0.6 has memory leak, glob@7.2.3 no longer supported
-[ ] bug: docs/task.md statistics inconsistent - shows 0 blocked tasks but CI01 is marked as blocked
+[x] bug: docs/task.md statistics inconsistent - shows 0 blocked tasks but CI01 is marked as blocked (FIXED - updated all 3 statistics sections to reflect actual counts: 35 total, 6 backlog, 28 complete, 1 blocked)
 
 ### Fixed Bugs
 
