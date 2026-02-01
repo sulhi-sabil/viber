@@ -61,14 +61,16 @@ export class RateLimiter {
         break;
       }
 
-      const oldestRequest = this.requests[0];
-      const waitTime = this.windowMs - (now - oldestRequest);
+      if (this.requests.length > 0) {
+        const oldestRequest = this.requests[0];
+        const waitTime = this.windowMs - (now - oldestRequest);
 
-      if (waitTime > 0) {
-        logger.warn(
-          `${this.serviceName} rate limit reached. Waiting ${waitTime}ms`,
-        );
-        await this.sleep(waitTime);
+        if (waitTime > 0) {
+          logger.warn(
+            `${this.serviceName} rate limit reached. Waiting ${waitTime}ms`,
+          );
+          await this.sleep(waitTime);
+        }
       }
 
       now = Date.now();
@@ -145,7 +147,7 @@ export class RateLimiter {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms).unref());
   }
 }
 

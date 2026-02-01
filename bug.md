@@ -4,15 +4,14 @@
 
 ### Active Bugs
 
-[ ] bug: Jest worker processes fail to exit gracefully due to unref'd timers in retry.ts (line 146) and rate-limiter.ts (line 142)
 [ ] bug: npm deprecated warnings - inflight@1.0.6 has memory leak, glob@7.2.3 no longer supported
 [ ] bug: docs/task.md statistics inconsistent - shows 0 blocked tasks but CI01 is marked as blocked
-[ ] bug: rate-limiter.ts line 58 - accessing this.requests[0] without bounds checking could cause undefined access
-[ ] bug: idempotency.ts line 49 - ESLint disable comment for unused-vars is misleading (expiresAt IS used in destructuring)
 
 ### Fixed Bugs
 
-[x] bug: (None fixed yet)
+[x] bug: Jest worker processes fail to exit gracefully due to unref'd timers in retry.ts (line 146) and rate-limiter.ts (line 142) - Fixed by adding .unref() to all setTimeout calls
+[x] bug: rate-limiter.ts line 58 - accessing this.requests[0] without bounds checking could cause undefined access - Fixed by adding bounds check before accessing array
+[x] bug: idempotency.ts line 49 - ESLint disable comment for unused-vars is misleading (expiresAt IS used in destructuring) - Fixed by removing unnecessary comment
 
 ## Bug Details
 
