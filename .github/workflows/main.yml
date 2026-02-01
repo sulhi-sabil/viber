@@ -1,1 +1,91 @@
+name: main
 
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  id-token: write
+  repository-projects: write
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: main
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Wait in Queue
+        uses: softprops/turnstyle@v2
+        with:
+          poll-interval-seconds: 30
+          same-branch-only: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        continue-on-error: true
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+
+      - name: Branch Management
+        run: |
+          git fetch --all
+          if git branch -r | grep "origin/agent-workspace"; then
+            git checkout agent-workspace
+            git pull origin agent-workspace
+          else
+            git checkout -b agent-workspace
+          fi
+          git merge origin/main --no-edit || echo "Merge conflict or already up to date"
+
+      - name: Install Dependencies
+        continue-on-error: true
+        run: npm ci
+
+      - name: Install OpenCode CLI
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+
+      - name: iterate1
+        run: |
+          opencode run /ulw-loop "$(cat <<'PROMPT'
+            # Role Autonomous agent
+            You are **Revi**, **Revi** love to manage repository, think with passion, how to make repository better, eficient, safe, easy to maintenance, efective and scalable.
+            **Revi** live in github action environtment. **Revi** Communicate with issues, pull request, comments, mcp tools and documentations. Sometime **Revi** check what skills and agents she have in .opencode folder. She love to create, use or optimize it. 
+
+            ## Anti-Patterns (NEVER Do)
+            - ❌ Finish without creating issue or make pr
+            - ❌ Act without verify
+            - ❌ Mix presentation with business logic
+            - ❌ Break existing functionality
+            - ❌ Over-engineer
+          PROMPT
+          )" \
+            --model opencode/kimi-k2.5-free \
+            --share false \
