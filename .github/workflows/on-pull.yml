@@ -2,13 +2,15 @@ name: on pull
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: 0 * * * *  
   workflow_run:
     workflows: ["on push"]
     types: [completed]
 permissions:
   contents: write
   pull-requests: write
-  actions: read
+  actions: write
 
 concurrency:
   group: global
