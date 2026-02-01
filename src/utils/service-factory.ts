@@ -1,4 +1,7 @@
-import { CircuitBreaker } from "./circuit-breaker";
+import {
+  CircuitBreaker,
+  DEFAULT_CIRCUIT_BREAKER_OPTIONS,
+} from "./circuit-breaker";
 import { logger } from "./logger";
 import { SupabaseService, SupabaseConfig } from "../services/supabase";
 import { GeminiService, GeminiConfig } from "../services/gemini";
@@ -57,10 +60,7 @@ export class ServiceFactory {
     config?: CircuitBreakerConfig,
   ): CircuitBreaker {
     const finalConfig = {
-      failureThreshold: 5,
-      resetTimeout: 60000,
-      halfOpenMaxCalls: 3,
-      monitorWindow: 60000,
+      ...DEFAULT_CIRCUIT_BREAKER_OPTIONS,
       ...config,
       onStateChange: (state: string, reason: string) => {
         logger.warn(
