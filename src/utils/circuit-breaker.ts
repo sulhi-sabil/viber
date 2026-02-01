@@ -1,3 +1,5 @@
+import { ServiceUnavailableError } from "./errors";
+
 export enum CircuitState {
   CLOSED = "closed",
   OPEN = "open",
@@ -12,13 +14,14 @@ export interface CircuitBreakerOptions {
   onStateChange?: (state: CircuitState, reason: string) => void;
 }
 
-const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> = {
-  failureThreshold: 5,
-  resetTimeout: 60000,
-  halfOpenMaxCalls: 3,
-  monitorWindow: 60000,
-  onStateChange: () => {},
-};
+export const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> =
+  {
+    failureThreshold: 5,
+    resetTimeout: 60000,
+    halfOpenMaxCalls: 3,
+    monitorWindow: 60000,
+    onStateChange: () => {},
+  };
 
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
@@ -40,8 +43,13 @@ export class CircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.transitionToHalfOpen("Reset timeout elapsed");
       } else {
-        throw new Error(
-          "Circuit breaker is OPEN. Requests are temporarily blocked.",
+        const remainingMs = this.lastFailureTime
+          ? this.mergedOptions.resetTimeout -
+            (Date.now() - this.lastFailureTime)
+          : this.mergedOptions.resetTimeout;
+        throw new ServiceUnavailableError(
+          "circuit breaker",
+          `Circuit breaker is OPEN. Requests are temporarily blocked. Will retry in ${Math.ceil(remainingMs / 1000)}s`,
         );
       }
     }

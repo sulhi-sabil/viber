@@ -15,12 +15,17 @@ export interface RateLimiterMetrics {
   windowEnd: number;
 }
 
+// Named constants for maintainability
+const DEFAULT_MAX_REQUESTS = 15;
+const DEFAULT_WINDOW_MS = 60000;
+const MIN_CLEANUP_THRESHOLD = 100;
+
 const DEFAULT_RATE_LIMITER_OPTIONS: Required<
   Omit<RateLimiterOptions, "serviceName">
 > = {
-  maxRequests: 15,
-  windowMs: 60000,
-  cleanupThreshold: 100,
+  maxRequests: DEFAULT_MAX_REQUESTS,
+  windowMs: DEFAULT_WINDOW_MS,
+  cleanupThreshold: MIN_CLEANUP_THRESHOLD,
 };
 
 export class RateLimiter {
@@ -38,7 +43,8 @@ export class RateLimiter {
     this.serviceName = mergedOptions.serviceName ?? "RateLimiter";
     this.lastCleanupTime = Date.now();
     this.cleanupThreshold =
-      mergedOptions.cleanupThreshold ?? Math.max(100, this.maxRequests * 2);
+      mergedOptions.cleanupThreshold ??
+      Math.max(MIN_CLEANUP_THRESHOLD, this.maxRequests * 2);
   }
 
   async checkRateLimit(): Promise<void> {
