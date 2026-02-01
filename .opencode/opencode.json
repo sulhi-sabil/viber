@@ -1,0 +1,81 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "default": "CMZ"
+  },
+  "agents": {
+    "CMZ": {
+      "model": "opencode/kimi-k2.5-free",
+      "temperature": 0.7,
+      "skills": [
+        "self-diagnosis",
+        "pattern-learning",
+        "auto-refactor",
+        "meta-cognition",
+        "optimization"
+      ]
+    },
+    "BugLover": {
+      "model": "opencode/glm-4.7-free",
+      "temperature": 0.3,
+      "skills": ["code-analysis", "debugging", "testing", "error-patterns"]
+    },
+    "Sisyphus": {
+      "model": "opencode/kimi-k2.5-free",
+      "temperature": 0.5,
+      "skills": ["orchestration", "task-delegation", "context-management"]
+    },
+    "Oracle": {
+      "model": "opencode/glm-4.7-free",
+      "temperature": 0.4,
+      "skills": ["architecture", "debugging", "design-patterns"]
+    }
+  },
+  "skills": {
+    "self-diagnosis": {
+      "path": ".opencode/skills/self-diagnosis.md"
+    },
+    "pattern-learning": {
+      "path": ".opencode/skills/pattern-learning.md"
+    },
+    "auto-refactor": {
+      "path": ".opencode/skills/auto-refactor.md"
+    },
+    "meta-cognition": {
+      "path": ".opencode/skills/meta-cognition.md"
+    },
+    "optimization": {
+      "path": ".opencode/skills/optimization.md"
+    }
+  },
+  "integrations": {
+    "oh-my-opencode": {
+      "enabled": true,
+      "gemini_auth": false,
+      "agents": {
+        "frontend-ui-ux-engineer": {
+          "model": "opencode/glm-4.7-free"
+        },
+        "document-writer": {
+          "model": "opencode/kimi-k2.5-free"
+        },
+        "multimodal-looker": {
+          "model": "opencode/glm-4.7-free"
+        }
+      }
+    },
+    "opencode-antigravity-auth": {
+      "enabled": false,
+      "note": "Enable if Google OAuth access is available"
+    }
+  },
+  "mcp": {
+    "servers": [
+      {
+        "name": " UltraRAG",
+        "enabled": false,
+        "note": "Enable for RAG capabilities - requires UltraRAG setup"
+      }
+    ]
+  }
+}

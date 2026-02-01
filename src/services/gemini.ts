@@ -9,6 +9,7 @@ import { BaseService, ServiceHealth } from "./base-service";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
+  model?: string;
 }
 
 export interface GeminiMessage {
@@ -58,6 +59,7 @@ const DEFAULT_GEMINI_CONFIG: Required<
     | "circuitBreakerResetTimeout"
     | "rateLimitRequests"
     | "rateLimitWindow"
+    | "model"
   >
 > = {
   timeout: 30000,
@@ -66,9 +68,8 @@ const DEFAULT_GEMINI_CONFIG: Required<
   circuitBreakerResetTimeout: 60000,
   rateLimitRequests: 15,
   rateLimitWindow: 60000,
+  model: "gemini-1.5-flash",
 };
-
-const DEFAULT_MODEL = "gemini-1.5-flash";
 
 export class GeminiService extends BaseService {
   protected serviceName = "Gemini";
@@ -80,6 +81,7 @@ export class GeminiService extends BaseService {
       | "maxRetries"
       | "circuitBreakerThreshold"
       | "circuitBreakerResetTimeout"
+      | "model"
     >
   >;
   protected circuitBreaker: CircuitBreaker;
@@ -126,6 +128,7 @@ export class GeminiService extends BaseService {
       circuitBreakerResetTimeout:
         config.circuitBreakerResetTimeout ??
         DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout,
+      model: config.model ?? DEFAULT_GEMINI_CONFIG.model,
     };
 
     this.rateLimiter = new RateLimiter({
@@ -179,7 +182,7 @@ export class GeminiService extends BaseService {
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent?key=${this.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:generateContent?key=${this.apiKey}`,
         {
           method: "POST",
           headers: {
@@ -244,7 +247,7 @@ export class GeminiService extends BaseService {
       });
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:streamGenerateContent?key=${this.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
         {
           method: "POST",
           headers: {

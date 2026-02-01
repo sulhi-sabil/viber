@@ -838,7 +838,7 @@ Created `src/utils/resilience.ts` with a reusable `executeWithResilience` functi
 - Backlog: 8
 - In Progress: 0
 - Complete: 14
-- Blocked: 0
+- Blocked: 1
 
 ### Priority Breakdown
 
