@@ -838,7 +838,7 @@ Created `src/utils/resilience.ts` with a reusable `executeWithResilience` functi
 - Backlog: 8
 - In Progress: 0
 - Complete: 14
-- Blocked: 0
+- Blocked: 1
 
 ### Priority Breakdown
 
@@ -1762,7 +1762,7 @@ Add comprehensive tests for the migration system (MigrationRunner and migration 
 - Backlog: 7
 - In Progress: 0
 - Complete: 15
-- Blocked: 0
+- Blocked: 1
 
 ### Priority Breakdown
 
@@ -2153,7 +2153,7 @@ const config: MyServiceConfig = {
 - Backlog: 8
 - In Progress: 0
 - Complete: 18
-- Blocked: 0
+- Blocked: 1
 
 ### Priority Breakdown
 
@@ -2505,7 +2505,7 @@ Benchmark results:
 - Backlog: 8
 - In Progress: 0
 - Complete: 14
-- Blocked: 0
+- Blocked: 1
 
 ### Priority Breakdown
 
