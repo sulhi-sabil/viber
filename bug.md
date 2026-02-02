@@ -58,3 +58,4 @@
 ## Error Log
 
 [x] error: Worker process failed to exit gracefully - active timers detected in test suite (FIXED - .unref() added to all setTimeout calls in retry.ts and rate-limiter.ts)
+[x] error: Test suite still showing worker process warning due to gemini.test.ts setTimeout without unref() (FIXED - added unref() to gemini.test.ts line 553)

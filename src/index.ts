@@ -13,3 +13,4 @@ export * from "./utils/service-factory";
 export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
+export * from "./config/constants";
