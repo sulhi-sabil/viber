@@ -2521,3 +2521,56 @@ Benchmark results:
 - RateLimiter cleanup: ~244x faster for checkRateLimit (0.0001ms per call)
 - CircuitBreaker cleanup: 1.22% faster with lazy cleanup
 - RateLimiter getMetrics: ~32x faster in high-frequency monitoring scenarios
+
+---
+
+## [R03] Fix Deprecated npm Dependencies
+
+**Status**: ⏳ Backlog  
+**Priority**: P2  
+**Agent**: 07 Integration (Dependency Manager)
+
+### Description
+
+Fix deprecated npm dependency warnings to eliminate technical debt and potential security/maintenance issues.
+
+### Issues Found
+
+**npm install warnings:**
+- `inflight@1.0.6`: This module is not supported, and leaks memory
+- `glob@7.2.3`: Glob versions prior to v9 are no longer supported
+
+### Root Cause
+
+These are transitive dependencies (dependencies of dependencies), likely brought in through:
+- Jest testing framework
+- TypeScript compiler tooling
+- Other dev dependencies
+
+### Acceptance Criteria
+
+- [ ] Identify which direct dependencies are pulling in deprecated packages
+- [ ] Update direct dependencies to versions that don't use deprecated transitive dependencies
+- [ ] Run full test suite to ensure no regressions (368 tests)
+- [ ] Verify npm audit shows 0 vulnerabilities
+- [ ] Ensure `npm install` runs without deprecation warnings
+
+### Technical Notes
+
+**Dependencies to investigate:**
+- jest@30.2.0
+- ts-jest@29.0.0
+- ts-node@10.0.0
+- typescript@5.0.0
+
+**Potential solutions:**
+1. Update jest to v30+ (may already fix glob issues)
+2. Check if npm override/resolution can force newer versions
+3. Consider migrating to glob v9+ compatible alternatives
+
+### Impact
+
+- **Security**: Deprecated packages may have unpatched vulnerabilities
+- **Maintenance**: Harder to maintain long-term
+- **Developer Experience**: Warning noise during installs
+
