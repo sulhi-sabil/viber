@@ -9,6 +9,12 @@ import { BaseService, ServiceHealth } from "./base-service";
 import {
   MIN_API_KEY_LENGTH,
   HEALTH_CHECK_TIMEOUT_MS,
+  STREAMING_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
 } from "../config/constants";
@@ -68,12 +74,12 @@ const DEFAULT_GEMINI_CONFIG: Required<
     | "model"
   >
 > = {
-  timeout: 30000,
-  maxRetries: 3,
-  circuitBreakerThreshold: 5,
-  circuitBreakerResetTimeout: 60000,
-  rateLimitRequests: 15,
-  rateLimitWindow: 60000,
+  timeout: STREAMING_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
   model: "gemini-1.5-flash",
 };
 
