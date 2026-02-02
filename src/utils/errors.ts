@@ -34,7 +34,9 @@ export class AppError extends Error implements HttpError {
     this.requestId = uuidv4();
     this.isOperational = isOperational;
 
-    Error.captureStackTrace(this, this.constructor);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 }
 
