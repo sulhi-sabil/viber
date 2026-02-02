@@ -1,0 +1,21 @@
+[submodule ".opencode/supplements/opencode-antigravity-auth"]
+	path = .opencode/supplements/opencode-antigravity-auth
+	url = https://github.com/NoeFabris/opencode-antigravity-auth.git
+[submodule ".opencode/supplements/AI-Agents-public"]
+	path = .opencode/supplements/AI-Agents-public
+	url = https://github.com/vasilyu1983/AI-Agents-public.git
+[submodule ".opencode/supplements/superpowers"]
+	path = .opencode/supplements/superpowers
+	url = https://github.com/obra/superpowers.git
+[submodule ".opencode/supplements/system_prompts_leaks"]
+	path = .opencode/supplements/system_prompts_leaks
+	url = https://github.com/asgeirtj/system_prompts_leaks.git
+[submodule ".opencode/supplements/UltraRAG"]
+	path = .opencode/supplements/UltraRAG
+	url = https://github.com/OpenBMB/UltraRAG.git
+[submodule ".opencode/supplements/agent-skill"]
+	path = .opencode/supplements/agent-skill
+	url = https://github.com/sulhi-sabil/agent-skill.git
+[submodule ".opencode/supplements/moai-adk"]
+	path = .opencode/supplements/moai-adk
+	url = https://github.com/modu-ai/moai-adk.git

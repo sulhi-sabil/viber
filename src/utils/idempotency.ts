@@ -46,6 +46,7 @@ export class InMemoryIdempotencyStore implements IdempotencyStore {
       return null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { expiresAt, ...response } = entry;
     return response as StoredResponse<T>;
   }

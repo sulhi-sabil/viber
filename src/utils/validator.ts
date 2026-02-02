@@ -188,6 +188,27 @@ export class Validator {
 
     return result;
   }
+
+  static validateAll(validations: Array<() => void>): ValidationResult {
+    const errors: string[] = [];
+
+    for (const validation of validations) {
+      try {
+        validation();
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          errors.push(error.message);
+        } else {
+          errors.push(String(error));
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
 }
 
 export class SchemaValidator<T extends Record<string, unknown>> {

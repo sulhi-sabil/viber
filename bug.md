@@ -4,7 +4,7 @@
 
 ### Active Bugs
 
-[ ] bug: npm deprecated warnings - inflight@1.0.6 has memory leak, glob@7.2.3 no longer supported
+[/] bug: npm deprecated warnings - inflight@1.0.6 has memory leak, glob@7.2.3 no longer supported (FIXED - added to docs/task.md as [R03])
 [x] bug: docs/task.md statistics inconsistent - shows 0 blocked tasks but CI01 is marked as blocked (FIXED - updated all 3 statistics sections to reflect actual counts: 35 total, 6 backlog, 28 complete, 1 blocked)
 
 ### Fixed Bugs
@@ -57,4 +57,4 @@
 
 ## Error Log
 
-[ ] error: Worker process failed to exit gracefully - active timers detected in test suite
+[x] error: Worker process failed to exit gracefully - active timers detected in test suite (FIXED - .unref() added to all setTimeout calls in retry.ts and rate-limiter.ts)
