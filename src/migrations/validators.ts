@@ -1,4 +1,10 @@
 import { Validator } from "../utils/validator";
+import {
+  MAX_R2_KEY_LENGTH,
+  MAX_FILENAME_LENGTH,
+  MAX_CONTENT_TYPE_NAME_LENGTH,
+  MAX_ENTRY_TITLE_LENGTH,
+} from "../config/constants";
 
 export const userRoleValues = ["admin", "editor"] as const;
 
@@ -55,7 +61,7 @@ export function validateR2Key(key: string): boolean {
     return false;
   }
 
-  return key.length > 0 && key.length <= 500;
+  return key.length > 0 && key.length <= MAX_R2_KEY_LENGTH;
 }
 
 export function validateMimeTypes(mimeType: string): boolean {
@@ -73,7 +79,7 @@ export function validateFilename(filename: string): boolean {
   }
 
   const filenameRegex = /^[^\\/:*?"<>|]+$/;
-  return filenameRegex.test(filename) && filename.length <= 500;
+  return filenameRegex.test(filename) && filename.length <= MAX_FILENAME_LENGTH;
 }
 
 export function validateUser(user: {
@@ -133,8 +139,13 @@ export function validateContentType(contentType: {
     errors.push(`Invalid slug: ${contentType.slug}`);
   }
 
-  if (!contentType.name || contentType.name.length > 255) {
-    errors.push("name must be between 1 and 255 characters");
+  if (
+    !contentType.name ||
+    contentType.name.length > MAX_CONTENT_TYPE_NAME_LENGTH
+  ) {
+    errors.push(
+      `name must be between 1 and ${MAX_CONTENT_TYPE_NAME_LENGTH} characters`,
+    );
   }
 
   if (!validateContentTypeSchema(contentType.fields_schema)) {
@@ -164,8 +175,10 @@ export function validateEntry(entry: {
     errors.push(`Invalid slug: ${entry.slug}`);
   }
 
-  if (!entry.title || entry.title.length > 500) {
-    errors.push("title must be between 1 and 500 characters");
+  if (!entry.title || entry.title.length > MAX_ENTRY_TITLE_LENGTH) {
+    errors.push(
+      `title must be between 1 and ${MAX_ENTRY_TITLE_LENGTH} characters`,
+    );
   }
 
   if (!validateEntryData(entry.data)) {

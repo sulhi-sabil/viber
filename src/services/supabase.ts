@@ -14,6 +14,10 @@ import {
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
   DEFAULT_PAGINATION_LIMIT,
+  DEFAULT_OPERATION_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
 } from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
@@ -44,10 +48,10 @@ const DEFAULT_SUPABASE_CONFIG: Required<
     | "circuitBreakerResetTimeout"
   >
 > = {
-  timeout: 10000,
-  maxRetries: 3,
-  circuitBreakerThreshold: 5,
-  circuitBreakerResetTimeout: 60000,
+  timeout: DEFAULT_OPERATION_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
 };
 
 export class SupabaseService extends BaseService {

@@ -98,6 +98,18 @@ export const MIN_API_KEY_LENGTH = 10;
 /** Maximum length for slugs */
 export const MAX_SLUG_LENGTH = 255;
 
+/** Maximum length for content type names */
+export const MAX_CONTENT_TYPE_NAME_LENGTH = 255;
+
+/** Maximum length for entry titles */
+export const MAX_ENTRY_TITLE_LENGTH = 500;
+
+/** Maximum length for filenames */
+export const MAX_FILENAME_LENGTH = 500;
+
+/** Maximum length for R2 storage keys */
+export const MAX_R2_KEY_LENGTH = 500;
+
 // ============================================================================
 // Pagination Constants
 // ============================================================================
