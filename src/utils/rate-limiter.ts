@@ -147,7 +147,13 @@ export class RateLimiter {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms).unref());
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      const timerRef = timer as unknown as { unref?: () => void };
+      if (typeof timerRef.unref === "function") {
+        timerRef.unref();
+      }
+    });
   }
 }
 

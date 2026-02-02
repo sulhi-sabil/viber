@@ -142,6 +142,11 @@ export class ConsoleLogger implements Logger {
   }
 }
 
-export const logger = new ConsoleLogger(
-  (process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error") || "info",
-);
+const getLogLevel = (): "debug" | "info" | "warn" | "error" => {
+  if (typeof process !== "undefined" && process.env && process.env.LOG_LEVEL) {
+    return process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error";
+  }
+  return "info";
+};
+
+export const logger = new ConsoleLogger(getLogLevel());

@@ -22,7 +22,13 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
 };
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms).unref());
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    const timerRef = timer as unknown as { unref?: () => void };
+    if (typeof timerRef.unref === "function") {
+      timerRef.unref();
+    }
+  });
 }
 
 export function calculateDelay(
@@ -147,7 +153,10 @@ export function withTimeout<T>(
         () => reject(new TimeoutError(operationName, timeoutMs)),
         timeoutMs,
       );
-      timer.unref();
+      const timerRef = timer as unknown as { unref?: () => void };
+      if (typeof timerRef.unref === "function") {
+        timerRef.unref();
+      }
     }),
   ]);
 }
