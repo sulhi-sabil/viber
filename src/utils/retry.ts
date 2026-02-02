@@ -1,5 +1,13 @@
 import { logger } from "./logger";
 import { InternalError, TimeoutError } from "./errors";
+import {
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  DEFAULT_RETRY_INITIAL_DELAY_MS,
+  DEFAULT_RETRY_MAX_DELAY_MS,
+  DEFAULT_RETRY_BACKOFF_MULTIPLIER,
+  RETRYABLE_HTTP_STATUS_CODES,
+  RETRYABLE_ERROR_CODES,
+} from "../config/constants";
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -12,12 +20,12 @@ export interface RetryOptions {
 }
 
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
-  maxAttempts: 3,
-  initialDelay: 1000,
-  maxDelay: 10000,
-  backoffMultiplier: 2,
-  retryableErrors: [408, 429, 500, 502, 503, 504],
-  retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "ENOTFOUND"],
+  maxAttempts: DEFAULT_MAX_RETRY_ATTEMPTS,
+  initialDelay: DEFAULT_RETRY_INITIAL_DELAY_MS,
+  maxDelay: DEFAULT_RETRY_MAX_DELAY_MS,
+  backoffMultiplier: DEFAULT_RETRY_BACKOFF_MULTIPLIER,
+  retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
+  retryableErrorCodes: RETRYABLE_ERROR_CODES,
   onRetry: () => {},
 };
 
