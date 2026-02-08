@@ -1,3 +1,4 @@
+
 name: on pull
 on:
   pull_request:
@@ -52,7 +53,6 @@ jobs:
         run: |
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-
       - name: Install Dependencies
         continue-on-error: true
         run: npm ci
@@ -61,25 +61,21 @@ jobs:
         run: |
           curl -fsSL https://opencode.ai/install | bash
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-
       - name: OpenX
         continue-on-error: true
         run: |
           opencode run "$(cat <<'PROMPT'
             # You are  **OpenX**, repository automation specialist using OpenCode CLI. You work on current workspace (project level)
-
             ## PHASE 1
             Step:
-            1. Check if '.opencode/oh-my-opencode.json' exist, create if not exist. (analyze https://github.com/code-yeongyu/oh-my-opencode.git before creating).
-                - configure all agents using free models (check in provider.ts): opencode/big-pickle, opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
+            1. Install and configure 'oh my opencode' (analyze https://github.com/code-yeongyu/oh-my-opencode.git before installing).
+                - configure all agents using free models (check in opencode providers.ts): opencode/big-pickle, opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
             2. Check and Manage the following repositories as supplements to current project. Ensure no conflict or redundant. if already implemented, skip it. Think harder, plan carefully, must be in harmony.:
-                - https://github.com/code-yeongyu/oh-my-opencode.git
                 - https://github.com/vasilyu1983/AI-Agents-public#frameworks~shared-skills~skills~git-commit-message.git
                 - https://github.com/obra/superpowers.git
                 - https://github.com/sulhi-sabil/agent-skill/
             3. verify if opencode launch successfully, every plugin/repo integrated smoothly, no errors, no conflict. do **self reflections**
             4. Remove temporary and unused file/folder. Review and self reflection. fix/optimize your work if needed
-
             ## PHASE 2
             Step:
             1.  **Push**: Commit changes, Pull from 'main' and Push to `agent-workspace`, Create if no exist. Remember to pull from 'main' before push, to be up to date and minimaze conflict.
@@ -93,7 +89,6 @@ jobs:
             --model opencode/minimax-m2.1-free \
             --agent CMZ
             --share false \
-
       - name: On Pull
         run: |
           opencode run "$(cat <<'PROMPT'
