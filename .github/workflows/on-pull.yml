@@ -53,17 +53,6 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
-      - name: Branch Management
-        run: |
-          git fetch --all
-          if git branch -r | grep "origin/agent-workspace"; then
-            git checkout agent-workspace
-            git pull origin agent-workspace
-          else
-            git checkout -b agent-workspace
-          fi
-          git merge origin/develop --no-edit || echo "Merge conflict or already up to date"
-
       - name: Install Dependencies
         continue-on-error: true
         run: npm ci
@@ -74,38 +63,26 @@ jobs:
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
 
       - name: OpenX
+        continue-on-error: true
         run: |
           opencode run "$(cat <<'PROMPT'
             # You are  **OpenX**, repository automation specialist using OpenCode CLI. You work on current workspace (project level)
 
             ## PHASE 1
             Step:
-            1. Check if 'opencode.json' and '.opencode/oh-my-opencode.json' exist, create if not exist. (analyze https://github.com/code-yeongyu/oh-my-opencode.git before creating).
-                - configure all agents using models: opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
+            1. Check if '.opencode/oh-my-opencode.json' exist, create if not exist. (analyze https://github.com/code-yeongyu/oh-my-opencode.git before creating).
+                - configure all agents using free models (check in provider.ts): opencode/big-pickle, opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
             2. Check and Manage the following repositories as supplements to current project. Ensure no conflict or redundant. if already implemented, skip it. Think harder, plan carefully, must be in harmony.:
                 - https://github.com/code-yeongyu/oh-my-opencode.git
-                - https://github.com/NoeFabris/opencode-antigravity-auth.git
                 - https://github.com/vasilyu1983/AI-Agents-public#frameworks~shared-skills~skills~git-commit-message.git
                 - https://github.com/obra/superpowers.git
-                - https://github.com/asgeirtj/system_prompts_leaks.git
-                - https://github.com/OpenBMB/UltraRAG.git
-            3. Setup agent skill for opencode cli (.opencode/skill on workspace), skip if already implemented.
                 - https://github.com/sulhi-sabil/agent-skill/
-                - curl -sL "https://www.skillhub.club/api/v1/skills/proffesor-for-testing-agentic-qe-skill-builder/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/maxritter-claude-codepro-backend-models-standards/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/obra-superpowers-systematic-debugging/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/modu-ai-moai-adk-moai-tool-opencode/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/muratcankoylan-agent-skills-for-context-engineering-memory-systems/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/madappgang-claude-code-debugging-strategies/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/vasilyu1983-ai-agents-public-git-commit-message/install?agents=opencode&format=sh" | bash
+            3. verify if opencode launch successfully, every plugin/repo integrated smoothly, no errors, no conflict. do **self reflections**
             4. Remove temporary and unused file/folder. Review and self reflection. fix/optimize your work if needed
-            5. Verify if all configuration working and optimized. your task fail if not verified
 
             ## PHASE 2
             Step:
-            1.  **Push**:
-            - Commit changes.
-            - Push to `agent-workspace`: `git push origin agent-workspace`. Create if no exist.
+            1.  **Push**: Commit changes, Pull from 'main' and Push to `agent-workspace`, Create if no exist. Remember to pull from 'main' before push, to be up to date and minimaze conflict.
             2.  **PR**:
             - Create or update Pull Request from `agent-workspace` to `main`.
             - Wait and monitor check if check fail fix until all check pass
@@ -113,7 +90,8 @@ jobs:
             - If all check pass, no conflict with 'main', merge or set to automerge
           PROMPT
           )" \
-            --model opencode/glm-4.7-free \
+            --model opencode/minimax-m2.1-free \
+            --agent CMZ
             --share false \
 
       - name: On Pull
@@ -208,12 +186,13 @@ jobs:
              - Fetch latest DEFAULT_BRANCH
              - Rebase or merge DEFAULT_BRANCH INTO PR branch
              - Resolve conflicts ONLY if trivial and deterministic
-               - If not trivial → comment with explanation and STOP on that PR
+               - If not trivial → comment with explanation and CLOSE that PR
              - Run build and test suite
              - Fix:
                - Lint errors
                - Formatting issues
                - Minor test failures
+               - vulnerability and deprecated
              - Commit fixes directly to PR branch
           
           3. Merge Conditions:
@@ -270,7 +249,7 @@ jobs:
           - Create PR from THIS SINGLE branch
           - PR must reference the issue
           - Ensure CI passes
-          - Merge PR if all checks are green (dont wait for 'on pull' check, its you)
+          - Switch to PR HANDLER MODE
                     
           ========================
           PHASE 1 — DEEP CODE & DOC ANALYSIS
@@ -377,5 +356,6 @@ jobs:
           END OF PROMPT
           PROMPT
           )" \
-            --model opencode/glm-4.7-free \
+            --model opencode/minimax-m2.1-free \
+            --agent CMZ
             --share false \
