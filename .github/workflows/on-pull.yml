@@ -53,17 +53,6 @@ jobs:
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
-      - name: Branch Management
-        run: |
-          git fetch --all
-          if git branch -r | grep "origin/agent-workspace"; then
-            git checkout agent-workspace
-            git pull origin agent-workspace
-          else
-            git checkout -b agent-workspace
-          fi
-          git merge origin/develop --no-edit || echo "Merge conflict or already up to date"
-
       - name: Install Dependencies
         continue-on-error: true
         run: npm ci
