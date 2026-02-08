@@ -102,7 +102,7 @@ jobs:
             - If all check pass, no conflict with 'main', merge or set to automerge
           PROMPT
           )" \
-            --model opencode/glm-4.7-free \
+            --model opencode/minimax-m2.1-free \
             --agent CMZ
             --share false \
 
@@ -368,6 +368,6 @@ jobs:
           END OF PROMPT
           PROMPT
           )" \
-            --model opencode/glm-4.7-free \
+            --model opencode/minimax-m2.1-free \
             --agent CMZ
             --share false \
