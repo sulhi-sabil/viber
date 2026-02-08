@@ -80,26 +80,15 @@ jobs:
 
             ## PHASE 1
             Step:
-            1. Check if 'opencode.json' and '.opencode/oh-my-opencode.json' exist, create if not exist. (analyze https://github.com/code-yeongyu/oh-my-opencode.git before creating).
-                - configure all agents using models: opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
+            1. Check if '.opencode/oh-my-opencode.json' exist, create if not exist. (analyze https://github.com/code-yeongyu/oh-my-opencode.git before creating).
+                - configure all agents using free models (check in provider.ts): opencode/big-pickle, opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
             2. Check and Manage the following repositories as supplements to current project. Ensure no conflict or redundant. if already implemented, skip it. Think harder, plan carefully, must be in harmony.:
                 - https://github.com/code-yeongyu/oh-my-opencode.git
-                - https://github.com/NoeFabris/opencode-antigravity-auth.git
                 - https://github.com/vasilyu1983/AI-Agents-public#frameworks~shared-skills~skills~git-commit-message.git
                 - https://github.com/obra/superpowers.git
-                - https://github.com/asgeirtj/system_prompts_leaks.git
-                - https://github.com/OpenBMB/UltraRAG.git
-            3. Setup agent skill for opencode cli (.opencode/skill on workspace), skip if already implemented.
                 - https://github.com/sulhi-sabil/agent-skill/
-                - curl -sL "https://www.skillhub.club/api/v1/skills/proffesor-for-testing-agentic-qe-skill-builder/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/maxritter-claude-codepro-backend-models-standards/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/obra-superpowers-systematic-debugging/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/modu-ai-moai-adk-moai-tool-opencode/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/muratcankoylan-agent-skills-for-context-engineering-memory-systems/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/madappgang-claude-code-debugging-strategies/install?agents=opencode&format=sh" | bash
-                - curl -sL "https://www.skillhub.club/api/v1/skills/vasilyu1983-ai-agents-public-git-commit-message/install?agents=opencode&format=sh" | bash
+            3. verify if opencode launch successfully, every plugin/repo integrated smoothly, no errors, no conflict. do **self reflections**
             4. Remove temporary and unused file/folder. Review and self reflection. fix/optimize your work if needed
-            5. Verify if all configuration working and optimized. your task fail if not verified
 
             ## PHASE 2
             Step:
@@ -114,6 +103,7 @@ jobs:
           PROMPT
           )" \
             --model opencode/glm-4.7-free \
+            --agent CMZ
             --share false \
 
       - name: On Pull
@@ -208,12 +198,13 @@ jobs:
              - Fetch latest DEFAULT_BRANCH
              - Rebase or merge DEFAULT_BRANCH INTO PR branch
              - Resolve conflicts ONLY if trivial and deterministic
-               - If not trivial → comment with explanation and STOP on that PR
+               - If not trivial → comment with explanation and CLOSE that PR
              - Run build and test suite
              - Fix:
                - Lint errors
                - Formatting issues
                - Minor test failures
+               - vulnerability and deprecated
              - Commit fixes directly to PR branch
           
           3. Merge Conditions:
@@ -270,7 +261,7 @@ jobs:
           - Create PR from THIS SINGLE branch
           - PR must reference the issue
           - Ensure CI passes
-          - Merge PR if all checks are green (dont wait for 'on pull' check, its you)
+          - Switch to PR HANDLER MODE
                     
           ========================
           PHASE 1 — DEEP CODE & DOC ANALYSIS
@@ -378,4 +369,5 @@ jobs:
           PROMPT
           )" \
             --model opencode/glm-4.7-free \
+            --agent CMZ
             --share false \
