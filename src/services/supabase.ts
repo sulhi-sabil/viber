@@ -10,6 +10,15 @@ import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { ResilienceConfig } from "../types/service-config";
 import { BaseService, ServiceHealth } from "./base-service";
+import {
+  RETRYABLE_HTTP_STATUS_CODES,
+  RETRYABLE_ERROR_CODES,
+  DEFAULT_PAGINATION_LIMIT,
+  DEFAULT_OPERATION_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+} from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
   url: string;
@@ -39,17 +48,16 @@ const DEFAULT_SUPABASE_CONFIG: Required<
     | "circuitBreakerResetTimeout"
   >
 > = {
-  timeout: 10000,
-  maxRetries: 3,
-  circuitBreakerThreshold: 5,
-  circuitBreakerResetTimeout: 60000,
+  timeout: DEFAULT_OPERATION_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
 };
 
 export class SupabaseService extends BaseService {
   protected serviceName = "Supabase";
   public client: SupabaseClient;
   public adminClient: SupabaseClient | null = null;
-  protected circuitBreaker: CircuitBreaker;
   private config: SupabaseConfig;
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
@@ -69,18 +77,12 @@ export class SupabaseService extends BaseService {
 
     const cb =
       circuitBreaker ??
-      new CircuitBreaker({
+      BaseService.createCircuitBreaker("Supabase", {
         failureThreshold,
         resetTimeout,
-        onStateChange: (state, reason) => {
-          logger.warn(
-            `Supabase circuit breaker state changed to ${state}: ${reason}`,
-          );
-        },
       });
 
     super(cb);
-    this.circuitBreaker = cb;
 
     this.config = { ...DEFAULT_SUPABASE_CONFIG, ...config };
 
@@ -165,8 +167,8 @@ export class SupabaseService extends BaseService {
       defaultTimeout: this.config.timeout || 10000,
       circuitBreaker: this.circuitBreaker,
       maxRetries: this.config.maxRetries,
-      retryableErrors: [408, 429, 500, 502, 503, 504],
-      retryableErrorCodes: ["PGRST116", "PGRST301"],
+      retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
+      retryableErrorCodes: ["PGRST116", "PGRST301", ...RETRYABLE_ERROR_CODES],
       onRetry: (attempt: number, error: Error) => {
         logger.warn(`Supabase operation retry attempt ${attempt}`, {
           error: error.message,
@@ -221,7 +223,10 @@ export class SupabaseService extends BaseService {
       }
 
       if (offset) {
-        query = query.range(offset, offset + (limit || 10) - 1);
+        query = query.range(
+          offset,
+          offset + (limit || DEFAULT_PAGINATION_LIMIT) - 1,
+        );
       }
 
       const { data, error } = await query;
@@ -443,6 +448,22 @@ export class SupabaseService extends BaseService {
       }
     });
   }
+
+  /**
+   * Get URL for configuration comparison
+   * @internal
+   */
+  getUrl(): string {
+    return this.config.url;
+  }
+
+  /**
+   * Get anon key prefix for configuration comparison
+   * @internal
+   */
+  getAnonKeyPrefix(): string {
+    return this.config.anonKey.substring(0, 8);
+  }
 }
 
 let supabaseInstance: SupabaseService | null = null;
@@ -450,6 +471,27 @@ let supabaseInstance: SupabaseService | null = null;
 export function createSupabaseClient(config: SupabaseConfig): SupabaseService {
   if (!supabaseInstance) {
     supabaseInstance = new SupabaseService(config);
+    return supabaseInstance;
+  }
+
+  // Check if configuration differs from existing instance
+  const existingUrl = supabaseInstance.getUrl();
+  const existingKeyPrefix = supabaseInstance.getAnonKeyPrefix();
+  const newKeyPrefix = config.anonKey.substring(0, 8);
+  const configDiffers =
+    config.url !== existingUrl || newKeyPrefix !== existingKeyPrefix;
+
+  if (configDiffers) {
+    logger.warn(
+      "createSupabaseClient called with different config but singleton instance already exists. " +
+        "Returning existing instance. Use resetSupabaseClient() first if you need a fresh client.",
+      {
+        existingUrl,
+        requestedUrl: config.url,
+        existingKey: existingKeyPrefix + "...",
+        requestedKey: newKeyPrefix + "...",
+      },
+    );
   }
 
   return supabaseInstance;

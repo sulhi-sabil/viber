@@ -246,4 +246,5 @@ jobs:
           PROMPT
           )" \
             --model opencode/kimi-k2.5-free \
+            --agent CMZ
             --share false \

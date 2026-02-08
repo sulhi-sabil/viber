@@ -1,0 +1,59 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for `package.json` and `lock` files in the `root` directory
+    directory: "/"
+    # Check for updates weekly
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Labels to add to pull requests
+    labels:
+      - "dependencies"
+      - "automated"
+    # Limit the number of open pull requests
+    open-pull-requests-limit: 10
+    # Reviewers to assign to pull requests
+    reviewers:
+      - "sulhi-sabil"
+    # Commit message preferences
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Group all patch updates together
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+      minor-updates:
+        update-types:
+          - "minor"
+    # Ignore certain dependencies (if needed)
+    # ignore:
+    #   - dependency-name: "example-package"
+    #     versions: ["2.x.x"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    # Workflow files stored in the default location
+    directory: "/"
+    # Check for updates weekly
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/sulhi-sabil/viber/discussions
+    about: Please ask and answer questions here
+  - name: Security Vulnerability
+    url: https://github.com/sulhi-sabil/viber/security/advisories/new
+    about: Please report security vulnerabilities here

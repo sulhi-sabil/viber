@@ -1,4 +1,7 @@
-import { CircuitBreaker } from "../utils/circuit-breaker";
+import {
+  CircuitBreaker,
+  CircuitBreakerOptions,
+} from "../utils/circuit-breaker";
 import { logger } from "../utils/logger";
 
 export interface ServiceHealth {
@@ -13,6 +16,24 @@ export abstract class BaseService {
 
   constructor(circuitBreaker: CircuitBreaker) {
     this.circuitBreaker = circuitBreaker;
+  }
+
+  /**
+   * Create a circuit breaker with standardized defaults for services.
+   * Uses service name in state change logging.
+   */
+  protected static createCircuitBreaker(
+    serviceName: string,
+    options: CircuitBreakerOptions,
+  ): CircuitBreaker {
+    return new CircuitBreaker({
+      ...options,
+      onStateChange: (state, reason) => {
+        logger.warn(
+          `${serviceName} circuit breaker state changed to ${state}: ${reason}`,
+        );
+      },
+    });
   }
 
   public getCircuitBreakerState() {

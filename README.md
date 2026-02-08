@@ -13,6 +13,8 @@ A robust, production-ready TypeScript/JavaScript integration layer with built-in
 - **Idempotency**: Idempotency manager for safe operation handling with UUID validation
 - **Type Safety**: Full TypeScript support with type-safe API clients
 - **Extensible**: Easy to add new services with consistent patterns
+- **Automated Maintenance**: Dependabot configuration for automated dependency updates
+- **CI/CD Ready**: GitHub Actions workflows for continuous integration
 
 ## Quick Start
 
@@ -731,6 +733,24 @@ npm run lint
 3. **Monitor Circuit Breakers**: Track circuit breaker states in production
 4. **Handle Errors**: Always catch and handle errors appropriately
 5. **Type Safety**: Use TypeScript for full type safety
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for details on how to:
+
+- Set up your development environment
+- Submit bug reports and feature requests
+- Submit pull requests
+- Follow our coding standards
+
+## Security
+
+For security-related information, please see our [Security Policy](./SECURITY.md) for:
+
+- Supported versions
+- How to report vulnerabilities
+- Security best practices
+- Response timelines
 
 ## License
 
