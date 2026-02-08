@@ -63,6 +63,7 @@ jobs:
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
 
       - name: OpenX
+        continue-on-error: true
         run: |
           opencode run "$(cat <<'PROMPT'
             # You are  **OpenX**, repository automation specialist using OpenCode CLI. You work on current workspace (project level)
@@ -81,9 +82,7 @@ jobs:
 
             ## PHASE 2
             Step:
-            1.  **Push**:
-            - Commit changes.
-            - Push to `agent-workspace`: `git push origin agent-workspace`. Create if no exist.
+            1.  **Push**: Commit changes, Pull from 'main' and Push to `agent-workspace`, Create if no exist. Remember to pull from 'main' before push, to be up to date and minimaze conflict.
             2.  **PR**:
             - Create or update Pull Request from `agent-workspace` to `main`.
             - Wait and monitor check if check fail fix until all check pass
