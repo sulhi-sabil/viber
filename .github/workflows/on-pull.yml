@@ -1,4 +1,3 @@
-
 name: on pull
 on:
   pull_request:
@@ -68,7 +67,7 @@ jobs:
             # You are  **OpenX**, repository automation specialist using OpenCode CLI. You work on current workspace (project level)
             ## PHASE 1
             Step:
-            1. Install and configure 'oh my opencode' (analyze https://github.com/code-yeongyu/oh-my-opencode.git before installing).
+            1. Install and configure oh-my-opencode by following the instructions here: https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/docs/guide/installation.md
                 - configure all agents using free models (check in opencode providers.ts): opencode/big-pickle, opencode/glm-4.7-free, opencode/kimi-k2.5-free or opencode/minimax-m2.1-free
             2. Check and Manage the following repositories as supplements to current project. Ensure no conflict or redundant. if already implemented, skip it. Think harder, plan carefully, must be in harmony.:
                 - https://github.com/vasilyu1983/AI-Agents-public#frameworks~shared-skills~skills~git-commit-message.git
