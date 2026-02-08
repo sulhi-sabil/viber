@@ -1,0 +1,20 @@
+{
+  "plugin": ["oh-my-opencode"],
+  "agent": {
+    "default": "CMZ"
+  },
+  "model": {
+    "opencode/kimi-k2.5-free": {
+      "temperature": 0.7
+    },
+    "opencode/glm-4.7-free": {
+      "temperature": 0.3
+    },
+    "opencode/big-pickle": {
+      "temperature": 0.5
+    },
+    "opencode/minimax-m2.1-free": {
+      "temperature": 0.4
+    }
+  }
+}
