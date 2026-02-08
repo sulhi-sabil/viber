@@ -18,17 +18,30 @@
     "BugLover": {
       "model": "opencode/glm-4.7-free",
       "temperature": 0.3,
-      "skills": ["code-analysis", "debugging", "testing", "error-patterns"]
+      "skills": [
+        "code-analysis",
+        "debugging",
+        "testing",
+        "error-patterns"
+      ]
     },
-    "Sisyphus": {
+    "sisyphus": {
       "model": "opencode/kimi-k2.5-free",
       "temperature": 0.5,
-      "skills": ["orchestration", "task-delegation", "context-management"]
+      "skills": [
+        "orchestration",
+        "task-delegation",
+        "context-management"
+      ]
     },
-    "Oracle": {
+    "oracle": {
       "model": "opencode/glm-4.7-free",
       "temperature": 0.4,
-      "skills": ["architecture", "debugging", "design-patterns"]
+      "skills": [
+        "architecture",
+        "debugging",
+        "design-patterns"
+      ]
     }
   },
   "skills": {
