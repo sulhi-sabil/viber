@@ -148,7 +148,9 @@ export class Validator {
   ): void {
     this.string(value, fieldName);
     if (!regex.test(value as string)) {
-      throw new ValidationError(`${fieldName} does not match required pattern`);
+      throw new ValidationError(
+        `${fieldName} does not match required pattern: ${regex.source}`,
+      );
     }
   }
 
