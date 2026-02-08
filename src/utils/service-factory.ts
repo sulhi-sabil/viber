@@ -5,6 +5,12 @@ import {
 import { logger } from "./logger";
 import { SupabaseService, SupabaseConfig } from "../services/supabase";
 import { GeminiService, GeminiConfig } from "../services/gemini";
+import {
+  HealthCheckRegistry,
+  HealthCheckFunction,
+  HealthCheckConfig,
+  healthCheckRegistry,
+} from "./health-check";
 
 export interface CircuitBreakerConfig {
   failureThreshold?: number;
@@ -35,11 +41,13 @@ export class ServiceFactory {
   private circuitBreakers: Map<string, CircuitBreaker>;
   private services: Map<string, unknown>;
   private circuitBreakerConfigs: CircuitBreakerConfigMap;
+  private healthCheckRegistry: HealthCheckRegistry;
 
   private constructor(circuitBreakerConfigMap: CircuitBreakerConfigMap = {}) {
     this.circuitBreakers = new Map();
     this.services = new Map();
     this.circuitBreakerConfigs = circuitBreakerConfigMap;
+    this.healthCheckRegistry = healthCheckRegistry;
   }
 
   static getInstance(
@@ -160,6 +168,46 @@ export class ServiceFactory {
       };
     });
     return states;
+  }
+
+  /**
+   * Register a health check for a service
+   * @param serviceName - Service identifier
+   * @param check - Health check function
+   * @param config - Health check configuration
+   */
+  registerHealthCheck(
+    serviceName: string,
+    check: HealthCheckFunction,
+    config?: Partial<HealthCheckConfig>,
+  ): void {
+    this.healthCheckRegistry.register(serviceName, check, config);
+    logger.info(`Registered health check for service: ${serviceName}`);
+  }
+
+  /**
+   * Execute health check for a specific service
+   * @param serviceName - Service identifier
+   * @returns Health check result
+   */
+  async checkHealth(serviceName: string) {
+    return this.healthCheckRegistry.check(serviceName);
+  }
+
+  /**
+   * Execute health checks for all registered services
+   * @returns Aggregate health result
+   */
+  async checkAllHealth() {
+    return this.healthCheckRegistry.checkAll();
+  }
+
+  /**
+   * Get the health check registry
+   * @returns HealthCheckRegistry instance
+   */
+  getHealthCheckRegistry(): HealthCheckRegistry {
+    return this.healthCheckRegistry;
   }
 }
 

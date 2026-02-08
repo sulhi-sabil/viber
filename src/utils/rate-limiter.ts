@@ -1,4 +1,10 @@
 import { logger } from "./logger";
+import {
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
+  RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
+  RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER,
+} from "../config/constants";
 
 export interface RateLimiterOptions {
   maxRequests?: number;
@@ -15,17 +21,12 @@ export interface RateLimiterMetrics {
   windowEnd: number;
 }
 
-// Named constants for maintainability
-const DEFAULT_MAX_REQUESTS = 15;
-const DEFAULT_WINDOW_MS = 60000;
-const MIN_CLEANUP_THRESHOLD = 100;
-
 const DEFAULT_RATE_LIMITER_OPTIONS: Required<
   Omit<RateLimiterOptions, "serviceName">
 > = {
-  maxRequests: DEFAULT_MAX_REQUESTS,
-  windowMs: DEFAULT_WINDOW_MS,
-  cleanupThreshold: MIN_CLEANUP_THRESHOLD,
+  maxRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  windowMs: RATE_LIMITER_DEFAULT_WINDOW_MS,
+  cleanupThreshold: RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
 };
 
 export class RateLimiter {
@@ -44,7 +45,10 @@ export class RateLimiter {
     this.lastCleanupTime = Date.now();
     this.cleanupThreshold =
       mergedOptions.cleanupThreshold ??
-      Math.max(MIN_CLEANUP_THRESHOLD, this.maxRequests * 2);
+      Math.max(
+        RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
+        this.maxRequests * RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER,
+      );
   }
 
   async checkRateLimit(): Promise<void> {

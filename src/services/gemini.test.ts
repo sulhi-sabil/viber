@@ -550,7 +550,7 @@ describe("GeminiService", () => {
       mockFetch.mockImplementation(
         () =>
           new Promise((resolve) => {
-            setTimeout(() => {
+            const timer = setTimeout(() => {
               resolve({
                 ok: true,
                 json: async () => ({
@@ -564,6 +564,10 @@ describe("GeminiService", () => {
                 }),
               });
             }, 60000);
+            const timerRef = timer as unknown as { unref?: () => void };
+            if (typeof timerRef.unref === "function") {
+              timerRef.unref();
+            }
           }),
       );
 

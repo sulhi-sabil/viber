@@ -86,9 +86,10 @@ export class Validator {
     fieldName: string = "field",
   ): void {
     this.string(value, fieldName);
-    if ((value as string).length < min) {
+    const strValue = value as string;
+    if (strValue.length < min) {
       throw new ValidationError(
-        `${fieldName} must be at least ${min} characters long`,
+        `${fieldName} must be at least ${min} characters long (got: ${strValue.length})`,
       );
     }
   }
@@ -99,24 +100,31 @@ export class Validator {
     fieldName: string = "field",
   ): void {
     this.string(value, fieldName);
-    if ((value as string).length > max) {
+    const strValue = value as string;
+    if (strValue.length > max) {
       throw new ValidationError(
-        `${fieldName} must be no more than ${max} characters long`,
+        `${fieldName} must be no more than ${max} characters long (got: ${strValue.length})`,
       );
     }
   }
 
   static min(value: unknown, min: number, fieldName: string = "field"): void {
     this.number(value, fieldName);
-    if ((value as number) < min) {
-      throw new ValidationError(`${fieldName} must be at least ${min}`);
+    const numValue = value as number;
+    if (numValue < min) {
+      throw new ValidationError(
+        `${fieldName} must be at least ${min} (got: ${numValue})`,
+      );
     }
   }
 
   static max(value: unknown, max: number, fieldName: string = "field"): void {
     this.number(value, fieldName);
-    if ((value as number) > max) {
-      throw new ValidationError(`${fieldName} must be no more than ${max}`);
+    const numValue = value as number;
+    if (numValue > max) {
+      throw new ValidationError(
+        `${fieldName} must be no more than ${max} (got: ${numValue})`,
+      );
     }
   }
 
@@ -140,7 +148,9 @@ export class Validator {
   ): void {
     this.string(value, fieldName);
     if (!regex.test(value as string)) {
-      throw new ValidationError(`${fieldName} does not match required pattern`);
+      throw new ValidationError(
+        `${fieldName} does not match required pattern: ${regex.source}`,
+      );
     }
   }
 

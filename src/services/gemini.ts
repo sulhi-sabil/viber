@@ -6,6 +6,18 @@ import { Validator } from "../utils/validator";
 import { RateLimiter } from "../utils/rate-limiter";
 import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
 import { BaseService, ServiceHealth } from "./base-service";
+import {
+  MIN_API_KEY_LENGTH,
+  HEALTH_CHECK_TIMEOUT_MS,
+  STREAMING_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
+  RETRYABLE_HTTP_STATUS_CODES,
+  RETRYABLE_ERROR_CODES,
+} from "../config/constants";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
@@ -62,12 +74,12 @@ const DEFAULT_GEMINI_CONFIG: Required<
     | "model"
   >
 > = {
-  timeout: 30000,
-  maxRetries: 3,
-  circuitBreakerThreshold: 5,
-  circuitBreakerResetTimeout: 60000,
-  rateLimitRequests: 15,
-  rateLimitWindow: 60000,
+  timeout: STREAMING_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
   model: "gemini-1.5-flash",
 };
 
@@ -84,7 +96,6 @@ export class GeminiService extends BaseService {
       | "model"
     >
   >;
-  protected circuitBreaker: CircuitBreaker;
   private rateLimiter: RateLimiter;
   private costTracker: number;
 
@@ -94,7 +105,7 @@ export class GeminiService extends BaseService {
     }
 
     Validator.string(config.apiKey, "apiKey");
-    Validator.minLength(config.apiKey, 10, "apiKey");
+    Validator.minLength(config.apiKey, MIN_API_KEY_LENGTH, "apiKey");
 
     const failureThreshold =
       config.circuitBreakerThreshold ??
@@ -105,18 +116,12 @@ export class GeminiService extends BaseService {
 
     const cb =
       circuitBreaker ??
-      new CircuitBreaker({
+      BaseService.createCircuitBreaker("Gemini", {
         failureThreshold,
         resetTimeout,
-        onStateChange: (state, reason) => {
-          logger.warn(
-            `Gemini circuit breaker state changed to ${state}: ${reason}`,
-          );
-        },
       });
 
     super(cb);
-    this.circuitBreaker = cb;
 
     this.apiKey = config.apiKey;
     this.config = {
@@ -403,8 +408,8 @@ export class GeminiService extends BaseService {
       defaultTimeout: this.config.timeout || 30000,
       circuitBreaker: this.circuitBreaker,
       maxRetries: this.config.maxRetries,
-      retryableErrors: [408, 429, 500, 502, 503, 504],
-      retryableErrorCodes: ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT"],
+      retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
+      retryableErrorCodes: RETRYABLE_ERROR_CODES,
       onRetry: (attempt: number, error: Error) => {
         logger.warn(`Gemini operation retry attempt ${attempt}`, {
           error: error.message,
@@ -417,7 +422,7 @@ export class GeminiService extends BaseService {
   async healthCheck(): Promise<ServiceHealth> {
     return this.executeHealthCheck(async () => {
       const response = await this.generateText("Hello", {
-        timeout: 5000,
+        timeout: HEALTH_CHECK_TIMEOUT_MS,
         useCircuitBreaker: false,
         useRetry: false,
       });
@@ -444,6 +449,22 @@ export class GeminiService extends BaseService {
       windowMs: this.rateLimiter["windowMs"],
     };
   }
+
+  /**
+   * Get API key prefix for configuration comparison
+   * @internal
+   */
+  getApiKeyPrefix(): string {
+    return this.apiKey.substring(0, 8);
+  }
+
+  /**
+   * Get current model configuration
+   * @internal
+   */
+  getModel(): string {
+    return this.config.model;
+  }
 }
 
 let geminiInstance: GeminiService | null = null;
@@ -451,6 +472,27 @@ let geminiInstance: GeminiService | null = null;
 export function createGeminiClient(config: GeminiConfig): GeminiService {
   if (!geminiInstance) {
     geminiInstance = new GeminiService(config);
+    return geminiInstance;
+  }
+
+  // Check if configuration differs from existing instance
+  const existingKeyPrefix = geminiInstance.getApiKeyPrefix();
+  const newKeyPrefix = config.apiKey.substring(0, 8);
+  const configDiffers =
+    newKeyPrefix !== existingKeyPrefix ||
+    (config.model && config.model !== geminiInstance.getModel());
+
+  if (configDiffers) {
+    logger.warn(
+      "createGeminiClient called with different config but singleton instance already exists. " +
+        "Returning existing instance. Use resetGeminiClient() first if you need a fresh client.",
+      {
+        existingKey: existingKeyPrefix + "...",
+        requestedKey: newKeyPrefix + "...",
+        existingModel: geminiInstance.getModel(),
+        requestedModel: config.model || "default",
+      },
+    );
   }
 
   return geminiInstance;

@@ -1,4 +1,12 @@
 import { ServiceUnavailableError } from "./errors";
+import {
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  CIRCUIT_BREAKER_DEFAULT_HALF_OPEN_MAX_CALLS,
+  CIRCUIT_BREAKER_DEFAULT_MONITOR_WINDOW_MS,
+  CIRCUIT_BREAKER_MIN_CLEANUP_THRESHOLD,
+  CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER,
+} from "../config/constants";
 
 export enum CircuitState {
   CLOSED = "closed",
@@ -16,10 +24,10 @@ export interface CircuitBreakerOptions {
 
 export const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> =
   {
-    failureThreshold: 5,
-    resetTimeout: 60000,
-    halfOpenMaxCalls: 3,
-    monitorWindow: 60000,
+    failureThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+    resetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+    halfOpenMaxCalls: CIRCUIT_BREAKER_DEFAULT_HALF_OPEN_MAX_CALLS,
+    monitorWindow: CIRCUIT_BREAKER_DEFAULT_MONITOR_WINDOW_MS,
     onStateChange: () => {},
   };
 
@@ -145,8 +153,9 @@ export class CircuitBreaker {
     const totalItems = this.failures.length + this.successes.length;
 
     const cleanupThreshold = Math.max(
-      100,
-      this.mergedOptions.failureThreshold * 10,
+      CIRCUIT_BREAKER_MIN_CLEANUP_THRESHOLD,
+      this.mergedOptions.failureThreshold *
+        CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER,
     );
     const timeSinceLastCleanup = now - this.lastCleanupTime;
     const minCleanupInterval = this.mergedOptions.monitorWindow / 2;
