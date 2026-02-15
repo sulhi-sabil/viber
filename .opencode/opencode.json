@@ -1,20 +1,121 @@
 {
-  "plugin": ["oh-my-opencode"],
-  "agent": {
-    "default": "CMZ"
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "autoupdate": true,
+  "model": "opencode/kimi-k2.5-free",
+  "small_model": "opencode/big-pickle",
+  "compaction": {
+    "auto": true,
+    "prune": true
   },
-  "model": {
-    "opencode/kimi-k2.5-free": {
-      "temperature": 0.7
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      ".git/**",
+      "*.log",
+      ".next/**",
+      ".nuxt/**",
+      "target/**"
+    ]
+  },
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["chrome-devtools-mcp"],
+      "enabled": false
     },
-    "opencode/glm-4.7-free": {
-      "temperature": 0.3
+    "sequential-thinking": {
+      "type": "local",
+      "command": ["mcp-sequential-thinking"],
+      "enabled": false
     },
-    "opencode/big-pickle": {
-      "temperature": 0.5
+    "memory": {
+      "type": "local",
+      "command": ["mcp-server-memory"],
+      "enabled": false
     },
-    "opencode/minimax-m2.1-free": {
-      "temperature": 0.4
+    "redis": {
+      "type": "local",
+      "command": ["npx", "-y", "redis/mcp-redis"],
+      "enabled": false
+    },
+    "python-analyzer": {
+      "type": "local",
+      "command": ["npx", "-y", "@anselmoo/mcp-server-analyzer"],
+      "enabled": false
+    },
+    "testing-sensei": {
+      "type": "local",
+      "command": ["npx", "-y", "@kourtni/mcp-testing-sensei"],
+      "enabled": false
+    },
+    "sql-server": {
+      "type": "local",
+      "command": ["npx", "-y", "mcp-sql-server"],
+      "enabled": false
+    },
+    "brave-search": {
+      "type": "local",
+      "command": ["npx", "-y", "@anthropic/mcp-brave-search"],
+      "enabled": false
+    },
+    "MCP_DOCKER": {
+      "type": "local",
+      "command": ["docker", "mcp", "gateway", "run"],
+      "enabled": false
+    },
+    "perplexity-comet": {
+      "type": "local",
+      "command": ["perplexity-comet-mcp"],
+      "enabled": true
+    }
+  },
+  "plugin": [
+    "@tarquinen/opencode-dcp",
+    "oh-my-opencode"
+  ],
+  "tools": {
+    "bash": true,
+    "write": true,
+    "edit": true,
+    "read": true,
+    "grep": true,
+    "glob": true,
+    "list": true,
+    "patch": true,
+    "todowrite": true,
+    "todoread": true,
+    "webfetch": true,
+    "websearch": true,
+    "codesearch": true,
+    "skill": true
+  },
+  "permission": {
+    "edit": "allow",
+    "write": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "codesearch": "allow",
+    "bash": {
+      "pwd": "allow",
+      "ls": "allow",
+      "dir": "allow",
+      "cat": "allow",
+      "type": "allow",
+      "Get-*": "allow",
+      "Test-Path": "allow",
+      "git *": "allow",
+      "gh *": "allow",
+      "npm *": "allow",
+      "yarn *": "allow",
+      "bun *": "allow",
+      "pnpm *": "allow",
+      "docker *": "allow",
+      "kubectl *": "allow",
+      "ssh *": "allow"
     }
   }
 }
