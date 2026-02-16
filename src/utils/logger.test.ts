@@ -39,7 +39,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("Debug message");
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        "[DEBUG] Debug message",
+        expect.stringContaining("[DEBUG]"),
+        "",
+      );
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        expect.stringContaining("Debug message"),
         "",
       );
     });
@@ -49,7 +53,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("Info message");
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", "");
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "",
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Info message"),
+        "",
+      );
     });
 
     it("should log warn messages when level is debug", () => {
@@ -57,7 +68,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.warn("Warn message");
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Warn message", "");
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("[WARN]"),
+        "",
+      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Warn message"),
+        "",
+      );
     });
 
     it("should log error messages when level is debug", () => {
@@ -66,7 +84,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "[ERROR] Error message",
+        expect.stringContaining("[ERROR]"),
+        "",
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Error message"),
         "",
       );
     });
@@ -86,7 +108,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("Info message");
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", "");
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "",
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Info message"),
+        "",
+      );
     });
 
     it("should log warn messages when level is info", () => {
@@ -94,7 +123,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.warn("Warn message");
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Warn message", "");
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("[WARN]"),
+        "",
+      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Warn message"),
+        "",
+      );
     });
 
     it("should log error messages when level is info", () => {
@@ -103,7 +139,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "[ERROR] Error message",
+        expect.stringContaining("[ERROR]"),
+        "",
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Error message"),
         "",
       );
     });
@@ -131,7 +171,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.warn("Warn message");
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Warn message", "");
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("[WARN]"),
+        "",
+      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Warn message"),
+        "",
+      );
     });
 
     it("should log error messages when level is warn", () => {
@@ -140,7 +187,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "[ERROR] Error message",
+        expect.stringContaining("[ERROR]"),
+        "",
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Error message"),
         "",
       );
     });
@@ -177,7 +228,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "[ERROR] Error message",
+        expect.stringContaining("[ERROR]"),
+        "",
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Error message"),
         "",
       );
     });
@@ -191,7 +246,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("Debug message", meta);
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        "[DEBUG] Debug message",
+        expect.stringContaining("[DEBUG]"),
+        meta,
+      );
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        expect.stringContaining("Debug message"),
         meta,
       );
     });
@@ -202,7 +261,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("Info message", meta);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", meta);
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        meta,
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Info message"),
+        meta,
+      );
     });
 
     it("should log warn message with metadata", () => {
@@ -211,7 +277,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.warn("Warn message", meta);
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Warn message", meta);
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("[WARN]"),
+        meta,
+      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Warn message"),
+        meta,
+      );
     });
 
     it("should log error message with metadata", () => {
@@ -221,7 +294,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message", meta);
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        "[ERROR] Error message",
+        expect.stringContaining("[ERROR]"),
+        meta,
+      );
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Error message"),
         meta,
       );
     });
@@ -231,7 +308,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("Info message", {});
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", {});
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        {},
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Info message"),
+        {},
+      );
     });
 
     it("should handle undefined metadata", () => {
@@ -239,7 +323,14 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("Info message");
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] Info message", "");
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        "",
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("Info message"),
+        "",
+      );
     });
 
     it("should redact sensitive password fields", () => {
@@ -249,7 +340,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("User login attempt", meta);
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        "[DEBUG] User login attempt",
+        expect.stringContaining("[DEBUG]"),
+        { username: "testuser", password: "[REDACTED]" },
+      );
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        expect.stringContaining("User login attempt"),
         { username: "testuser", password: "[REDACTED]" },
       );
     });
@@ -263,10 +358,20 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("API call", meta);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] API call", {
-        apiKey: "[REDACTED]",
-        endpoint: "https://api.example.com",
-      });
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        {
+          apiKey: "[REDACTED]",
+          endpoint: "https://api.example.com",
+        },
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("API call"),
+        {
+          apiKey: "[REDACTED]",
+          endpoint: "https://api.example.com",
+        },
+      );
     });
 
     it("should redact sensitive token fields", () => {
@@ -279,7 +384,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("Token verification", meta);
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        "[DEBUG] Token verification",
+        expect.stringContaining("[DEBUG]"),
+        { token: "[REDACTED]", userId: 123 },
+      );
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        expect.stringContaining("Token verification"),
         { token: "[REDACTED]", userId: 123 },
       );
     });
@@ -290,9 +399,18 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.info("User action", meta);
 
-      expect(mockConsoleInfo).toHaveBeenCalledWith("[INFO] User action", {
-        user: { id: 1, credentials: { secret: "[REDACTED]" } },
-      });
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("[INFO]"),
+        {
+          user: { id: 1, credentials: { secret: "[REDACTED]" } },
+        },
+      );
+      expect(mockConsoleInfo).toHaveBeenCalledWith(
+        expect.stringContaining("User action"),
+        {
+          user: { id: 1, credentials: { secret: "[REDACTED]" } },
+        },
+      );
     });
 
     it("should redact multiple sensitive fields", () => {
@@ -306,12 +424,24 @@ describe("ConsoleLogger", () => {
 
       consoleLogger.warn("Security event", meta);
 
-      expect(mockConsoleWarn).toHaveBeenCalledWith("[WARN] Security event", {
-        username: "test",
-        password: "[REDACTED]",
-        apiKey: "[REDACTED]",
-        token: "[REDACTED]",
-      });
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("[WARN]"),
+        {
+          username: "test",
+          password: "[REDACTED]",
+          apiKey: "[REDACTED]",
+          token: "[REDACTED]",
+        },
+      );
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Security event"),
+        {
+          username: "test",
+          password: "[REDACTED]",
+          apiKey: "[REDACTED]",
+          token: "[REDACTED]",
+        },
+      );
     });
 
     it("should redact authorization header", () => {
@@ -326,7 +456,16 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("Request received", meta);
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        "[DEBUG] Request received",
+        expect.stringContaining("[DEBUG]"),
+        {
+          headers: {
+            authorization: "[REDACTED]",
+            "content-type": "application/json",
+          },
+        },
+      );
+      expect(mockConsoleDebug).toHaveBeenCalledWith(
+        expect.stringContaining("Request received"),
         {
           headers: {
             authorization: "[REDACTED]",

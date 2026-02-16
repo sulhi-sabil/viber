@@ -1,5 +1,6 @@
 import { ValidationError } from "./errors";
 import { logger } from "./logger";
+import { IDEMPOTENCY_DEFAULT_TTL_MS } from "../config/constants";
 
 export interface IdempotencyResult<T> {
   data: T;
@@ -25,7 +26,7 @@ export interface IdempotencyManagerOptions {
   store?: IdempotencyStore;
 }
 
-const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_TTL_MS = IDEMPOTENCY_DEFAULT_TTL_MS;
 
 export class InMemoryIdempotencyStore implements IdempotencyStore {
   private cache: Map<string, StoredResponse<unknown> & { expiresAt: number }>;

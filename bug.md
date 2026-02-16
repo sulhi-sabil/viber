@@ -2,12 +2,22 @@
 
 ## Phase 1 - BugLover Discovery
 
-### Active Bugs
+### Active Bugs (Current Sprint)
 
-[/] bug: npm deprecated warnings - inflight@1.0.6 has memory leak, glob@7.2.3 no longer supported (FIXED - added to docs/task.md as [R03])
-[x] bug: docs/task.md statistics inconsistent - shows 0 blocked tasks but CI01 is marked as blocked (FIXED - updated all 3 statistics sections to reflect actual counts: 35 total, 6 backlog, 28 complete, 1 blocked)
+[/] bug: Race condition potential in concurrent idempotency requests - Medium
+Location: src/utils/idempotency.ts:88-125
+Impact: Multiple concurrent requests with same key may all execute before caching
+Fix: Add locking mechanism or atomic check-and-set
 
 ### Fixed Bugs
+
+[x] bug: Missing npm scripts referenced in GitHub workflows - Critical
+Location: package.json scripts section
+Fix: Added "test:run": "jest --runInBand" and "typecheck": "tsc --noEmit" scripts
+
+[x] bug: Incomplete workflow file (main.yml truncated) - High
+Location: .github/workflows/main.yml:95
+Fix: Completed the iterate1 step with proper command continuation and logout step
 
 [x] bug: Jest worker processes fail to exit gracefully due to unref'd timers in retry.ts (line 146) and rate-limiter.ts (line 142) - Fixed by adding .unref() to all setTimeout calls
 [x] bug: rate-limiter.ts line 58 - accessing this.requests[0] without bounds checking could cause undefined access - Fixed by adding bounds check before accessing array
@@ -59,3 +69,4 @@
 
 [x] error: Worker process failed to exit gracefully - active timers detected in test suite (FIXED - .unref() added to all setTimeout calls in retry.ts and rate-limiter.ts)
 [x] error: Test suite still showing worker process warning due to gemini.test.ts setTimeout without unref() (FIXED - added unref() to gemini.test.ts line 553)
+[x] error: Worker process warning from health-check.ts setTimeout without unref() (FIXED - added unref() to health-check.ts line 369)

@@ -1,3 +1,11 @@
+import {
+  LOGGER_MAX_SANITIZATION_DEPTH,
+  LOGGER_MAX_SANITIZATION_KEYS,
+  LOGGER_SANITIZATION_CACHE_SIZE,
+  LOGGER_MAX_ARRAY_ITEMS,
+  LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
+} from "../config/constants";
+
 const SENSITIVE_PATTERNS = [
   /password/i,
   /secret/i,
@@ -13,8 +21,10 @@ const SENSITIVE_PATTERNS = [
   /authorization/i,
 ];
 
-const MAX_DEPTH = 5;
-const MAX_KEYS = 100;
+const MAX_DEPTH = LOGGER_MAX_SANITIZATION_DEPTH;
+const MAX_KEYS = LOGGER_MAX_SANITIZATION_KEYS;
+const CACHE_SIZE_LIMIT = LOGGER_SANITIZATION_CACHE_SIZE;
+const MAX_ARRAY_ITEMS = LOGGER_MAX_ARRAY_ITEMS;
 
 let patternCache = new Map<string, boolean>();
 
@@ -30,9 +40,9 @@ function isSensitiveKey(key: string): boolean {
   const result = SENSITIVE_PATTERNS.some((pattern) => pattern.test(key));
   patternCache.set(key, result);
 
-  if (patternCache.size > 1000) {
+  if (patternCache.size > CACHE_SIZE_LIMIT) {
     const entries = Array.from(patternCache.entries());
-    patternCache = new Map(entries.slice(500));
+    patternCache = new Map(entries.slice(Math.floor(CACHE_SIZE_LIMIT / 2)));
   }
 
   return result;
@@ -63,7 +73,7 @@ function sanitizeData(
   if (Array.isArray(data)) {
     if (data.length === 0) return data;
 
-    return data.slice(0, 10).map((item) => {
+    return data.slice(0, MAX_ARRAY_ITEMS).map((item) => {
       if (keyCount) keyCount.count++;
       return sanitizeData(item, undefined, depth + 1, keyCount);
     });
@@ -76,7 +86,7 @@ function sanitizeData(
     for (const [nestedKey, value] of Object.entries(
       data as Record<string, unknown>,
     )) {
-      if (localCount >= 50) break;
+      if (localCount >= LOGGER_MAX_OBJECT_KEYS_PER_LEVEL) break;
 
       if (keyCount) keyCount.count++;
       sanitized[nestedKey] = sanitizeData(
@@ -113,31 +123,47 @@ export class ConsoleLogger implements Logger {
     return levels.indexOf(level) >= levels.indexOf(this.level);
   }
 
+  private formatTimestamp(): string {
+    return new Date().toISOString();
+  }
+
   debug(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("debug")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.debug(`[DEBUG] ${message}`, sanitizedMeta);
+      console.debug(
+        `[DEBUG] [${this.formatTimestamp()}] ${message}`,
+        sanitizedMeta,
+      );
     }
   }
 
   info(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("info")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.info(`[INFO] ${message}`, sanitizedMeta);
+      console.info(
+        `[INFO] [${this.formatTimestamp()}] ${message}`,
+        sanitizedMeta,
+      );
     }
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("warn")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.warn(`[WARN] ${message}`, sanitizedMeta);
+      console.warn(
+        `[WARN] [${this.formatTimestamp()}] ${message}`,
+        sanitizedMeta,
+      );
     }
   }
 
   error(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("error")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.error(`[ERROR] ${message}`, sanitizedMeta);
+      console.error(
+        `[ERROR] [${this.formatTimestamp()}] ${message}`,
+        sanitizedMeta,
+      );
     }
   }
 }

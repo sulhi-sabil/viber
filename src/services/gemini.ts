@@ -428,7 +428,7 @@ export class GeminiService extends BaseService {
       });
 
       if (!response) {
-        throw new Error("Empty response from Gemini");
+        throw new GeminiError("Empty response from Gemini");
       }
     });
   }
