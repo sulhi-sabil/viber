@@ -3,6 +3,7 @@ import {
   LOGGER_MAX_SANITIZATION_KEYS,
   LOGGER_SANITIZATION_CACHE_SIZE,
   LOGGER_MAX_ARRAY_ITEMS,
+  LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
 } from "../config/constants";
 
 const SENSITIVE_PATTERNS = [
@@ -85,7 +86,7 @@ function sanitizeData(
     for (const [nestedKey, value] of Object.entries(
       data as Record<string, unknown>,
     )) {
-      if (localCount >= 50) break;
+      if (localCount >= LOGGER_MAX_OBJECT_KEYS_PER_LEVEL) break;
 
       if (keyCount) keyCount.count++;
       sanitized[nestedKey] = sanitizeData(

@@ -143,6 +143,9 @@ export const LOGGER_MAX_ARRAY_ITEMS = 10;
 /** Pattern matching cache size for sanitization */
 export const LOGGER_SANITIZATION_CACHE_SIZE = 1000;
 
+/** Maximum object keys to process per level during log sanitization */
+export const LOGGER_MAX_OBJECT_KEYS_PER_LEVEL = 50;
+
 // ============================================================================
 // Security Constants
 // ============================================================================

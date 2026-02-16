@@ -25,32 +25,59 @@ export class Validator {
 
   static string(value: unknown, fieldName: string = "field"): void {
     if (typeof value !== "string") {
-      throw new ValidationError(`${fieldName} must be a string`);
+      const actualType = typeof value;
+      const valuePreview =
+        actualType === "object" && value !== null
+          ? "[object]"
+          : actualType === "string"
+            ? `"${String(value).slice(0, 50)}"`
+            : String(value).slice(0, 50);
+      throw new ValidationError(
+        `${fieldName} must be a string, received: ${actualType} (value: ${valuePreview})`,
+      );
     }
   }
 
   static number(value: unknown, fieldName: string = "field"): void {
     if (typeof value !== "number" || isNaN(value)) {
-      throw new ValidationError(`${fieldName} must be a number`);
+      const actualType = typeof value;
+      const valuePreview =
+        actualType === "number"
+          ? "NaN"
+          : actualType === "object" && value !== null
+            ? "[object]"
+            : actualType === "string"
+              ? `"${String(value).slice(0, 50)}"`
+              : String(value).slice(0, 50);
+      throw new ValidationError(
+        `${fieldName} must be a number, received: ${actualType} (value: ${valuePreview})`,
+      );
     }
   }
 
   static integer(value: unknown, fieldName: string = "field"): void {
     this.number(value, fieldName);
     if (!Number.isInteger(value as number)) {
-      throw new ValidationError(`${fieldName} must be an integer`);
+      throw new ValidationError(
+        `${fieldName} must be an integer, received: ${value}`,
+      );
     }
   }
 
   static boolean(value: unknown, fieldName: string = "field"): void {
     if (typeof value !== "boolean") {
-      throw new ValidationError(`${fieldName} must be a boolean`);
+      throw new ValidationError(
+        `${fieldName} must be a boolean, received: ${typeof value}`,
+      );
     }
   }
 
   static array(value: unknown, fieldName: string = "field"): void {
     if (!Array.isArray(value)) {
-      throw new ValidationError(`${fieldName} must be an array`);
+      const actualType = value === null ? "null" : typeof value;
+      throw new ValidationError(
+        `${fieldName} must be an array, received: ${actualType}`,
+      );
     }
   }
 
