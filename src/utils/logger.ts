@@ -59,15 +59,15 @@ function sanitizeData(
   }
 
   if (depth > MAX_DEPTH) {
-    return "[MAX_DEPTH_REACHED]";
+    return `[Object depth exceeds ${MAX_DEPTH} levels - data truncated]`;
   }
 
   if (keyCount && keyCount.count >= MAX_KEYS) {
-    return "[MAX_KEYS_REACHED]";
+    return `[Key limit exceeded (${MAX_KEYS}) - data truncated]`;
   }
 
   if (key && isSensitiveKey(key)) {
-    return "[REDACTED]";
+    return `[SENSITIVE DATA REDACTED for key: ${key}]`;
   }
 
   if (Array.isArray(data)) {

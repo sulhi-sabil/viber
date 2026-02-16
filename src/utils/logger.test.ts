@@ -341,11 +341,17 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        { username: "testuser", password: "[REDACTED]" },
+        {
+          username: "testuser",
+          password: "[SENSITIVE DATA REDACTED for key: password]",
+        },
       );
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("User login attempt"),
-        { username: "testuser", password: "[REDACTED]" },
+        {
+          username: "testuser",
+          password: "[SENSITIVE DATA REDACTED for key: password]",
+        },
       );
     });
 
@@ -361,14 +367,14 @@ describe("ConsoleLogger", () => {
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
         {
-          apiKey: "[REDACTED]",
+          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
           endpoint: "https://api.example.com",
         },
       );
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("API call"),
         {
-          apiKey: "[REDACTED]",
+          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
           endpoint: "https://api.example.com",
         },
       );
@@ -385,11 +391,11 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        { token: "[REDACTED]", userId: 123 },
+        { token: "[SENSITIVE DATA REDACTED for key: token]", userId: 123 },
       );
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("Token verification"),
-        { token: "[REDACTED]", userId: 123 },
+        { token: "[SENSITIVE DATA REDACTED for key: token]", userId: 123 },
       );
     });
 
@@ -402,13 +408,23 @@ describe("ConsoleLogger", () => {
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
         {
-          user: { id: 1, credentials: { secret: "[REDACTED]" } },
+          user: {
+            id: 1,
+            credentials: {
+              secret: "[SENSITIVE DATA REDACTED for key: secret]",
+            },
+          },
         },
       );
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("User action"),
         {
-          user: { id: 1, credentials: { secret: "[REDACTED]" } },
+          user: {
+            id: 1,
+            credentials: {
+              secret: "[SENSITIVE DATA REDACTED for key: secret]",
+            },
+          },
         },
       );
     });
@@ -428,18 +444,18 @@ describe("ConsoleLogger", () => {
         expect.stringContaining("[WARN]"),
         {
           username: "test",
-          password: "[REDACTED]",
-          apiKey: "[REDACTED]",
-          token: "[REDACTED]",
+          password: "[SENSITIVE DATA REDACTED for key: password]",
+          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
+          token: "[SENSITIVE DATA REDACTED for key: token]",
         },
       );
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining("Security event"),
         {
           username: "test",
-          password: "[REDACTED]",
-          apiKey: "[REDACTED]",
-          token: "[REDACTED]",
+          password: "[SENSITIVE DATA REDACTED for key: password]",
+          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
+          token: "[SENSITIVE DATA REDACTED for key: token]",
         },
       );
     });
@@ -459,7 +475,7 @@ describe("ConsoleLogger", () => {
         expect.stringContaining("[DEBUG]"),
         {
           headers: {
-            authorization: "[REDACTED]",
+            authorization: "[SENSITIVE DATA REDACTED for key: authorization]",
             "content-type": "application/json",
           },
         },
@@ -468,7 +484,7 @@ describe("ConsoleLogger", () => {
         expect.stringContaining("Request received"),
         {
           headers: {
-            authorization: "[REDACTED]",
+            authorization: "[SENSITIVE DATA REDACTED for key: authorization]",
             "content-type": "application/json",
           },
         },
