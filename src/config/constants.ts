@@ -95,6 +95,12 @@ export const RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER = 2;
 /** Minimum length for API keys */
 export const MIN_API_KEY_LENGTH = 10;
 
+/** Maximum length for AI prompts (Gemini) */
+export const MAX_PROMPT_LENGTH = 100000;
+
+/** Maximum output tokens for AI generation */
+export const MAX_OUTPUT_TOKENS = 1024;
+
 /** Maximum length for slugs */
 export const MAX_SLUG_LENGTH = 255;
 
