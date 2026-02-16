@@ -16,6 +16,7 @@ export class AppError extends Error implements HttpError {
   requestId: string;
   severity: ErrorSeverity;
   isOperational: boolean;
+  suggestion?: string;
 
   constructor(
     code: ErrorCode,
@@ -24,6 +25,7 @@ export class AppError extends Error implements HttpError {
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     isOperational: boolean = true,
     details?: Record<string, unknown>,
+    suggestion?: string,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -33,6 +35,7 @@ export class AppError extends Error implements HttpError {
     this.details = details;
     this.requestId = uuidv4();
     this.isOperational = isOperational;
+    this.suggestion = suggestion;
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -49,13 +52,22 @@ export class ValidationError extends AppError {
       ErrorSeverity.LOW,
       true,
       details,
+      "Check the input data format and ensure all required fields are provided correctly. Review the API documentation for valid field types and formats.",
     );
   }
 }
 
 export class UnauthorizedError extends AppError {
   constructor(message: string = "Unauthorized access") {
-    super(ErrorCode.UNAUTHORIZED, message, 401, ErrorSeverity.MEDIUM);
+    super(
+      ErrorCode.UNAUTHORIZED,
+      message,
+      401,
+      ErrorSeverity.MEDIUM,
+      true,
+      undefined,
+      "Verify your API key or authentication token is correct and has not expired. Check that the authorization header is properly formatted.",
+    );
   }
 }
 
@@ -67,12 +79,24 @@ export class ForbiddenError extends AppError {
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super(ErrorCode.NOT_FOUND, `${resource} not found`, 404, ErrorSeverity.LOW);
+    super(
+      ErrorCode.NOT_FOUND,
+      `${resource} not found`,
+      404,
+      ErrorSeverity.LOW,
+      true,
+      undefined,
+      `Verify the ${resource} identifier is correct and the resource exists. Check for typos in IDs or slugs, and ensure the resource hasn't been deleted.`,
+    );
   }
 }
 
 export class RateLimitError extends AppError {
   constructor(message: string = "Rate limit exceeded", retryAfter?: number) {
+    const suggestion = retryAfter
+      ? `Wait ${retryAfter} seconds before retrying, or implement exponential backoff with jitter to spread out requests.`
+      : "Reduce your request frequency, implement request batching, or contact support to increase your rate limit quota.";
+
     super(
       ErrorCode.RATE_LIMIT_EXCEEDED,
       message,
@@ -80,6 +104,7 @@ export class RateLimitError extends AppError {
       ErrorSeverity.MEDIUM,
       true,
       { retryAfter },
+      suggestion,
     );
   }
 }
@@ -91,6 +116,9 @@ export class ServiceUnavailableError extends AppError {
       message || `${service} is currently unavailable`,
       503,
       ErrorSeverity.HIGH,
+      true,
+      { service },
+      `The ${service} service may be experiencing downtime. Check the service status page, retry with exponential backoff, or use a fallback mechanism if available.`,
     );
   }
 }
@@ -102,6 +130,9 @@ export class TimeoutError extends AppError {
       `${operation} timed out after ${timeout}ms`,
       504,
       ErrorSeverity.HIGH,
+      true,
+      { operation, timeout },
+      `Consider increasing the timeout value, optimizing the ${operation} operation, or checking network connectivity. For slow operations, implement async processing with status polling.`,
     );
   }
 }
@@ -131,6 +162,7 @@ export class SupabaseError extends AppError {
       ErrorSeverity.HIGH,
       true,
       details,
+      "Check your Supabase connection settings, verify the table/column names exist, and ensure RLS policies allow the operation. Review the error details for specific database constraints.",
     );
   }
 }
@@ -144,6 +176,7 @@ export class GeminiError extends AppError {
       ErrorSeverity.HIGH,
       true,
       details,
+      "Verify your Gemini API key is valid and has sufficient quota. Check that your prompt meets content safety guidelines and isn't too long. Consider implementing retry logic for transient failures.",
     );
   }
 }
@@ -172,6 +205,7 @@ export function createApiError(
     error: {
       code: appError.code || ErrorCode.INTERNAL_ERROR,
       message: appError.message || "An unexpected error occurred",
+      suggestion: appError.suggestion,
       details: appError.details || context,
       requestId,
       severity: appError.severity || ErrorSeverity.MEDIUM,

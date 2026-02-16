@@ -5,12 +5,14 @@ import {
 import { logger } from "./logger";
 import { SupabaseService, SupabaseConfig } from "../services/supabase";
 import { GeminiService, GeminiConfig } from "../services/gemini";
+import { BaseService } from "../services/base-service";
 import {
   HealthCheckRegistry,
   HealthCheckFunction,
   HealthCheckConfig,
   healthCheckRegistry,
 } from "./health-check";
+import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 
 export interface CircuitBreakerConfig {
   failureThreshold?: number;
@@ -104,6 +106,7 @@ export class ServiceFactory {
     const circuitBreaker = this.getCircuitBreaker("supabase");
     const service = new SupabaseService(config, circuitBreaker);
     this.services.set(cacheKey, service);
+    this.registerServiceHealthCheck("supabase", service);
     return service;
   }
 
@@ -117,6 +120,7 @@ export class ServiceFactory {
     const circuitBreaker = this.getCircuitBreaker("gemini");
     const service = new GeminiService(config, circuitBreaker);
     this.services.set(cacheKey, service);
+    this.registerServiceHealthCheck("gemini", service);
     return service;
   }
 
@@ -208,6 +212,36 @@ export class ServiceFactory {
    */
   getHealthCheckRegistry(): HealthCheckRegistry {
     return this.healthCheckRegistry;
+  }
+
+  /**
+   * Register health check for a BaseService instance
+   * Converts ServiceHealth result to HealthCheckResult format
+   */
+  private registerServiceHealthCheck(
+    serviceName: string,
+    service: BaseService,
+  ): void {
+    if (this.healthCheckRegistry.isRegistered(serviceName)) {
+      return;
+    }
+
+    const healthCheck: HealthCheckFunction = async () => {
+      const start = Date.now();
+      const health = await service.healthCheck();
+
+      return {
+        status: health.healthy ? "healthy" : "unhealthy",
+        service: serviceName,
+        timestamp: Date.now(),
+        responseTime: Date.now() - start,
+        message: health.error,
+      };
+    };
+
+    this.healthCheckRegistry.register(serviceName, healthCheck, {
+      timeout: HEALTH_CHECK_TIMEOUT_MS,
+    });
   }
 }
 
