@@ -1,4 +1,5 @@
 import { Migration, MigrationRecord } from "./types";
+import { logger } from "../utils/logger";
 
 export interface SupabaseClient {
   from(table: string): QueryBuilder;
@@ -50,17 +51,17 @@ export class MigrationRunner {
     );
 
     if (pendingMigrations.length === 0) {
-      console.log("No pending migrations to run");
+      logger.info("No pending migrations to run");
       return;
     }
 
-    console.log(`Running ${pendingMigrations.length} pending migration(s)...`);
+    logger.info(`Running ${pendingMigrations.length} pending migration(s)...`);
 
     for (const migration of pendingMigrations) {
       await this.runMigration(migration);
     }
 
-    console.log("All migrations completed successfully");
+    logger.info("All migrations completed successfully");
   }
 
   async rollback(version?: string): Promise<void> {
@@ -96,7 +97,7 @@ export class MigrationRunner {
       }
     }
 
-    console.log("Rollback completed");
+    logger.info("Rollback completed");
   }
 
   private async ensureMigrationsTable(): Promise<void> {
@@ -105,7 +106,9 @@ export class MigrationRunner {
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
       if (err.code !== "PGRST202") {
-        console.warn("Failed to create migrations table:", err.message);
+        logger.warn("Failed to create migrations table:", {
+          message: err.message,
+        });
       }
     }
   }
@@ -129,21 +132,23 @@ export class MigrationRunner {
   }
 
   private async runMigration(migration: Migration): Promise<void> {
-    console.log(`Running migration: ${migration.name} (${migration.version})`);
+    logger.info(`Running migration: ${migration.name} (${migration.version})`);
 
     try {
       await migration.up();
       await this.recordMigration(migration);
 
-      console.log(`✓ Migration ${migration.version} completed`);
+      logger.info(`✓ Migration ${migration.version} completed`);
     } catch (error) {
-      console.error(`✗ Migration ${migration.version} failed:`, error);
+      logger.error(`✗ Migration ${migration.version} failed:`, {
+        error: String(error),
+      });
       throw error;
     }
   }
 
   private async rollbackMigration(migration: Migration): Promise<void> {
-    console.log(
+    logger.info(
       `Rolling back migration: ${migration.name} (${migration.version})`,
     );
 
@@ -151,9 +156,11 @@ export class MigrationRunner {
       await migration.down();
       await this.removeMigrationRecord(migration.version);
 
-      console.log(`✓ Rollback ${migration.version} completed`);
+      logger.info(`✓ Rollback ${migration.version} completed`);
     } catch (error) {
-      console.error(`✗ Rollback ${migration.version} failed:`, error);
+      logger.error(`✗ Rollback ${migration.version} failed:`, {
+        error: String(error),
+      });
       throw error;
     }
   }
