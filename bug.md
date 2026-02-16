@@ -4,12 +4,14 @@
 
 ### Active Bugs (Current Sprint)
 
-[/] bug: Race condition potential in concurrent idempotency requests - Medium
-Location: src/utils/idempotency.ts:88-125
-Impact: Multiple concurrent requests with same key may all execute before caching
-Fix: Add locking mechanism or atomic check-and-set
+None - all bugs fixed!
 
 ### Fixed Bugs
+
+[x] bug: Race condition potential in concurrent idempotency requests - Medium
+Location: src/utils/idempotency.ts
+Impact: Multiple concurrent requests with same key may all execute before caching
+Fix: Added in-flight operation locking using Map to track pending promises. Concurrent requests with the same key now wait for the first request to complete and share the result.
 
 [x] bug: Missing npm scripts referenced in GitHub workflows - Critical
 Location: package.json scripts section

@@ -79,10 +79,12 @@ export class InMemoryIdempotencyStore implements IdempotencyStore {
 export class IdempotencyManager {
   private ttlMs: number;
   private store: IdempotencyStore;
+  private inFlightOperations: Map<string, Promise<unknown>>;
 
   constructor(options: IdempotencyManagerOptions = {}) {
     this.ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
     this.store = options.store ?? new InMemoryIdempotencyStore();
+    this.inFlightOperations = new Map();
   }
 
   async execute<T>(
@@ -105,23 +107,45 @@ export class IdempotencyManager {
       };
     }
 
-    const result = await operation();
-    const timestamp = Date.now();
+    const inFlight = this.inFlightOperations.get(idempotencyKey);
+    if (inFlight) {
+      logger.info(
+        `Waiting for in-flight operation for idempotency key: ${idempotencyKey}`,
+      );
+      const result = (await inFlight) as T;
+      const timestamp = Date.now();
+      return {
+        data: result,
+        cached: true,
+        idempotencyKey,
+        timestamp,
+      };
+    }
 
-    await this.store.set(
-      idempotencyKey,
-      { data: result, timestamp },
-      this.ttlMs,
-    );
+    const operationPromise = operation();
+    this.inFlightOperations.set(idempotencyKey, operationPromise);
 
-    logger.info(`Stored response for idempotency key: ${idempotencyKey}`);
+    try {
+      const result = await operationPromise;
+      const timestamp = Date.now();
 
-    return {
-      data: result,
-      cached: false,
-      idempotencyKey,
-      timestamp,
-    };
+      await this.store.set(
+        idempotencyKey,
+        { data: result, timestamp },
+        this.ttlMs,
+      );
+
+      logger.info(`Stored response for idempotency key: ${idempotencyKey}`);
+
+      return {
+        data: result,
+        cached: false,
+        idempotencyKey,
+        timestamp,
+      };
+    } finally {
+      this.inFlightOperations.delete(idempotencyKey);
+    }
   }
 
   async invalidate(idempotencyKey: string): Promise<void> {

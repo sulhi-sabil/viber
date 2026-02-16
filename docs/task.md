@@ -77,6 +77,64 @@ permissions:
 
 ---
 
+## [I20] Fix Idempotency Race Condition Bug
+
+**Status**: ✅ Complete
+**Priority**: P1
+**Agent**: CMZ (Self-Healing Agent)
+
+### Description
+
+Fixed race condition in IdempotencyManager where concurrent requests with the same key would all execute before any result was cached.
+
+### Issue
+
+Multiple concurrent requests with the same idempotency key would all execute the operation before the first result was stored in cache, defeating the purpose of idempotency.
+
+### Solution
+
+Implemented in-flight operation locking mechanism using a Map to track pending promises:
+
+1. Added `inFlight` Map to track operations currently executing
+2. When a request arrives, check if an operation is already in-flight for that key
+3. If in-flight, wait for the existing promise instead of executing a new one
+4. All concurrent requests share the same result
+
+### Acceptance Criteria
+
+- [x] Race condition eliminated - concurrent requests with same key share result
+- [x] All 24 idempotency tests passing
+- [x] Full test suite passing (395 tests)
+- [x] No breaking changes to public API
+- [x] Performance maintained (no regression)
+
+### Technical Notes
+
+**Changes to src/utils/idempotency.ts:**
+
+- Added `private inFlight: Map<string, Promise<unknown>>` to track pending operations
+- Modified `execute<T>()` to check in-flight operations before executing
+- Used promise-based locking to allow concurrent requests to wait for shared result
+- Ensured proper cleanup of in-flight Map entries after completion
+
+**Example of fixed behavior:**
+
+```typescript
+// Before fix: Both calls execute the operation
+const [r1, r2] = await Promise.all([
+  manager.execute(key, expensiveOperation), // Executes
+  manager.execute(key, expensiveOperation), // Also executes (bug!)
+]);
+
+// After fix: Only first call executes, second waits and shares result
+const [r1, r2] = await Promise.all([
+  manager.execute(key, expensiveOperation), // Executes
+  manager.execute(key, expensiveOperation), // Waits for r1's result
+]);
+```
+
+---
+
 ## [I01] Set Up Supabase Client
 
 **Status**: ✅ Complete
@@ -2537,12 +2595,14 @@ Fix deprecated npm dependency warnings to eliminate technical debt and potential
 ### Issues Found
 
 **npm install warnings:**
+
 - `inflight@1.0.6`: This module is not supported, and leaks memory
 - `glob@7.2.3`: Glob versions prior to v9 are no longer supported
 
 ### Root Cause
 
 These are transitive dependencies (dependencies of dependencies), likely brought in through:
+
 - Jest testing framework
 - TypeScript compiler tooling
 - Other dev dependencies
@@ -2558,12 +2618,14 @@ These are transitive dependencies (dependencies of dependencies), likely brought
 ### Technical Notes
 
 **Dependencies to investigate:**
+
 - jest@30.2.0
 - ts-jest@29.0.0
 - ts-node@10.0.0
 - typescript@5.0.0
 
 **Potential solutions:**
+
 1. Update jest to v30+ (may already fix glob issues)
 2. Check if npm override/resolution can force newer versions
 3. Consider migrating to glob v9+ compatible alternatives
@@ -2573,4 +2635,3 @@ These are transitive dependencies (dependencies of dependencies), likely brought
 - **Security**: Deprecated packages may have unpatched vulnerabilities
 - **Maintenance**: Harder to maintain long-term
 - **Developer Experience**: Warning noise during installs
-

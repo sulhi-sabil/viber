@@ -17,6 +17,8 @@ import {
   RATE_LIMITER_DEFAULT_WINDOW_MS,
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
+  MAX_PROMPT_LENGTH,
+  MAX_OUTPUT_TOKENS,
 } from "../config/constants";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
@@ -165,7 +167,7 @@ export class GeminiService extends BaseService {
 
       const {
         temperature = 0.7,
-        maxOutputTokens = 1024,
+        maxOutputTokens = MAX_OUTPUT_TOKENS,
         topK = 40,
         topP = 0.95,
       } = options;
@@ -229,7 +231,7 @@ export class GeminiService extends BaseService {
 
       const {
         temperature = 0.7,
-        maxOutputTokens = 1024,
+        maxOutputTokens = MAX_OUTPUT_TOKENS,
         topK = 40,
         topP = 0.95,
         onChunk,
@@ -321,7 +323,7 @@ export class GeminiService extends BaseService {
   ): Promise<string> {
     Validator.string(prompt, "prompt");
     Validator.minLength(prompt, 1, "prompt");
-    Validator.maxLength(prompt, 100000, "prompt");
+    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, "prompt");
 
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
@@ -343,7 +345,7 @@ export class GeminiService extends BaseService {
   ): Promise<void> {
     Validator.string(prompt, "prompt");
     Validator.minLength(prompt, 1, "prompt");
-    Validator.maxLength(prompt, 100000, "prompt");
+    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, "prompt");
 
     const messages: GeminiMessage[] = [
       { role: "user", parts: [{ text: prompt }] },
