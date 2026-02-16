@@ -28,6 +28,7 @@ export interface ApiError {
   error: {
     code: ErrorCode;
     message: string;
+    suggestion?: string;
     details?: ErrorDetails;
     requestId: string;
     severity: ErrorSeverity;

@@ -1,5 +1,32 @@
 # Integration Tasks
 
+## Recent Improvements (Current Session)
+
+### Phase 5 - StorX Consolidations
+
+**[CONNECT] Auto-Register Service Health Checks**
+
+- **Status**: ✅ Complete
+- **Description**: Services created via ServiceFactory now automatically register their health checks with HealthCheckRegistry
+- **Files Modified**: `src/utils/service-factory.ts`
+- **Impact**: Developers no longer need to manually register health checks
+
+**[CONSOLIDATE] Eliminate Hardcoded Retry HTTP Codes**
+
+- **Status**: ✅ Complete
+- **Description**: Replaced hardcoded array with `RETRYABLE_HTTP_STATUS_CODES` constant
+- **Files Modified**: `src/utils/resilience.ts`
+- **Impact**: Single source of truth for retryable HTTP status codes
+
+**[STRENGTHEN] Enhanced Error Messages**
+
+- **Status**: ✅ Complete
+- **Description**: All error types now include actionable suggestions field
+- **Files Modified**: `src/types/errors.ts`, `src/utils/errors.ts`
+- **Impact**: Developers receive actionable guidance on how to fix errors
+
+---
+
 ## Task Status Legend
 
 - ⏳ Backlog

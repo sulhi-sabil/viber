@@ -1,5 +1,6 @@
 import { CircuitBreaker } from "./circuit-breaker";
 import { retry, withTimeout, RetryOptions } from "./retry";
+import { RETRYABLE_HTTP_STATUS_CODES } from "../config/constants";
 
 export interface ResilienceOptions {
   timeout?: number;
@@ -29,7 +30,7 @@ export async function executeWithResilience<T>(
     defaultTimeout,
     circuitBreaker,
     retryOptions,
-    retryableErrors = [408, 429, 500, 502, 503, 504],
+    retryableErrors = RETRYABLE_HTTP_STATUS_CODES,
     retryableErrorCodes,
     maxRetries,
     onRetry,
