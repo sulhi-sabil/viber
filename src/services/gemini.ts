@@ -19,6 +19,10 @@ import {
   RETRYABLE_ERROR_CODES,
   MAX_PROMPT_LENGTH,
   MAX_OUTPUT_TOKENS,
+  GEMINI_DEFAULT_TEMPERATURE,
+  GEMINI_DEFAULT_TOP_K,
+  GEMINI_DEFAULT_TOP_P,
+  GEMINI_DEFAULT_MODEL,
 } from "../config/constants";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
@@ -82,7 +86,7 @@ const DEFAULT_GEMINI_CONFIG: Required<
   circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
   rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
   rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
-  model: "gemini-1.5-flash",
+  model: GEMINI_DEFAULT_MODEL,
 };
 
 export class GeminiService extends BaseService {
@@ -166,10 +170,10 @@ export class GeminiService extends BaseService {
       await this.rateLimiter.checkRateLimit();
 
       const {
-        temperature = 0.7,
+        temperature = GEMINI_DEFAULT_TEMPERATURE,
         maxOutputTokens = MAX_OUTPUT_TOKENS,
-        topK = 40,
-        topP = 0.95,
+        topK = GEMINI_DEFAULT_TOP_K,
+        topP = GEMINI_DEFAULT_TOP_P,
       } = options;
 
       const requestBody = {
@@ -230,10 +234,10 @@ export class GeminiService extends BaseService {
       await this.rateLimiter.checkRateLimit();
 
       const {
-        temperature = 0.7,
+        temperature = GEMINI_DEFAULT_TEMPERATURE,
         maxOutputTokens = MAX_OUTPUT_TOKENS,
-        topK = 40,
-        topP = 0.95,
+        topK = GEMINI_DEFAULT_TOP_K,
+        topP = GEMINI_DEFAULT_TOP_P,
         onChunk,
       } = options;
 

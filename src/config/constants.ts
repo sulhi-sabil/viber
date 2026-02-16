@@ -117,6 +117,22 @@ export const MAX_FILENAME_LENGTH = 500;
 export const MAX_R2_KEY_LENGTH = 500;
 
 // ============================================================================
+// Gemini AI Model Configuration
+// ============================================================================
+
+/** Default temperature for AI generation (0.0 - 1.0) */
+export const GEMINI_DEFAULT_TEMPERATURE = 0.7;
+
+/** Default topK for AI generation (number of highest probability tokens to consider) */
+export const GEMINI_DEFAULT_TOP_K = 40;
+
+/** Default topP for AI generation (cumulative probability threshold) */
+export const GEMINI_DEFAULT_TOP_P = 0.95;
+
+/** Default Gemini model name */
+export const GEMINI_DEFAULT_MODEL = "gemini-1.5-flash";
+
+// ============================================================================
 // Pagination Constants
 // ============================================================================
 

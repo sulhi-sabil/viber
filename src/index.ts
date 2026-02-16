@@ -15,3 +15,8 @@ export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
 export * from "./config/constants";
+export * from "./migrations/index";
+export * from "./migrations/runner";
+export * from "./migrations/types";
+export * from "./migrations/validators";
+export * from "./migrations";
