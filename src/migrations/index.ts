@@ -7,12 +7,14 @@ export const migrations: Migration[] = [
     version: "20260107001",
     up: async () => {
       logger.info(
-        "Migration 20260107001: Execute 20260107001-add-soft-delete.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260107001: 'Add soft delete support' - Please run the following SQL file manually:",
+        { file: "20260107001-add-soft-delete.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260107001: Execute down migration in 20260107001-add-soft-delete.sql manually",
+        "🔄 Rollback 20260107001: 'Add soft delete support' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260107001-add-soft-delete.sql", action: "down" }
       );
     },
   },
@@ -21,12 +23,14 @@ export const migrations: Migration[] = [
     version: "20260107002",
     up: async () => {
       logger.info(
-        "Migration 20260107002: Execute 20260107002-convert-jsonb.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260107002: 'Convert JSON fields to JSONB' - Please run the following SQL file manually:",
+        { file: "20260107002-convert-jsonb.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260107002: Execute down migration in 20260107002-convert-jsonb.sql manually",
+        "🔄 Rollback 20260107002: 'Convert JSON fields to JSONB' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260107002-convert-jsonb.sql", action: "down" }
       );
     },
   },
@@ -35,12 +39,14 @@ export const migrations: Migration[] = [
     version: "20260110001",
     up: async () => {
       logger.info(
-        "Migration 20260110001: Execute 20260110001-fix-sessions-timestamp.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260110001: 'Fix sessions.expires_at type inconsistency' - Please run the following SQL file manually:",
+        { file: "20260110001-fix-sessions-timestamp.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260110001: Execute down migration in 20260110001-fix-sessions-timestamp.sql manually",
+        "🔄 Rollback 20260110001: 'Fix sessions.expires_at type inconsistency' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260110001-fix-sessions-timestamp.sql", action: "down" }
       );
     },
   },
@@ -49,12 +55,14 @@ export const migrations: Migration[] = [
     version: "20260110002",
     up: async () => {
       logger.info(
-        "Migration 20260110002: Execute 20260110002-add-timestamp-constraints.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260110002: 'Add timestamp validation constraints' - Please run the following SQL file manually:",
+        { file: "20260110002-add-timestamp-constraints.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260110002: Execute down migration in 20260110002-add-timestamp-constraints.sql manually",
+        "🔄 Rollback 20260110002: 'Add timestamp validation constraints' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260110002-add-timestamp-constraints.sql", action: "down" }
       );
     },
   },
@@ -63,12 +71,14 @@ export const migrations: Migration[] = [
     version: "20260110003",
     up: async () => {
       logger.info(
-        "Migration 20260110003: Execute 20260110003-add-asset-entry-relationship.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260110003: 'Add asset-entry foreign key relationship' - Please run the following SQL file manually:",
+        { file: "20260110003-add-asset-entry-relationship.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260110003: Execute down migration in 20260110003-add-asset-entry-relationship.sql manually",
+        "🔄 Rollback 20260110003: 'Add asset-entry foreign key relationship' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260110003-add-asset-entry-relationship.sql", action: "down" }
       );
     },
   },
@@ -77,12 +87,14 @@ export const migrations: Migration[] = [
     version: "20260110004",
     up: async () => {
       logger.info(
-        "Migration 20260110004: Execute 20260110004-add-created-at-indexes.sql manually in Supabase SQL Editor",
+        "📊 Migration 20260110004: 'Add missing created_at indexes' - Please run the following SQL file manually:",
+        { file: "20260110004-add-created-at-indexes.sql", action: "up", location: "Supabase SQL Editor" }
       );
     },
     down: async () => {
       logger.info(
-        "Rollback 20260110004: Execute down migration in 20260110004-add-created-at-indexes.sql manually",
+        "🔄 Rollback 20260110004: 'Add missing created_at indexes' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260110004-add-created-at-indexes.sql", action: "down" }
       );
     },
   },
