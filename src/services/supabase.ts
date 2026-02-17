@@ -165,7 +165,7 @@ export class SupabaseService extends BaseService {
     return executeWithResilience<T>({
       operation,
       options,
-      defaultTimeout: this.config.timeout || 10000,
+      defaultTimeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
       circuitBreaker: this.circuitBreaker,
       maxRetries: this.config.maxRetries,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,

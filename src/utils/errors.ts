@@ -198,6 +198,7 @@ export class CloudflareError extends AppError {
       ErrorSeverity.HIGH,
       true,
       details,
+      "Verify your Cloudflare API token has the correct permissions (Zone:Read, Page Rules:Edit). Check that the zone ID is correct and the API token hasn't expired. Review Cloudflare's API documentation for rate limits and valid request formats.",
     );
   }
 }
