@@ -160,6 +160,7 @@ export class SupabaseService extends BaseService {
   private async executeWithResilience<T>(
     operation: () => Promise<T>,
     options: QueryOptions = {},
+    operationName: string = "Supabase operation",
   ): Promise<T> {
     return executeWithResilience<T>({
       operation,
@@ -170,11 +171,11 @@ export class SupabaseService extends BaseService {
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
       retryableErrorCodes: ["PGRST116", "PGRST301", ...RETRYABLE_ERROR_CODES],
       onRetry: (attempt: number, error: Error) => {
-        logger.warn(`Supabase operation retry attempt ${attempt}`, {
+        logger.warn(`Supabase ${operationName} retry attempt ${attempt}`, {
           error: error.message,
         });
       },
-      timeoutOperationName: "Supabase operation",
+      timeoutOperationName: operationName,
     });
   }
 
@@ -201,42 +202,46 @@ export class SupabaseService extends BaseService {
 
     Validator.string(table, "table");
 
-    return this.executeWithResilience(async () => {
-      let query = this.client.from(table).select(columns);
+    return this.executeWithResilience(
+      async () => {
+        let query = this.client.from(table).select(columns);
 
-      if (filter) {
-        query = query.filter(filter.column, filter.operator, filter.value);
-      }
+        if (filter) {
+          query = query.filter(filter.column, filter.operator, filter.value);
+        }
 
-      if (!includeDeleted) {
-        query = query.eq("deleted_at", null);
-      }
+        if (!includeDeleted) {
+          query = query.eq("deleted_at", null);
+        }
 
-      if (orderBy) {
-        query = query.order(orderBy.column, {
-          ascending: orderBy.ascending ?? true,
-        });
-      }
+        if (orderBy) {
+          query = query.order(orderBy.column, {
+            ascending: orderBy.ascending ?? true,
+          });
+        }
 
-      if (limit) {
-        query = query.limit(limit);
-      }
+        if (limit) {
+          query = query.limit(limit);
+        }
 
-      if (offset) {
-        query = query.range(
-          offset,
-          offset + (limit || DEFAULT_PAGINATION_LIMIT) - 1,
-        );
-      }
+        if (offset) {
+          query = query.range(
+            offset,
+            offset + (limit || DEFAULT_PAGINATION_LIMIT) - 1,
+          );
+        }
 
-      const { data, error } = await query;
+        const { data, error } = await query;
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return (data as unknown as T[]) || [];
-    }, queryOptions);
+        return (data as unknown as T[]) || [];
+      },
+      queryOptions,
+      `select from ${table}`,
+    );
   }
 
   async selectById<T extends DatabaseRow>(
@@ -249,24 +254,28 @@ export class SupabaseService extends BaseService {
     Validator.string(table, "table");
     Validator.string(id, "id");
 
-    return this.executeWithResilience(async () => {
-      let query = this.client.from(table).select(columns).eq("id", id);
+    return this.executeWithResilience(
+      async () => {
+        let query = this.client.from(table).select(columns).eq("id", id);
 
-      if (!includeDeleted) {
-        query = query.eq("deleted_at", null);
-      }
-
-      const { data, error } = await query.single();
-
-      if (error) {
-        if (error.code === "PGRST116") {
-          return null;
+        if (!includeDeleted) {
+          query = query.eq("deleted_at", null);
         }
-        this.handleSupabaseError(error);
-      }
 
-      return data as unknown as T;
-    }, queryOptions);
+        const { data, error } = await query.single();
+
+        if (error) {
+          if (error.code === "PGRST116") {
+            return null;
+          }
+          this.handleSupabaseError(error);
+        }
+
+        return data as unknown as T;
+      },
+      queryOptions,
+      `selectById ${table}:${id}`,
+    );
   }
 
   async insert<T extends DatabaseRow>(
@@ -277,19 +286,23 @@ export class SupabaseService extends BaseService {
     Validator.string(table, "table");
     Validator.required(row, "row");
 
-    return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .insert(row)
-        .select()
-        .single();
+    return this.executeWithResilience(
+      async () => {
+        const { data, error } = await this.client
+          .from(table)
+          .insert(row)
+          .select()
+          .single();
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return data as unknown as T;
-    }, queryOptions);
+        return data as unknown as T;
+      },
+      queryOptions,
+      `Supabase insert into ${table}`,
+    );
   }
 
   async insertMany<T extends DatabaseRow>(
@@ -297,18 +310,22 @@ export class SupabaseService extends BaseService {
     rows: Partial<T>[],
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
-    return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .insert(rows)
-        .select();
+    return this.executeWithResilience(
+      async () => {
+        const { data, error } = await this.client
+          .from(table)
+          .insert(rows)
+          .select();
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return (data as unknown as T[]) || [];
-    }, queryOptions);
+        return (data as unknown as T[]) || [];
+      },
+      queryOptions,
+      `Supabase insertMany into ${table}`,
+    );
   }
 
   async update<T extends DatabaseRow>(
@@ -321,20 +338,24 @@ export class SupabaseService extends BaseService {
     Validator.string(id, "id");
     Validator.required(updates, "updates");
 
-    return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .select()
-        .single();
+    return this.executeWithResilience(
+      async () => {
+        const { data, error } = await this.client
+          .from(table)
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq("id", id)
+          .select()
+          .single();
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return data as unknown as T;
-    }, queryOptions);
+        return data as unknown as T;
+      },
+      queryOptions,
+      `Supabase update ${table}:${id.slice(0, 8)}...`,
+    );
   }
 
   async delete(
@@ -343,26 +364,30 @@ export class SupabaseService extends BaseService {
     softDelete: boolean = true,
     queryOptions: QueryOptions = {},
   ): Promise<void> {
-    return this.executeWithResilience(async () => {
-      if (softDelete) {
-        const { error } = await this.client
-          .from(table)
-          .update({ deleted_at: new Date().toISOString() })
-          .eq("id", id);
+    return this.executeWithResilience(
+      async () => {
+        if (softDelete) {
+          const { error } = await this.client
+            .from(table)
+            .update({ deleted_at: new Date().toISOString() })
+            .eq("id", id);
 
-        if (error) {
-          this.handleSupabaseError(error);
+          if (error) {
+            this.handleSupabaseError(error);
+          }
+        } else {
+          const { error } = await this.client.from(table).delete().eq("id", id);
+
+          if (error) {
+            this.handleSupabaseError(error);
+          }
         }
-      } else {
-        const { error } = await this.client.from(table).delete().eq("id", id);
 
-        if (error) {
-          this.handleSupabaseError(error);
-        }
-      }
-
-      return;
-    }, queryOptions);
+        return;
+      },
+      queryOptions,
+      `Supabase delete ${table}:${id.slice(0, 8)}...`,
+    );
   }
 
   async upsert<T extends DatabaseRow>(
@@ -370,19 +395,23 @@ export class SupabaseService extends BaseService {
     row: Partial<T>,
     queryOptions: QueryOptions = {},
   ): Promise<T> {
-    return this.executeWithResilience(async () => {
-      const { data, error } = await this.client
-        .from(table)
-        .upsert(row, { onConflict: "id" })
-        .select()
-        .single();
+    return this.executeWithResilience(
+      async () => {
+        const { data, error } = await this.client
+          .from(table)
+          .upsert(row, { onConflict: "id" })
+          .select()
+          .single();
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return data as unknown as T;
-    }, queryOptions);
+        return data as unknown as T;
+      },
+      queryOptions,
+      `Supabase upsert ${table}`,
+    );
   }
 
   async restore(
@@ -390,34 +419,22 @@ export class SupabaseService extends BaseService {
     id: string,
     queryOptions: QueryOptions = {},
   ): Promise<void> {
-    return this.executeWithResilience(async () => {
-      const { error } = await this.client
-        .from(table)
-        .update({ deleted_at: null })
-        .eq("id", id);
+    return this.executeWithResilience(
+      async () => {
+        const { error } = await this.client
+          .from(table)
+          .update({ deleted_at: null })
+          .eq("id", id);
 
-      if (error) {
-        this.handleSupabaseError(error);
-      }
+        if (error) {
+          this.handleSupabaseError(error);
+        }
 
-      return;
-    }, queryOptions);
-  }
-
-  async permanentDelete(
-    table: string,
-    id: string,
-    queryOptions: QueryOptions = {},
-  ): Promise<void> {
-    return this.executeWithResilience(async () => {
-      const { error } = await this.client.from(table).delete().eq("id", id);
-
-      if (error) {
-        this.handleSupabaseError(error);
-      }
-
-      return;
-    }, queryOptions);
+        return;
+      },
+      queryOptions,
+      `Supabase restore ${table}:${id.slice(0, 8)}...`,
+    );
   }
 
   async raw<T = unknown>(

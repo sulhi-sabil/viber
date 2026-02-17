@@ -17,6 +17,7 @@ export interface RetryOptions {
   retryableErrors?: number[];
   retryableErrorCodes?: string[];
   onRetry?: (attempt: number, error: Error) => void;
+  operationName?: string;
 }
 
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
@@ -27,6 +28,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
   retryableErrorCodes: RETRYABLE_ERROR_CODES,
   onRetry: () => {},
+  operationName: "Operation",
 };
 
 export function sleep(ms: number): Promise<void> {
@@ -69,13 +71,14 @@ export async function retry<T>(
 
   let lastError: Error | undefined;
   let attempt = 1;
+  const opName = finalOptions.operationName;
 
   while (attempt <= maxAttempts) {
     try {
       const result = await operation();
 
       if (attempt > 1) {
-        logger.info(`Operation succeeded on attempt ${attempt}`);
+        logger.info(`${opName} succeeded on attempt ${attempt}`);
       }
 
       return result;
@@ -91,7 +94,7 @@ export async function retry<T>(
       if (!shouldRetry || attempt >= maxAttempts) {
         if (attempt >= maxAttempts && maxAttempts > 1) {
           logger.warn(
-            `Operation failed after ${maxAttempts} attempts: ${lastError?.message || "Unknown error"}`,
+            `${opName} failed after ${maxAttempts} attempts: ${lastError?.message || "Unknown error"}`,
           );
         }
         throw lastError;
@@ -104,7 +107,7 @@ export async function retry<T>(
         maxDelay,
       );
       logger.warn(
-        `Attempt ${attempt} failed: ${lastError?.message || "Unknown error"}. Retrying in ${delay}ms...`,
+        `${opName} attempt ${attempt} failed: ${lastError?.message || "Unknown error"}. Retrying in ${delay}ms...`,
       );
 
       if (onRetry) {
