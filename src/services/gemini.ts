@@ -420,7 +420,7 @@ export class GeminiService extends BaseService {
     return executeWithResilience<T>({
       operation,
       options,
-      defaultTimeout: this.config.timeout || 30000,
+      defaultTimeout: this.config.timeout || STREAMING_TIMEOUT_MS,
       circuitBreaker: this.circuitBreaker,
       maxRetries: this.config.maxRetries,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
