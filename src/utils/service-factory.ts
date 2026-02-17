@@ -17,6 +17,10 @@ import {
   ServiceMetricsCollector,
   metricsRegistry,
 } from "./metrics";
+import {
+  MigrationRunner,
+  SupabaseClient as MigrationSupabaseClient,
+} from "../migrations/runner";
 import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 
 export interface CircuitBreakerConfig {
@@ -264,12 +268,13 @@ export class ServiceFactory {
   }
 
   /**
-   * Get metrics collector for a specific service
-   * @param serviceName - Service identifier
-   * @returns ServiceMetricsCollector or undefined
+   * Create a migration runner for database schema management
+   * @param config - Supabase configuration for migrations
+   * @returns MigrationRunner instance
    */
-  getServiceMetrics(serviceName: string): ServiceMetricsCollector | undefined {
-    return this.serviceMetrics.get(serviceName);
+  createMigrationRunner(config: SupabaseConfig): MigrationRunner {
+    const client = this.createSupabaseClient(config);
+    return new MigrationRunner(client as unknown as MigrationSupabaseClient);
   }
 
   /**

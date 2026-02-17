@@ -111,11 +111,30 @@ export interface Logger {
   debug(message: string, meta?: Record<string, unknown>): void;
 }
 
+const LOG_LEVEL_CONFIG = {
+  debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
+  info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
+  warn: { emoji: "⚠️ ", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
+  error: { emoji: "❌", label: "ERROR", color: "\x1b[31m", reset: "\x1b[0m" },
+} as const;
+
 export class ConsoleLogger implements Logger {
   private level: "debug" | "info" | "warn" | "error";
+  private useColors: boolean;
+  private useEmoji: boolean;
 
-  constructor(level: "debug" | "info" | "warn" | "error" = "info") {
+  constructor(
+    level: "debug" | "info" | "warn" | "error" = "info",
+    options: { useColors?: boolean; useEmoji?: boolean } = {},
+  ) {
     this.level = level;
+    // Auto-enable colors in development/TTY environments, disable in production
+    this.useColors =
+      options.useColors ??
+      (typeof process !== "undefined" &&
+        process.env?.NODE_ENV !== "production" &&
+        (process.stdout?.isTTY || false));
+    this.useEmoji = options.useEmoji ?? true;
   }
 
   private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {
@@ -127,11 +146,22 @@ export class ConsoleLogger implements Logger {
     return new Date().toISOString();
   }
 
+  private formatLogLevel(level: "debug" | "info" | "warn" | "error"): string {
+    const config = LOG_LEVEL_CONFIG[level];
+    const emoji = this.useEmoji ? `${config.emoji} ` : "";
+    const label = `[${config.label}]`;
+
+    if (this.useColors) {
+      return `${config.color}${emoji}${label}${config.reset}`;
+    }
+    return `${emoji}${label}`;
+  }
+
   debug(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("debug")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
       console.debug(
-        `[DEBUG] [${this.formatTimestamp()}] ${message}`,
+        `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`,
         sanitizedMeta,
       );
     }
@@ -141,7 +171,7 @@ export class ConsoleLogger implements Logger {
     if (this.shouldLog("info")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
       console.info(
-        `[INFO] [${this.formatTimestamp()}] ${message}`,
+        `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`,
         sanitizedMeta,
       );
     }
@@ -151,7 +181,7 @@ export class ConsoleLogger implements Logger {
     if (this.shouldLog("warn")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
       console.warn(
-        `[WARN] [${this.formatTimestamp()}] ${message}`,
+        `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`,
         sanitizedMeta,
       );
     }
@@ -161,7 +191,7 @@ export class ConsoleLogger implements Logger {
     if (this.shouldLog("error")) {
       const sanitizedMeta = meta ? sanitizeData(meta) : "";
       console.error(
-        `[ERROR] [${this.formatTimestamp()}] ${message}`,
+        `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`,
         sanitizedMeta,
       );
     }

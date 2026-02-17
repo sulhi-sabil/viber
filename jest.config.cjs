@@ -16,4 +16,10 @@ module.exports = {
     "^uuid$": "<rootDir>/node_modules/uuid/dist/index.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  // Performance optimizations
+  testTimeout: 30000, // 30 second timeout for slow integration tests
+  maxWorkers: process.env.CI ? 2 : "50%", // Limit workers in CI for stability
+  cache: true, // Enable test caching
+  clearMocks: true, // Clear mock calls between tests
+  restoreMocks: true, // Restore mock state between tests
 };
