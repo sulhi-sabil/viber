@@ -166,60 +166,64 @@ export class GeminiService extends BaseService {
   ): Promise<GeminiResponse> {
     Validator.array(messages, "messages");
 
-    return this.executeWithResilience(async () => {
-      await this.rateLimiter.checkRateLimit();
+    return this.executeWithResilience(
+      async () => {
+        await this.rateLimiter.checkRateLimit();
 
-      const {
-        temperature = GEMINI_DEFAULT_TEMPERATURE,
-        maxOutputTokens = MAX_OUTPUT_TOKENS,
-        topK = GEMINI_DEFAULT_TOP_K,
-        topP = GEMINI_DEFAULT_TOP_P,
-      } = options;
+        const {
+          temperature = GEMINI_DEFAULT_TEMPERATURE,
+          maxOutputTokens = MAX_OUTPUT_TOKENS,
+          topK = GEMINI_DEFAULT_TOP_K,
+          topP = GEMINI_DEFAULT_TOP_P,
+        } = options;
 
-      const requestBody = {
-        contents: messages,
-        generationConfig: {
+        const requestBody = {
+          contents: messages,
+          generationConfig: {
+            temperature,
+            maxOutputTokens,
+            topK,
+            topP,
+          },
+        };
+
+        logger.debug("Gemini generateContent request", {
+          messageCount: messages.length,
           temperature,
           maxOutputTokens,
-          topK,
-          topP,
-        },
-      };
-
-      logger.debug("Gemini generateContent request", {
-        messageCount: messages.length,
-        temperature,
-        maxOutputTokens,
-      });
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:generateContent?key=${this.apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        },
-      );
-
-      if (!response.ok) {
-        await this.handleErrorResponse(response);
-      }
-
-      const data = (await response.json()) as GeminiResponse;
-
-      if (data.usageMetadata) {
-        this.costTracker += data.usageMetadata.totalTokenCount;
-        logger.debug("Gemini token usage", {
-          promptTokens: data.usageMetadata.promptTokenCount,
-          candidatesTokens: data.usageMetadata.candidatesTokenCount,
-          totalTokens: data.usageMetadata.totalTokenCount,
         });
-      }
 
-      return data;
-    }, options);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:generateContent?key=${this.apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          },
+        );
+
+        if (!response.ok) {
+          await this.handleErrorResponse(response);
+        }
+
+        const data = (await response.json()) as GeminiResponse;
+
+        if (data.usageMetadata) {
+          this.costTracker += data.usageMetadata.totalTokenCount;
+          logger.debug("Gemini token usage", {
+            promptTokens: data.usageMetadata.promptTokenCount,
+            candidatesTokens: data.usageMetadata.candidatesTokenCount,
+            totalTokens: data.usageMetadata.totalTokenCount,
+          });
+        }
+
+        return data;
+      },
+      options,
+      "Gemini generateContent",
+    );
   }
 
   async generateContentStream(
@@ -230,95 +234,99 @@ export class GeminiService extends BaseService {
   ): Promise<void> {
     Validator.array(messages, "messages");
 
-    return this.executeWithResilience(async () => {
-      await this.rateLimiter.checkRateLimit();
+    return this.executeWithResilience(
+      async () => {
+        await this.rateLimiter.checkRateLimit();
 
-      const {
-        temperature = GEMINI_DEFAULT_TEMPERATURE,
-        maxOutputTokens = MAX_OUTPUT_TOKENS,
-        topK = GEMINI_DEFAULT_TOP_K,
-        topP = GEMINI_DEFAULT_TOP_P,
-        onChunk,
-      } = options;
+        const {
+          temperature = GEMINI_DEFAULT_TEMPERATURE,
+          maxOutputTokens = MAX_OUTPUT_TOKENS,
+          topK = GEMINI_DEFAULT_TOP_K,
+          topP = GEMINI_DEFAULT_TOP_P,
+          onChunk,
+        } = options;
 
-      const requestBody = {
-        contents: messages,
-        generationConfig: {
+        const requestBody = {
+          contents: messages,
+          generationConfig: {
+            temperature,
+            maxOutputTokens,
+            topK,
+            topP,
+          },
+        };
+
+        logger.debug("Gemini generateContentStream request", {
+          messageCount: messages.length,
           temperature,
           maxOutputTokens,
-          topK,
-          topP,
-        },
-      };
+        });
 
-      logger.debug("Gemini generateContentStream request", {
-        messageCount: messages.length,
-        temperature,
-        maxOutputTokens,
-      });
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
           },
-          body: JSON.stringify(requestBody),
-        },
-      );
+        );
 
-      if (!response.ok) {
-        await this.handleErrorResponse(response);
-      }
+        if (!response.ok) {
+          await this.handleErrorResponse(response);
+        }
 
-      if (!response.body) {
-        throw new GeminiError("Response body is empty");
-      }
+        if (!response.body) {
+          throw new GeminiError("Response body is empty");
+        }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
+        while (true) {
+          const { done, value } = await reader.read();
 
-        if (done) break;
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (line.trim().startsWith("data:")) {
-            try {
-              const jsonStr = line.trim().slice(5);
-              const chunk = JSON.parse(jsonStr) as GeminiResponse;
+          for (const line of lines) {
+            if (line.trim().startsWith("data:")) {
+              try {
+                const jsonStr = line.trim().slice(5);
+                const chunk = JSON.parse(jsonStr) as GeminiResponse;
 
-              const streamingChunk: StreamingChunk = {
-                text: chunk.candidates[0]?.content?.parts[0]?.text || "",
-                finishReason: chunk.candidates[0]?.finishReason,
-                usageMetadata: chunk.usageMetadata,
-              };
+                const streamingChunk: StreamingChunk = {
+                  text: chunk.candidates[0]?.content?.parts[0]?.text || "",
+                  finishReason: chunk.candidates[0]?.finishReason,
+                  usageMetadata: chunk.usageMetadata,
+                };
 
-              if (onChunk) {
-                onChunk(streamingChunk);
+                if (onChunk) {
+                  onChunk(streamingChunk);
+                }
+
+                if (chunk.usageMetadata) {
+                  this.costTracker += chunk.usageMetadata.totalTokenCount;
+                }
+              } catch (e) {
+                logger.warn("Failed to parse streaming chunk", {
+                  error: e instanceof Error ? e.message : String(e),
+                });
               }
-
-              if (chunk.usageMetadata) {
-                this.costTracker += chunk.usageMetadata.totalTokenCount;
-              }
-            } catch (e) {
-              logger.warn("Failed to parse streaming chunk", {
-                error: e instanceof Error ? e.message : String(e),
-              });
             }
           }
         }
-      }
 
-      logger.debug("Gemini streaming complete");
-    }, options);
+        logger.debug("Gemini streaming complete");
+      },
+      options,
+      "Gemini generateContentStream",
+    );
   }
 
   async generateText(
@@ -407,6 +415,7 @@ export class GeminiService extends BaseService {
   private async executeWithResilience<T>(
     operation: () => Promise<T>,
     options: GeminiRequestOptions = {},
+    operationName: string = "Gemini operation",
   ): Promise<T> {
     return executeWithResilience<T>({
       operation,
@@ -417,11 +426,12 @@ export class GeminiService extends BaseService {
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
       retryableErrorCodes: RETRYABLE_ERROR_CODES,
       onRetry: (attempt: number, error: Error) => {
-        logger.warn(`Gemini operation retry attempt ${attempt}`, {
+        logger.warn(`${operationName} retry attempt ${attempt}`, {
           error: error.message,
         });
       },
-      timeoutOperationName: "Gemini operation",
+      timeoutOperationName: operationName,
+      operationName,
     });
   }
 

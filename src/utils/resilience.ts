@@ -19,6 +19,7 @@ export interface ExecuteWithResilienceConfig<T extends ResilienceOptions> {
   maxRetries?: number;
   onRetry?: (attempt: number, error: Error) => void;
   timeoutOperationName: string;
+  operationName?: string;
 }
 
 export async function executeWithResilience<T>(
@@ -35,6 +36,7 @@ export async function executeWithResilience<T>(
     maxRetries,
     onRetry,
     timeoutOperationName,
+    operationName = "Operation",
   } = config;
 
   const {
@@ -62,6 +64,7 @@ export async function executeWithResilience<T>(
         retryableErrors,
         retryableErrorCodes,
         onRetry,
+        operationName,
       });
     }
 
@@ -74,6 +77,7 @@ export async function executeWithResilience<T>(
       maxAttempts: maxRetries ?? retryOptions?.maxAttempts,
       retryableErrors,
       retryableErrorCodes,
+      operationName,
     });
   }
 
