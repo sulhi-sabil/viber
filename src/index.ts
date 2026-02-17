@@ -11,6 +11,7 @@ export * from "./utils/idempotency";
 export * from "./utils/validator";
 export * from "./utils/service-factory";
 export * from "./utils/health-check";
+export * from "./utils/metrics";
 export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
