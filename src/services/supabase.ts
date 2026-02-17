@@ -483,41 +483,38 @@ export class SupabaseService extends BaseService {
   }
 }
 
+// Import ServiceFactory for singleton management (consolidated pattern)
+import { serviceFactory } from "../utils/service-factory";
+
 let supabaseInstance: SupabaseService | null = null;
 
+/**
+ * Create a singleton Supabase client using ServiceFactory
+ * @deprecated Use serviceFactory.createSupabaseClient() for new code
+ * @param config - Supabase configuration
+ * @returns SupabaseService instance
+ */
 export function createSupabaseClient(config: SupabaseConfig): SupabaseService {
-  if (!supabaseInstance) {
-    supabaseInstance = new SupabaseService(config);
-    return supabaseInstance;
-  }
-
-  // Check if configuration differs from existing instance
-  const existingUrl = supabaseInstance.getUrl();
-  const existingKeyPrefix = supabaseInstance.getAnonKeyPrefix();
-  const newKeyPrefix = config.anonKey.substring(0, 8);
-  const configDiffers =
-    config.url !== existingUrl || newKeyPrefix !== existingKeyPrefix;
-
-  if (configDiffers) {
-    logger.warn(
-      "createSupabaseClient called with different config but singleton instance already exists. " +
-        "Returning existing instance. Use resetSupabaseClient() first if you need a fresh client.",
-      {
-        existingUrl,
-        requestedUrl: config.url,
-        existingKey: existingKeyPrefix + "...",
-        requestedKey: newKeyPrefix + "...",
-      },
-    );
-  }
-
-  return supabaseInstance;
+  // Use ServiceFactory for proper singleton management with health checks and metrics
+  const service = serviceFactory.createSupabaseClient(config);
+  supabaseInstance = service;
+  return service;
 }
 
+/**
+ * Get the current Supabase client instance
+ * @deprecated Use serviceFactory.getService() for new code
+ * @returns SupabaseService instance or null
+ */
 export function getSupabaseClient(): SupabaseService | null {
   return supabaseInstance;
 }
 
+/**
+ * Reset the Supabase client instance
+ * @deprecated Use serviceFactory.resetService() for new code
+ */
 export function resetSupabaseClient(): void {
+  serviceFactory.resetService("supabase");
   supabaseInstance = null;
 }
