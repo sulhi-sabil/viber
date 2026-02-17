@@ -73,7 +73,15 @@ export class UnauthorizedError extends AppError {
 
 export class ForbiddenError extends AppError {
   constructor(message: string = "Forbidden") {
-    super(ErrorCode.FORBIDDEN, message, 403, ErrorSeverity.MEDIUM);
+    super(
+      ErrorCode.FORBIDDEN,
+      message,
+      403,
+      ErrorSeverity.MEDIUM,
+      true,
+      undefined,
+      "Verify your account has the necessary permissions for this resource. Check your role assignments and contact your administrator if you need elevated access.",
+    );
   }
 }
 
