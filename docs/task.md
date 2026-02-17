@@ -17,6 +17,15 @@
 
 ### Phase 5 - StorX Consolidations
 
+**[CONSOLIDATE] Unify Service Singleton Patterns**
+
+- **Status**: ✅ Complete
+- **Description**: Consolidated duplicate singleton management in Supabase and Gemini services to use ServiceFactory
+- **Files Modified**:
+  - `src/services/supabase.ts` - Updated createSupabaseClient, getSupabaseClient, resetSupabaseClient to use ServiceFactory
+  - `src/services/gemini.ts` - Updated createGeminiClient, getGeminiClient, resetGeminiClient to use ServiceFactory
+- **Impact**: Eliminated code duplication and ensured all services share unified health check and metrics registration through ServiceFactory. Backward compatibility maintained with @deprecated annotations on legacy functions.
+
 **[CONNECT] Auto-Register Service Health Checks**
 
 - **Status**: ✅ Complete
