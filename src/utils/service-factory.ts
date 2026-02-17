@@ -12,6 +12,11 @@ import {
   HealthCheckConfig,
   healthCheckRegistry,
 } from "./health-check";
+import {
+  MetricsRegistry,
+  ServiceMetricsCollector,
+  metricsRegistry,
+} from "./metrics";
 import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 
 export interface CircuitBreakerConfig {
@@ -44,12 +49,16 @@ export class ServiceFactory {
   private services: Map<string, unknown>;
   private circuitBreakerConfigs: CircuitBreakerConfigMap;
   private healthCheckRegistry: HealthCheckRegistry;
+  private metricsRegistry: MetricsRegistry;
+  private serviceMetrics: Map<string, ServiceMetricsCollector>;
 
   private constructor(circuitBreakerConfigMap: CircuitBreakerConfigMap = {}) {
     this.circuitBreakers = new Map();
     this.services = new Map();
     this.circuitBreakerConfigs = circuitBreakerConfigMap;
     this.healthCheckRegistry = healthCheckRegistry;
+    this.metricsRegistry = metricsRegistry;
+    this.serviceMetrics = new Map();
   }
 
   static getInstance(
@@ -107,6 +116,7 @@ export class ServiceFactory {
     const service = new SupabaseService(config, circuitBreaker);
     this.services.set(cacheKey, service);
     this.registerServiceHealthCheck("supabase", service);
+    this.registerServiceMetrics("supabase");
     return service;
   }
 
@@ -121,6 +131,7 @@ export class ServiceFactory {
     const service = new GeminiService(config, circuitBreaker);
     this.services.set(cacheKey, service);
     this.registerServiceHealthCheck("gemini", service);
+    this.registerServiceMetrics("gemini");
     return service;
   }
 
@@ -242,6 +253,49 @@ export class ServiceFactory {
     this.healthCheckRegistry.register(serviceName, healthCheck, {
       timeout: HEALTH_CHECK_TIMEOUT_MS,
     });
+  }
+
+  /**
+   * Get the metrics registry
+   * @returns MetricsRegistry instance
+   */
+  getMetricsRegistry(): MetricsRegistry {
+    return this.metricsRegistry;
+  }
+
+  /**
+   * Get metrics collector for a specific service
+   * @param serviceName - Service identifier
+   * @returns ServiceMetricsCollector or undefined
+   */
+  getServiceMetrics(serviceName: string): ServiceMetricsCollector | undefined {
+    return this.serviceMetrics.get(serviceName);
+  }
+
+  /**
+   * Export all metrics in Prometheus format
+   * @returns Prometheus-formatted metrics string
+   */
+  exportMetrics(): string {
+    return this.metricsRegistry.toPrometheusString();
+  }
+
+  /**
+   * Register metrics collector for a service
+   * @param serviceName - Service identifier
+   */
+  private registerServiceMetrics(serviceName: string): ServiceMetricsCollector {
+    if (this.serviceMetrics.has(serviceName)) {
+      return this.serviceMetrics.get(serviceName)!;
+    }
+
+    const metricsCollector = new ServiceMetricsCollector(
+      serviceName,
+      this.metricsRegistry,
+    );
+    this.serviceMetrics.set(serviceName, metricsCollector);
+    logger.info(`Registered metrics collector for service: ${serviceName}`);
+    return metricsCollector;
   }
 }
 
