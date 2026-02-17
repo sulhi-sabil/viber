@@ -37,8 +37,24 @@ export class AppError extends Error implements HttpError {
     this.isOperational = isOperational;
     this.suggestion = suggestion;
 
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
+    if (
+      (
+        Error as {
+          captureStackTrace?: (
+            targetObject: object,
+            constructorOpt?: Function,
+          ) => void;
+        }
+      ).captureStackTrace
+    ) {
+      (
+        Error as {
+          captureStackTrace: (
+            targetObject: object,
+            constructorOpt?: Function,
+          ) => void;
+        }
+      ).captureStackTrace(this, this.constructor);
     }
   }
 }
