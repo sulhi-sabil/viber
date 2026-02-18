@@ -69,7 +69,36 @@
   - `src/utils/logger.ts` - Updated to use DEFAULT_SENSITIVE_FIELD_PATTERNS constant
 - **Impact**: API endpoints and sensitive data patterns are now centralized and configurable, making the library easier to customize and maintain
 
-### Phase 2 - Pallete UX Improvements
+### Phase 2 - Pallete UX Improvements (ULW-Loop) - CURRENT
+
+**[IMPROVE] Add RequestID/Correlation ID Tracking to Logger**
+
+- **Status**: ✅ Complete
+- **Description**: Enhanced logger with context tracking for request tracing and correlation across log entries
+- **Files Modified**:
+  - `src/utils/logger.ts` - Added `LogContext` interface and `Logger.child()` method for hierarchical context
+  - `src/index.ts` - `LogContext` interface automatically exported via existing export
+- **Implementation Details**:
+  - New `LogContext` interface supports: `requestId`, `correlationId`, `operation`, `component`, and custom fields
+  - `Logger.child()` method creates child logger with inherited + additional context
+  - Console output formats context as `[req-xxxx corr-yyyy operation [component]]`
+  - JSON format includes all context fields in meta for log aggregation
+  - Fully backward compatible - existing code continues to work unchanged
+- **Impact**:
+  - Developers can now trace requests across multiple log entries
+  - Distributed tracing support via correlation IDs
+  - Better debugging of concurrent operations with operation/component context
+  - Improved log aggregation and querying in production environments
+- **Example Usage**:
+  ```typescript
+  const logger = createLogger("info");
+  const requestLogger = logger.child({
+    requestId: "req-123456",
+    operation: "createUser",
+  });
+  requestLogger.info("Starting user creation"); // [req-123456 createUser]
+  requestLogger.error("Failed", { userId: 42 }); // [req-123456 createUser] { requestId: "req-123456", operation: "createUser", userId: 42 }
+  ```
 
 **[IMPROVE] Add Operation Context to Retry/Resilience Success Logs**
 
