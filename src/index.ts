@@ -1,3 +1,5 @@
+export const VERSION = "1.0.0";
+
 export * from "./types/errors";
 export * from "./types/database";
 export * from "./types/service-config";
