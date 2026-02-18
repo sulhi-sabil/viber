@@ -479,7 +479,8 @@ export class SupabaseService extends BaseService {
    * @internal
    */
   getAnonKeyPrefix(): string {
-    return this.config.anonKey.substring(0, 8);
+    const { anonKey } = this.config;
+    return anonKey.length >= 8 ? anonKey.substring(0, 8) : anonKey;
   }
 }
 

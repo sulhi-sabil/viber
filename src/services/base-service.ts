@@ -3,6 +3,7 @@ import {
   CircuitBreakerOptions,
 } from "../utils/circuit-breaker";
 import { logger } from "../utils/logger";
+import { ServiceMetricsCollector } from "../utils/metrics";
 
 export interface ServiceHealth {
   healthy: boolean;
@@ -13,9 +14,28 @@ export interface ServiceHealth {
 export abstract class BaseService {
   protected abstract serviceName: string;
   protected circuitBreaker: CircuitBreaker;
+  protected metricsCollector?: ServiceMetricsCollector;
 
-  constructor(circuitBreaker: CircuitBreaker) {
+  constructor(
+    circuitBreaker: CircuitBreaker,
+    metricsCollector?: ServiceMetricsCollector,
+  ) {
     this.circuitBreaker = circuitBreaker;
+    this.metricsCollector = metricsCollector;
+  }
+
+  /**
+   * Set the metrics collector for this service
+   */
+  public setMetricsCollector(metricsCollector: ServiceMetricsCollector): void {
+    this.metricsCollector = metricsCollector;
+  }
+
+  /**
+   * Get the metrics collector
+   */
+  public getMetricsCollector(): ServiceMetricsCollector | undefined {
+    return this.metricsCollector;
   }
 
   /**

@@ -118,14 +118,17 @@ export class ServiceFactory {
 
     const circuitBreaker = this.getCircuitBreaker("supabase");
     const service = new SupabaseService(config, circuitBreaker);
+    const metricsCollector = this.registerServiceMetrics("supabase");
+    service.setMetricsCollector(metricsCollector);
     this.services.set(cacheKey, service);
     this.registerServiceHealthCheck("supabase", service);
-    this.registerServiceMetrics("supabase");
     return service;
   }
 
   createGeminiClient(config: GeminiConfig): GeminiService {
-    const cacheKey = `gemini-${config.apiKey.substring(0, 8)}`;
+    const apiKeyPrefix =
+      config.apiKey.length >= 8 ? config.apiKey.substring(0, 8) : config.apiKey;
+    const cacheKey = `gemini-${apiKeyPrefix}`;
     const cached = this.services.get(cacheKey) as GeminiService;
     if (cached) {
       return cached;
@@ -133,9 +136,10 @@ export class ServiceFactory {
 
     const circuitBreaker = this.getCircuitBreaker("gemini");
     const service = new GeminiService(config, circuitBreaker);
+    const metricsCollector = this.registerServiceMetrics("gemini");
+    service.setMetricsCollector(metricsCollector);
     this.services.set(cacheKey, service);
     this.registerServiceHealthCheck("gemini", service);
-    this.registerServiceMetrics("gemini");
     return service;
   }
 

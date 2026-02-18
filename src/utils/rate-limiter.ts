@@ -69,12 +69,14 @@ export class RateLimiter {
         const oldestRequest = this.requests[0];
         const waitTime = this.windowMs - (now - oldestRequest);
 
+        // Ensure waitTime is positive to prevent busy-waiting on clock drift
         if (waitTime > 0) {
           logger.warn(
             `${this.serviceName} rate limit reached. Waiting ${waitTime}ms`,
           );
           await this.sleep(waitTime);
         }
+        // If waitTime <= 0, the oldest request has expired, continue loop to recalculate
       }
 
       now = Date.now();
