@@ -55,9 +55,21 @@ export class CircuitBreaker {
           ? this.mergedOptions.resetTimeout -
             (Date.now() - this.lastFailureTime)
           : this.mergedOptions.resetTimeout;
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        const failureInfo =
+          this.failureCount > 0
+            ? ` (${this.failureCount}/${this.mergedOptions.failureThreshold} failures)`
+            : "";
         throw new ServiceUnavailableError(
           "circuit breaker",
-          `Circuit breaker is OPEN. Requests are temporarily blocked. Will retry in ${Math.ceil(remainingMs / 1000)}s`,
+          `Circuit breaker is OPEN${failureInfo}. Requests are temporarily blocked. Will retry in ${remainingSec}s`,
+          {
+            failureCount: this.failureCount,
+            failureThreshold: this.mergedOptions.failureThreshold,
+            resetTimeoutSec: Math.ceil(this.mergedOptions.resetTimeout / 1000),
+            remainingSec,
+            lastFailureTime: this.lastFailureTime,
+          },
         );
       }
     }

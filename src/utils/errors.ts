@@ -137,14 +137,18 @@ export class RateLimitError extends AppError {
 }
 
 export class ServiceUnavailableError extends AppError {
-  constructor(service: string, message?: string) {
+  constructor(
+    service: string,
+    message?: string,
+    details?: Record<string, unknown>,
+  ) {
     super(
       ErrorCode.SERVICE_UNAVAILABLE,
       message || `${service} is currently unavailable`,
       503,
       ErrorSeverity.HIGH,
       true,
-      { service },
+      { service, ...details },
       `The ${service} service may be experiencing downtime. Check the service status page, retry with exponential backoff, or use a fallback mechanism if available.`,
     );
   }
