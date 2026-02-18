@@ -3,8 +3,16 @@ import {
   DEFAULT_CIRCUIT_BREAKER_OPTIONS,
 } from "./circuit-breaker";
 import { logger } from "./logger";
-import { SupabaseService, SupabaseConfig } from "../services/supabase";
-import { GeminiService, GeminiConfig } from "../services/gemini";
+import {
+  SupabaseService,
+  SupabaseConfig,
+  isSupabaseService,
+} from "../services/supabase";
+import {
+  GeminiService,
+  GeminiConfig,
+  isGeminiService,
+} from "../services/gemini";
 import { BaseService } from "../services/base-service";
 import {
   HealthCheckRegistry,
@@ -160,6 +168,19 @@ export class ServiceFactory {
 
   getService(serviceName: string): unknown {
     return this.services.get(serviceName);
+  }
+
+  listServices(): Array<{ name: string; type: string }> {
+    const services: Array<{ name: string; type: string }> = [];
+    this.services.forEach((service, key) => {
+      const type = isSupabaseService(service)
+        ? "supabase"
+        : isGeminiService(service)
+          ? "gemini"
+          : "unknown";
+      services.push({ name: key, type });
+    });
+    return services;
   }
 
   resetService(serviceName: string): void {

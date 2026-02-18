@@ -23,6 +23,8 @@ import {
   GEMINI_DEFAULT_TOP_K,
   GEMINI_DEFAULT_TOP_P,
   GEMINI_DEFAULT_MODEL,
+  GEMINI_API_BASE_URL,
+  GEMINI_API_VERSION_PATH,
 } from "../config/constants";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
@@ -194,7 +196,7 @@ export class GeminiService extends BaseService {
         });
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:generateContent?key=${this.apiKey}`,
+          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:generateContent?key=${this.apiKey}`,
           {
             method: "POST",
             headers: {
@@ -263,7 +265,7 @@ export class GeminiService extends BaseService {
         });
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
+          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
           {
             method: "POST",
             headers: {
@@ -524,4 +526,13 @@ export function getGeminiClient(): GeminiService | null {
 export function resetGeminiClient(): void {
   serviceFactory.resetService("gemini");
   geminiInstance = null;
+}
+
+/**
+ * Type guard to check if a service is a GeminiService
+ * @param service - Service instance to check
+ * @returns True if the service is a GeminiService
+ */
+export function isGeminiService(service: unknown): service is GeminiService {
+  return service instanceof GeminiService;
 }

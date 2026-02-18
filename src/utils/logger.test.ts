@@ -39,13 +39,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.debug("Debug message");
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        expect.stringContaining("[DEBUG]"),
-        "",
-      );
+              expect.stringContaining("[DEBUG]"),
+            );
       expect(mockConsoleDebug).toHaveBeenCalledWith(
-        expect.stringContaining("Debug message"),
-        "",
-      );
+              expect.stringContaining("Debug message"),
+            );
     });
 
     it("should log info messages when level is debug", () => {
@@ -54,13 +52,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.info("Info message");
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "",
-      );
+              expect.stringContaining("[INFO]"),
+            );
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("Info message"),
-        "",
-      );
+              expect.stringContaining("Info message"),
+            );
     });
 
     it("should log warn messages when level is debug", () => {
@@ -69,13 +65,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.warn("Warn message");
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("[WARN]"),
-        "",
-      );
+              expect.stringContaining("[WARN]"),
+            );
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Warn message"),
-        "",
-      );
+              expect.stringContaining("Warn message"),
+            );
     });
 
     it("should log error messages when level is debug", () => {
@@ -84,13 +78,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "",
-      );
+              expect.stringContaining("[ERROR]"),
+            );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Error message"),
-        "",
-      );
+              expect.stringContaining("Error message"),
+            );
     });
   });
 
@@ -109,13 +101,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.info("Info message");
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "",
-      );
+              expect.stringContaining("[INFO]"),
+            );
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("Info message"),
-        "",
-      );
+              expect.stringContaining("Info message"),
+            );
     });
 
     it("should log warn messages when level is info", () => {
@@ -124,13 +114,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.warn("Warn message");
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("[WARN]"),
-        "",
-      );
+              expect.stringContaining("[WARN]"),
+            );
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Warn message"),
-        "",
-      );
+              expect.stringContaining("Warn message"),
+            );
     });
 
     it("should log error messages when level is info", () => {
@@ -139,13 +127,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "",
-      );
+              expect.stringContaining("[ERROR]"),
+            );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Error message"),
-        "",
-      );
+              expect.stringContaining("Error message"),
+            );
     });
   });
 
@@ -172,13 +158,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.warn("Warn message");
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("[WARN]"),
-        "",
-      );
+              expect.stringContaining("[WARN]"),
+            );
       expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Warn message"),
-        "",
-      );
+              expect.stringContaining("Warn message"),
+            );
     });
 
     it("should log error messages when level is warn", () => {
@@ -187,13 +171,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "",
-      );
+              expect.stringContaining("[ERROR]"),
+            );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Error message"),
-        "",
-      );
+              expect.stringContaining("Error message"),
+            );
     });
   });
 
@@ -228,13 +210,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.error("Error message");
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("[ERROR]"),
-        "",
-      );
+              expect.stringContaining("[ERROR]"),
+            );
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Error message"),
-        "",
-      );
+              expect.stringContaining("Error message"),
+            );
     });
   });
 
@@ -304,13 +284,11 @@ describe("ConsoleLogger", () => {
       consoleLogger.info("Info message");
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("[INFO]"),
-        "",
-      );
+              expect.stringContaining("[INFO]"),
+            );
       expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("Info message"),
-        "",
-      );
+              expect.stringContaining("Info message"),
+            );
     });
 
     it("should redact sensitive password fields", () => {

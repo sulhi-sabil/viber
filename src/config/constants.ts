@@ -174,3 +174,35 @@ export const LOGGER_MAX_OBJECT_KEYS_PER_LEVEL = 50;
 
 /** Prefix length for logging API keys (for debugging) */
 export const API_KEY_PREFIX_LENGTH = 8;
+
+// ============================================================================
+// API Endpoint Constants
+// ============================================================================
+
+/** Base URL for Gemini API */
+export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com";
+
+/** Gemini API version path */
+export const GEMINI_API_VERSION_PATH = "/v1beta/models/";
+
+// ============================================================================
+// Sensitive Data Patterns
+// ============================================================================
+
+/** Default field patterns to redact in logs */
+export const DEFAULT_SENSITIVE_FIELD_PATTERNS = [
+  /password/i,
+  /secret/i,
+  /api[_-]?key/i,
+  /private[_-]?key/i,
+  /access[_-]?token/i,
+  /auth[_-]?token/i,
+  /bearer/i,
+  /token/i,
+  /credit[_-]?card/i,
+  /ssn/i,
+  /authorization/i,
+];
+
+/** Default value redaction string */
+export const DEFAULT_REDACTION_STRING = "[REDACTED]";

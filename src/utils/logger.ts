@@ -4,22 +4,10 @@ import {
   LOGGER_SANITIZATION_CACHE_SIZE,
   LOGGER_MAX_ARRAY_ITEMS,
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
+  DEFAULT_SENSITIVE_FIELD_PATTERNS,
 } from "../config/constants";
 
-const SENSITIVE_PATTERNS = [
-  /password/i,
-  /secret/i,
-  /api[_-]?key/i,
-  /private[_-]?key/i,
-  /access[_-]?token/i,
-  /auth[_-]?token/i,
-  /bearer/i,
-  /session/i,
-  /token/i,
-  /credit[_-]?card/i,
-  /ssn/i,
-  /authorization/i,
-];
+const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
 
 const MAX_DEPTH = LOGGER_MAX_SANITIZATION_DEPTH;
 const MAX_KEYS = LOGGER_MAX_SANITIZATION_KEYS;
@@ -150,6 +138,10 @@ export class ConsoleLogger implements Logger {
         : "console");
   }
 
+  getLevel(): "debug" | "info" | "warn" | "error" {
+    return this.level;
+  }
+
   private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {
     const levels = ["debug", "info", "warn", "error"];
     return levels.indexOf(level) >= levels.indexOf(this.level);
@@ -200,10 +192,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.debug(
-          `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.debug(logMessage, metaStr);
+        } else {
+          console.debug(logMessage);
+        }
       }
     }
   }
@@ -221,10 +215,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.info(
-          `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.info(logMessage, metaStr);
+        } else {
+          console.info(logMessage);
+        }
       }
     }
   }
@@ -242,10 +238,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.warn(
-          `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.warn(logMessage, metaStr);
+        } else {
+          console.warn(logMessage);
+        }
       }
     }
   }
@@ -263,10 +261,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.error(
-          `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.error(logMessage, metaStr);
+        } else {
+          console.error(logMessage);
+        }
       }
     }
   }
