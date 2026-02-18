@@ -519,3 +519,14 @@ export function resetSupabaseClient(): void {
   serviceFactory.resetService("supabase");
   supabaseInstance = null;
 }
+
+/**
+ * Type guard to check if a service is a SupabaseService
+ * @param service - Service instance to check
+ * @returns True if the service is a SupabaseService
+ */
+export function isSupabaseService(
+  service: unknown,
+): service is SupabaseService {
+  return service instanceof SupabaseService;
+}
