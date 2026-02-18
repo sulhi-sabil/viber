@@ -229,12 +229,16 @@ export function createApiError(
   const appError = error as AppError;
   const requestId = appError.requestId || uuidv4();
 
+  const mergedDetails = context
+    ? { ...appError.details, ...context }
+    : appError.details;
+
   return {
     error: {
       code: appError.code || ErrorCode.INTERNAL_ERROR,
       message: appError.message || "An unexpected error occurred",
       suggestion: appError.suggestion,
-      details: appError.details || context,
+      details: mergedDetails,
       requestId,
       severity: appError.severity || ErrorSeverity.MEDIUM,
       timestamp: new Date().toISOString(),
