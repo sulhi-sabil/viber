@@ -2,6 +2,33 @@
 
 ## Recent Improvements (Current Session)
 
+### Phase 2 - Pallete UX Improvements (ULW-Loop)
+
+**[IMPROVE] Add Developer Experience Enhancements**
+
+- **Status**: Complete
+- **Description**: Enhanced developer experience with better error messages, logging utilities, and service management
+- **Files Modified**:
+  - `src/utils/errors.ts` - Added suggestion field to InternalError for actionable error messages
+  - `src/utils/logger.ts` - Added getLevel() method to ConsoleLogger for runtime log level inspection
+  - `src/index.ts` - Added VERSION export for library version access
+  - `src/utils/service-factory.ts` - Added listServices() method and type guards for service management
+  - `src/services/gemini.ts` - Added isGeminiService() type guard
+  - `src/services/supabase.ts` - Added isSupabaseService() type guard
+- **Impact**: Developers can now access library version, inspect log levels at runtime, list available services, and use type guards for runtime service type checking
+
+### Phase 3 - Flexy Modularization (ULW-Loop)
+
+**[MODULARIZE] Eliminate Hardcoded Values**
+
+- **Status**: Complete
+- **Description**: Moved hardcoded values to configurable constants for better maintainability and customization
+- **Files Modified**:
+  - `src/config/constants.ts` - Added GEMINI_API_BASE_URL, GEMINI_API_VERSION_PATH, DEFAULT_SENSITIVE_FIELD_PATTERNS, DEFAULT_REDACTION_STRING
+  - `src/services/gemini.ts` - Updated to use API endpoint constants instead of hardcoded URLs
+  - `src/utils/logger.ts` - Updated to use DEFAULT_SENSITIVE_FIELD_PATTERNS constant
+- **Impact**: API endpoints and sensitive data patterns are now centralized and configurable, making the library easier to customize and maintain
+
 ### Phase 2 - Pallete UX Improvements
 
 **[IMPROVE] Add Operation Context to Retry/Resilience Success Logs**
