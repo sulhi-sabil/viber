@@ -192,10 +192,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.debug(
-          `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.debug(logMessage, metaStr);
+        } else {
+          console.debug(logMessage);
+        }
       }
     }
   }
@@ -213,10 +215,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.info(
-          `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.info(logMessage, metaStr);
+        } else {
+          console.info(logMessage);
+        }
       }
     }
   }
@@ -234,10 +238,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.warn(
-          `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.warn(logMessage, metaStr);
+        } else {
+          console.warn(logMessage);
+        }
       }
     }
   }
@@ -255,10 +261,12 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        console.error(
-          `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`,
-          metaStr,
-        );
+        const logMessage = `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.error(logMessage, metaStr);
+        } else {
+          console.error(logMessage);
+        }
       }
     }
   }

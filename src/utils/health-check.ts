@@ -11,6 +11,7 @@
  * @module utils/health-check
  */
 
+import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 import { logger } from "./logger";
 
 /**
@@ -90,7 +91,7 @@ export interface AggregateHealthResult {
  * Default configuration for health checks
  */
 export const DEFAULT_HEALTH_CHECK_CONFIG: HealthCheckConfig = {
-  timeout: 5000,
+  timeout: HEALTH_CHECK_TIMEOUT_MS,
   retries: 0,
 };
 
