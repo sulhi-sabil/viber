@@ -111,6 +111,12 @@ export interface Logger {
   debug(message: string, meta?: Record<string, unknown>): void;
 }
 
+export interface LoggerOptions {
+  useColors?: boolean;
+  useEmoji?: boolean;
+  outputFormat?: "console" | "json";
+}
+
 const LOG_LEVEL_CONFIG = {
   debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
   info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
@@ -122,10 +128,11 @@ export class ConsoleLogger implements Logger {
   private level: "debug" | "info" | "warn" | "error";
   private useColors: boolean;
   private useEmoji: boolean;
+  private outputFormat: "console" | "json";
 
   constructor(
     level: "debug" | "info" | "warn" | "error" = "info",
-    options: { useColors?: boolean; useEmoji?: boolean } = {},
+    options: LoggerOptions = {},
   ) {
     this.level = level;
     // Auto-enable colors in development/TTY environments, disable in production
@@ -135,6 +142,12 @@ export class ConsoleLogger implements Logger {
         process.env?.NODE_ENV !== "production" &&
         (process.stdout?.isTTY || false));
     this.useEmoji = options.useEmoji ?? true;
+    // Auto-enable JSON format in production environments for log aggregation
+    this.outputFormat =
+      options.outputFormat ??
+      (typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+        ? "json"
+        : "console");
   }
 
   private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {
@@ -157,43 +170,104 @@ export class ConsoleLogger implements Logger {
     return `${emoji}${label}`;
   }
 
+  private formatJsonLog(
+    level: "debug" | "info" | "warn" | "error",
+    message: string,
+    meta?: Record<string, unknown>,
+  ): string {
+    const config = LOG_LEVEL_CONFIG[level];
+    const logEntry = {
+      timestamp: this.formatTimestamp(),
+      level: config.label,
+      message,
+      ...(meta && Object.keys(meta).length > 0
+        ? { meta: sanitizeData(meta) }
+        : {}),
+    };
+    return JSON.stringify(logEntry);
+  }
+
   debug(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("debug")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.debug(
-        `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`,
-        sanitizedMeta,
-      );
+      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      if (this.outputFormat === "json") {
+        console.debug(
+          this.formatJsonLog(
+            "debug",
+            message,
+            sanitizedMeta as Record<string, unknown> | undefined,
+          ),
+        );
+      } else {
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        console.debug(
+          `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`,
+          metaStr,
+        );
+      }
     }
   }
 
   info(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("info")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.info(
-        `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`,
-        sanitizedMeta,
-      );
+      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      if (this.outputFormat === "json") {
+        console.info(
+          this.formatJsonLog(
+            "info",
+            message,
+            sanitizedMeta as Record<string, unknown> | undefined,
+          ),
+        );
+      } else {
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        console.info(
+          `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`,
+          metaStr,
+        );
+      }
     }
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("warn")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.warn(
-        `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`,
-        sanitizedMeta,
-      );
+      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      if (this.outputFormat === "json") {
+        console.warn(
+          this.formatJsonLog(
+            "warn",
+            message,
+            sanitizedMeta as Record<string, unknown> | undefined,
+          ),
+        );
+      } else {
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        console.warn(
+          `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`,
+          metaStr,
+        );
+      }
     }
   }
 
   error(message: string, meta?: Record<string, unknown>): void {
     if (this.shouldLog("error")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : "";
-      console.error(
-        `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`,
-        sanitizedMeta,
-      );
+      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      if (this.outputFormat === "json") {
+        console.error(
+          this.formatJsonLog(
+            "error",
+            message,
+            sanitizedMeta as Record<string, unknown> | undefined,
+          ),
+        );
+      } else {
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        console.error(
+          `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`,
+          metaStr,
+        );
+      }
     }
   }
 }

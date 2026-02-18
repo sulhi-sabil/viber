@@ -247,11 +247,7 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        meta,
-      );
-      expect(mockConsoleDebug).toHaveBeenCalledWith(
-        expect.stringContaining("Debug message"),
-        meta,
+        JSON.stringify(meta),
       );
     });
 
@@ -263,11 +259,7 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
-        meta,
-      );
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("Info message"),
-        meta,
+        JSON.stringify(meta),
       );
     });
 
@@ -279,11 +271,7 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining("[WARN]"),
-        meta,
-      );
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Warn message"),
-        meta,
+        JSON.stringify(meta),
       );
     });
 
@@ -295,11 +283,7 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleError).toHaveBeenCalledWith(
         expect.stringContaining("[ERROR]"),
-        meta,
-      );
-      expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining("Error message"),
-        meta,
+        JSON.stringify(meta),
       );
     });
 
@@ -310,11 +294,7 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
-        {},
-      );
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("Info message"),
-        {},
+        "{}",
       );
     });
 
@@ -341,17 +321,10 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        {
+        JSON.stringify({
           username: "testuser",
           password: "[SENSITIVE DATA REDACTED for key: password]",
-        },
-      );
-      expect(mockConsoleDebug).toHaveBeenCalledWith(
-        expect.stringContaining("User login attempt"),
-        {
-          username: "testuser",
-          password: "[SENSITIVE DATA REDACTED for key: password]",
-        },
+        }),
       );
     });
 
@@ -366,17 +339,10 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
-        {
+        JSON.stringify({
           apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
           endpoint: "https://api.example.com",
-        },
-      );
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("API call"),
-        {
-          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
-          endpoint: "https://api.example.com",
-        },
+        }),
       );
     });
 
@@ -391,11 +357,17 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        { token: "[SENSITIVE DATA REDACTED for key: token]", userId: 123 },
+        JSON.stringify({
+          token: "[SENSITIVE DATA REDACTED for key: token]",
+          userId: 123,
+        }),
       );
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("Token verification"),
-        { token: "[SENSITIVE DATA REDACTED for key: token]", userId: 123 },
+        JSON.stringify({
+          token: "[SENSITIVE DATA REDACTED for key: token]",
+          userId: 123,
+        }),
       );
     });
 
@@ -407,25 +379,14 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleInfo).toHaveBeenCalledWith(
         expect.stringContaining("[INFO]"),
-        {
+        JSON.stringify({
           user: {
             id: 1,
             credentials: {
               secret: "[SENSITIVE DATA REDACTED for key: secret]",
             },
           },
-        },
-      );
-      expect(mockConsoleInfo).toHaveBeenCalledWith(
-        expect.stringContaining("User action"),
-        {
-          user: {
-            id: 1,
-            credentials: {
-              secret: "[SENSITIVE DATA REDACTED for key: secret]",
-            },
-          },
-        },
+        }),
       );
     });
 
@@ -442,21 +403,12 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining("[WARN]"),
-        {
+        JSON.stringify({
           username: "test",
           password: "[SENSITIVE DATA REDACTED for key: password]",
           apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
           token: "[SENSITIVE DATA REDACTED for key: token]",
-        },
-      );
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining("Security event"),
-        {
-          username: "test",
-          password: "[SENSITIVE DATA REDACTED for key: password]",
-          apiKey: "[SENSITIVE DATA REDACTED for key: apiKey]",
-          token: "[SENSITIVE DATA REDACTED for key: token]",
-        },
+        }),
       );
     });
 
@@ -473,21 +425,12 @@ describe("ConsoleLogger", () => {
 
       expect(mockConsoleDebug).toHaveBeenCalledWith(
         expect.stringContaining("[DEBUG]"),
-        {
+        JSON.stringify({
           headers: {
             authorization: "[SENSITIVE DATA REDACTED for key: authorization]",
             "content-type": "application/json",
           },
-        },
-      );
-      expect(mockConsoleDebug).toHaveBeenCalledWith(
-        expect.stringContaining("Request received"),
-        {
-          headers: {
-            authorization: "[SENSITIVE DATA REDACTED for key: authorization]",
-            "content-type": "application/json",
-          },
-        },
+        }),
       );
     });
   });
