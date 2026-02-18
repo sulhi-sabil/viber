@@ -69,7 +69,7 @@ export function validateMimeTypes(mimeType: string): boolean {
     return true;
   }
 
-  const mimeRegex = /^[a-z]+\/[a-z0-9.+\\-]+$/i;
+  const mimeRegex = /^[a-z]+\/[a-z0-9.+-]+$/i;
   return mimeRegex.test(mimeType);
 }
 

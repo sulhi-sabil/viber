@@ -364,7 +364,7 @@ export class HealthCheckRegistry {
     timeout: number,
   ): Promise<T> {
     return new Promise((resolve, reject) => {
-      const timer: NodeJS.Timeout = setTimeout(() => {
+      const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
         reject(new Error(`Health check timed out after ${timeout}ms`));
       }, timeout);
       timer.unref();

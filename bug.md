@@ -71,8 +71,58 @@ Fix: Completed the iterate1 step with proper command continuation and logout ste
 
 [x] TypeScript Type Check: PASS - 0 errors
 [x] ESLint: PASS - 0 errors/warnings
-[x] Test Suite: PASS - 395 tests across 15 suites
+[x] Test Suite: PASS - 427 tests across 16 suites
 [x] All console warnings are expected test scenario outputs
+
+## New Bugs Found and Fixed (Current Session)
+
+### BUG-006: MIME Type Regex Invalid Escape Sequence
+
+[x] bug: MIME type regex has invalid escape sequence `\\-` instead of `\-`
+Location: src/migrations/validators.ts:72
+Impact: Could cause validation to behave unexpectedly
+Fix: Changed regex from `/^[a-z]+\/[a-z0-9.+\\-]+$/i` to `/^[a-z]+\/[a-z0-9.+-]+$/i`
+
+### BUG-007: UUID Validation Too Restrictive
+
+[x] bug: UUID validation regex only accepts UUID versions 1-5, rejects v6-v8
+Location: src/utils/idempotency.ts:163-164
+Impact: False validation failures for newer UUID versions
+Fix: Changed regex from `/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i` to `/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i`
+
+### BUG-008: Unsafe Array Access in Gemini Streaming
+
+[x] bug: Accessing nested arrays without proper validation in streaming response
+Location: src/services/gemini.ts:304-306
+Impact: Runtime exceptions on malformed API responses
+Fix: Added defensive array access using optional chaining with intermediate variables
+
+### BUG-009: Rate Limiter Negative Wait Time
+
+[x] bug: Rate limiter wait time calculation could produce negative values on clock drift
+Location: src/utils/rate-limiter.ts:68-78
+Impact: Could cause busy-waiting or unexpected behavior
+Fix: Added validation to ensure waitTime is positive before sleeping
+
+### BUG-010: ParseInt NaN Handling
+
+[x] bug: parseInt on Retry-After header could return NaN without handling
+Location: src/services/gemini.ts:394-399
+Impact: NaN passed to RateLimitError constructor
+Fix: Added NaN validation after parseInt
+
+### BUG-011: API Key Substring Without Length Validation
+
+[x] bug: Using substring(0, 8) on API keys without checking length first
+Location: src/utils/service-factory.ts:128, src/services/gemini.ts:481, src/services/supabase.ts:478
+Impact: Works but could be confusing for debugging with short keys
+Fix: Added length validation before substring operation
+
+### BUG-012: ESLint Errors (Pre-existing)
+
+[x] error: Function type used instead of explicit signature in errors.ts:45,54
+[x] error: NodeJS.Timeout not defined in health-check.ts:367
+Fix: Changed Function to new (...args: any[]) => any, changed NodeJS.Timeout to ReturnType<typeof setTimeout>
 
 ## Error Log
 

@@ -300,9 +300,14 @@ export class GeminiService extends BaseService {
                 const jsonStr = line.trim().slice(5);
                 const chunk = JSON.parse(jsonStr) as GeminiResponse;
 
+                // Safely extract text from nested arrays with validation
+                const candidate = chunk.candidates?.[0];
+                const text = candidate?.content?.parts?.[0]?.text || "";
+                const finishReason = candidate?.finishReason;
+
                 const streamingChunk: StreamingChunk = {
-                  text: chunk.candidates[0]?.content?.parts[0]?.text || "",
-                  finishReason: chunk.candidates[0]?.finishReason,
+                  text,
+                  finishReason,
                   usageMetadata: chunk.usageMetadata,
                 };
 
@@ -393,10 +398,12 @@ export class GeminiService extends BaseService {
 
     if (response.status === 429) {
       const retryAfter = response.headers.get("Retry-After");
-      throw new RateLimitError(
-        "Gemini API rate limit exceeded",
-        retryAfter ? parseInt(retryAfter, 10) : undefined,
-      );
+      let retryDelay: number | undefined;
+      if (retryAfter) {
+        const parsed = parseInt(retryAfter, 10);
+        retryDelay = isNaN(parsed) ? undefined : parsed;
+      }
+      throw new RateLimitError("Gemini API rate limit exceeded", retryDelay);
     }
 
     if (response.status >= 500) {
@@ -471,7 +478,7 @@ export class GeminiService extends BaseService {
    * @internal
    */
   getApiKeyPrefix(): string {
-    return this.apiKey.substring(0, 8);
+    return this.apiKey.length >= 8 ? this.apiKey.substring(0, 8) : this.apiKey;
   }
 
   /**

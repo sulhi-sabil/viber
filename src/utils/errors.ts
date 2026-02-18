@@ -42,7 +42,7 @@ export class AppError extends Error implements HttpError {
         Error as {
           captureStackTrace?: (
             targetObject: object,
-            constructorOpt?: Function,
+            constructorOpt?: new (...args: unknown[]) => unknown,
           ) => void;
         }
       ).captureStackTrace
@@ -51,10 +51,13 @@ export class AppError extends Error implements HttpError {
         Error as {
           captureStackTrace: (
             targetObject: object,
-            constructorOpt?: Function,
+            constructorOpt?: new (...args: unknown[]) => unknown,
           ) => void;
         }
-      ).captureStackTrace(this, this.constructor);
+      ).captureStackTrace(
+        this,
+        this.constructor as new (...args: unknown[]) => unknown,
+      );
     }
   }
 }
