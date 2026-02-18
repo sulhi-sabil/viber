@@ -4,22 +4,10 @@ import {
   LOGGER_SANITIZATION_CACHE_SIZE,
   LOGGER_MAX_ARRAY_ITEMS,
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
+  DEFAULT_SENSITIVE_FIELD_PATTERNS,
 } from "../config/constants";
 
-const SENSITIVE_PATTERNS = [
-  /password/i,
-  /secret/i,
-  /api[_-]?key/i,
-  /private[_-]?key/i,
-  /access[_-]?token/i,
-  /auth[_-]?token/i,
-  /bearer/i,
-  /session/i,
-  /token/i,
-  /credit[_-]?card/i,
-  /ssn/i,
-  /authorization/i,
-];
+const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
 
 const MAX_DEPTH = LOGGER_MAX_SANITIZATION_DEPTH;
 const MAX_KEYS = LOGGER_MAX_SANITIZATION_KEYS;
@@ -148,6 +136,10 @@ export class ConsoleLogger implements Logger {
       (typeof process !== "undefined" && process.env?.NODE_ENV === "production"
         ? "json"
         : "console");
+  }
+
+  getLevel(): "debug" | "info" | "warn" | "error" {
+    return this.level;
   }
 
   private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {
