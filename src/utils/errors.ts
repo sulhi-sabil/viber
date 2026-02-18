@@ -176,6 +176,7 @@ export class InternalError extends AppError {
       ErrorSeverity.HIGH,
       false,
       details,
+      "This is an unexpected system error. Check application logs for details, verify service dependencies are healthy, and consider implementing graceful degradation. If the error persists, contact support with the request ID.",
     );
   }
 }
