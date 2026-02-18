@@ -92,11 +92,36 @@ function sanitizeData(
   return data;
 }
 
+export interface LogContext {
+  requestId?: string;
+  correlationId?: string;
+  operation?: string;
+  component?: string;
+  [key: string]: unknown;
+}
+
 export interface Logger {
-  error(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  info(message: string, meta?: Record<string, unknown>): void;
-  debug(message: string, meta?: Record<string, unknown>): void;
+  error(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void;
+  warn(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void;
+  info(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void;
+  debug(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void;
+  child(additionalContext: LogContext): Logger;
 }
 
 export interface LoggerOptions {
@@ -117,10 +142,12 @@ export class ConsoleLogger implements Logger {
   private useColors: boolean;
   private useEmoji: boolean;
   private outputFormat: "console" | "json";
+  private context: LogContext;
 
   constructor(
     level: "debug" | "info" | "warn" | "error" = "info",
     options: LoggerOptions = {},
+    context: LogContext = {},
   ) {
     this.level = level;
     // Auto-enable colors in development/TTY environments, disable in production
@@ -136,6 +163,19 @@ export class ConsoleLogger implements Logger {
       (typeof process !== "undefined" && process.env?.NODE_ENV === "production"
         ? "json"
         : "console");
+    this.context = context;
+  }
+
+  child(additionalContext: LogContext): Logger {
+    return new ConsoleLogger(
+      this.level,
+      {
+        useColors: this.useColors,
+        useEmoji: this.useEmoji,
+        outputFormat: this.outputFormat,
+      },
+      { ...this.context, ...additionalContext },
+    );
   }
 
   getLevel(): "debug" | "info" | "warn" | "error" {
@@ -149,6 +189,56 @@ export class ConsoleLogger implements Logger {
 
   private formatTimestamp(): string {
     return new Date().toISOString();
+  }
+
+  private formatContext(context?: LogContext): string {
+    if (!context || Object.keys(context).length === 0) {
+      return "";
+    }
+
+    const parts: string[] = [];
+    if (context.requestId) {
+      parts.push(`req-${context.requestId.slice(0, 8)}`);
+    }
+    if (context.correlationId && context.correlationId !== context.requestId) {
+      parts.push(`corr-${context.correlationId.slice(0, 8)}`);
+    }
+    if (context.operation) {
+      parts.push(context.operation);
+    }
+    if (context.component) {
+      parts.push(`[${context.component}]`);
+    }
+
+    if (parts.length === 0) {
+      return "";
+    }
+
+    return this.useColors
+      ? `\x1b[90m[${parts.join(" ")}]\x1b[0m`
+      : `[${parts.join(" ")}]`;
+  }
+
+  private mergeMetaWithContext(
+    meta: Record<string, unknown> | undefined,
+    context: LogContext | undefined,
+  ): Record<string, unknown> | undefined {
+    if (!context || Object.keys(context).length === 0) {
+      return meta;
+    }
+
+    const contextFields: Record<string, unknown> = {};
+    if (context.requestId) contextFields.requestId = context.requestId;
+    if (context.correlationId)
+      contextFields.correlationId = context.correlationId;
+    if (context.operation) contextFields.operation = context.operation;
+    if (context.component) contextFields.component = context.component;
+
+    if (!meta || Object.keys(meta).length === 0) {
+      return Object.keys(contextFields).length > 0 ? contextFields : undefined;
+    }
+
+    return { ...contextFields, ...meta };
   }
 
   private formatLogLevel(level: "debug" | "info" | "warn" | "error"): string {
@@ -179,9 +269,16 @@ export class ConsoleLogger implements Logger {
     return JSON.stringify(logEntry);
   }
 
-  debug(message: string, meta?: Record<string, unknown>): void {
+  debug(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     if (this.shouldLog("debug")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      const mergedContext = { ...this.context, ...context };
+      const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
+      const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
+
       if (this.outputFormat === "json") {
         console.debug(
           this.formatJsonLog(
@@ -192,7 +289,8 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        const logMessage = `${this.formatLogLevel("debug")} [${this.formatTimestamp()}] ${message}`;
+        const contextStr = this.formatContext(mergedContext);
+        const logMessage = `${this.formatLogLevel("debug")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.debug(logMessage, metaStr);
         } else {
@@ -202,9 +300,16 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  info(message: string, meta?: Record<string, unknown>): void {
+  info(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     if (this.shouldLog("info")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      const mergedContext = { ...this.context, ...context };
+      const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
+      const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
+
       if (this.outputFormat === "json") {
         console.info(
           this.formatJsonLog(
@@ -215,7 +320,8 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        const logMessage = `${this.formatLogLevel("info")} [${this.formatTimestamp()}] ${message}`;
+        const contextStr = this.formatContext(mergedContext);
+        const logMessage = `${this.formatLogLevel("info")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.info(logMessage, metaStr);
         } else {
@@ -225,9 +331,16 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  warn(message: string, meta?: Record<string, unknown>): void {
+  warn(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     if (this.shouldLog("warn")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      const mergedContext = { ...this.context, ...context };
+      const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
+      const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
+
       if (this.outputFormat === "json") {
         console.warn(
           this.formatJsonLog(
@@ -238,7 +351,8 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        const logMessage = `${this.formatLogLevel("warn")} [${this.formatTimestamp()}] ${message}`;
+        const contextStr = this.formatContext(mergedContext);
+        const logMessage = `${this.formatLogLevel("warn")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.warn(logMessage, metaStr);
         } else {
@@ -248,9 +362,16 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  error(message: string, meta?: Record<string, unknown>): void {
+  error(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
     if (this.shouldLog("error")) {
-      const sanitizedMeta = meta ? sanitizeData(meta) : undefined;
+      const mergedContext = { ...this.context, ...context };
+      const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
+      const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
+
       if (this.outputFormat === "json") {
         console.error(
           this.formatJsonLog(
@@ -261,7 +382,8 @@ export class ConsoleLogger implements Logger {
         );
       } else {
         const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
-        const logMessage = `${this.formatLogLevel("error")} [${this.formatTimestamp()}] ${message}`;
+        const contextStr = this.formatContext(mergedContext);
+        const logMessage = `${this.formatLogLevel("error")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.error(logMessage, metaStr);
         } else {
