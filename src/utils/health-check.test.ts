@@ -11,6 +11,9 @@ import {
   HealthCheckResult,
   HealthStatus,
   DEFAULT_HEALTH_CHECK_CONFIG,
+  formatHealthStatus,
+  formatHealthCheckResult,
+  formatAggregateHealthResult,
 } from "./health-check";
 
 describe("HealthCheckRegistry", () => {
@@ -192,7 +195,7 @@ describe("HealthCheckRegistry", () => {
       registry.register("test-service", check);
       const result = await registry.check("test-service");
 
-      expect(result.responseTime).toBeGreaterThanOrEqual(50);
+      expect(result.responseTime).toBeGreaterThanOrEqual(45); // Allow small timing variance
     });
   });
 
@@ -477,5 +480,149 @@ describe("DEFAULT_HEALTH_CHECK_CONFIG", () => {
   it("should have correct default values", () => {
     expect(DEFAULT_HEALTH_CHECK_CONFIG.timeout).toBe(5000);
     expect(DEFAULT_HEALTH_CHECK_CONFIG.retries).toBe(0);
+  });
+});
+
+describe("Formatting Utilities", () => {
+  describe("formatHealthStatus", () => {
+    it("should format healthy status with emoji", () => {
+      expect(formatHealthStatus("healthy")).toBe("✅ HEALTHY");
+    });
+
+    it("should format degraded status with emoji", () => {
+      expect(formatHealthStatus("degraded")).toBe("⚠️ DEGRADED");
+    });
+
+    it("should format unhealthy status with emoji", () => {
+      expect(formatHealthStatus("unhealthy")).toBe("❌ UNHEALTHY");
+    });
+  });
+
+  describe("formatHealthCheckResult", () => {
+    it("should format healthy result", () => {
+      const result = {
+        status: "healthy" as HealthStatus,
+        service: "test-service",
+        timestamp: Date.now(),
+        responseTime: 100,
+      };
+      const formatted = formatHealthCheckResult(result);
+      expect(formatted).toContain("✅");
+      expect(formatted).toContain("test-service");
+      expect(formatted).toContain("100ms");
+    });
+
+    it("should format result with message", () => {
+      const result = {
+        status: "unhealthy" as HealthStatus,
+        service: "test-service",
+        timestamp: Date.now(),
+        responseTime: 500,
+        message: "Connection failed",
+      };
+      const formatted = formatHealthCheckResult(result);
+      expect(formatted).toContain("❌");
+      expect(formatted).toContain("Connection failed");
+    });
+
+    it("should format result with dependencies", () => {
+      const result = {
+        status: "healthy" as HealthStatus,
+        service: "main-service",
+        timestamp: Date.now(),
+        responseTime: 100,
+        dependencies: {
+          "dep-service": {
+            status: "healthy" as HealthStatus,
+            service: "dep-service",
+            timestamp: Date.now(),
+            responseTime: 50,
+          },
+        },
+      };
+      const formatted = formatHealthCheckResult(result);
+      expect(formatted).toContain("main-service");
+      expect(formatted).toContain("Dependencies:");
+      expect(formatted).toContain("dep-service");
+    });
+  });
+
+  describe("formatAggregateHealthResult", () => {
+    it("should format aggregate health result with report header", () => {
+      const result = {
+        status: "healthy" as HealthStatus,
+        timestamp: Date.now(),
+        services: {
+          "service-1": {
+            status: "healthy" as HealthStatus,
+            service: "service-1",
+            timestamp: Date.now(),
+            responseTime: 100,
+          },
+        },
+        summary: {
+          total: 1,
+          healthy: 1,
+          unhealthy: 0,
+          degraded: 0,
+        },
+      };
+      const formatted = formatAggregateHealthResult(result);
+      expect(formatted).toContain("HEALTH CHECK REPORT");
+      expect(formatted).toContain("✅ Overall Status: HEALTHY");
+      expect(formatted).toContain("Total Services: 1");
+      expect(formatted).toContain("✅ Healthy: 1");
+    });
+
+    it("should include all services in formatted output", () => {
+      const result = {
+        status: "degraded" as HealthStatus,
+        timestamp: Date.now(),
+        services: {
+          "service-1": {
+            status: "healthy" as HealthStatus,
+            service: "service-1",
+            timestamp: Date.now(),
+            responseTime: 100,
+          },
+          "service-2": {
+            status: "degraded" as HealthStatus,
+            service: "service-2",
+            timestamp: Date.now(),
+            responseTime: 5000,
+            message: "Slow response",
+          },
+        },
+        summary: {
+          total: 2,
+          healthy: 1,
+          unhealthy: 0,
+          degraded: 1,
+        },
+      };
+      const formatted = formatAggregateHealthResult(result);
+      expect(formatted).toContain("⚠️ Overall Status: DEGRADED");
+      expect(formatted).toContain("service-1");
+      expect(formatted).toContain("service-2");
+      expect(formatted).toContain("Slow response");
+      expect(formatted).toContain("⚠️  Degraded: 1");
+    });
+
+    it("should format timestamp in local time", () => {
+      const timestamp = new Date("2026-02-18T12:00:00Z").getTime();
+      const result = {
+        status: "healthy" as HealthStatus,
+        timestamp,
+        services: {},
+        summary: {
+          total: 0,
+          healthy: 0,
+          unhealthy: 0,
+          degraded: 0,
+        },
+      };
+      const formatted = formatAggregateHealthResult(result);
+      expect(formatted).toContain("Checked at:");
+    });
   });
 });

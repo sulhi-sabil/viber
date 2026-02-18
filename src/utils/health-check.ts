@@ -437,6 +437,103 @@ export class HealthCheckRegistry {
 export const healthCheckRegistry = new HealthCheckRegistry();
 
 /**
+ * Format health status with visual indicator for better DX
+ * @param status - Health status
+ * @returns Formatted status string with emoji
+ */
+export function formatHealthStatus(status: HealthStatus): string {
+  const statusEmojis: Record<HealthStatus, string> = {
+    healthy: "✅",
+    degraded: "⚠️",
+    unhealthy: "❌",
+  };
+  return `${statusEmojis[status]} ${status.toUpperCase()}`;
+}
+
+/**
+ * Format a single health check result for human-readable output
+ * @param result - Health check result
+ * @param indentLevel - Indentation level for nested output
+ * @returns Formatted string
+ */
+export function formatHealthCheckResult(
+  result: HealthCheckResult,
+  indentLevel = 0,
+): string {
+  const indent = "  ".repeat(indentLevel);
+  const statusIcon =
+    result.status === "healthy"
+      ? "✅"
+      : result.status === "degraded"
+        ? "⚠️"
+        : "❌";
+
+  let output = `${indent}${statusIcon} ${result.service} (${result.responseTime}ms)`;
+
+  if (result.message) {
+    output += `\n${indent}   └─ ${result.message}`;
+  }
+
+  if (result.dependencies && Object.keys(result.dependencies).length > 0) {
+    output += `\n${indent}   └─ Dependencies:`;
+    for (const [depName, depResult] of Object.entries(result.dependencies)) {
+      output +=
+        "\n" +
+        formatHealthCheckResult(depResult, indentLevel + 2).replace(
+          depResult.service,
+          depName,
+        );
+    }
+  }
+
+  return output;
+}
+
+/**
+ * Format aggregate health result as a human-readable report
+ * @param result - Aggregate health result
+ * @returns Formatted multi-line string
+ */
+export function formatAggregateHealthResult(
+  result: AggregateHealthResult,
+): string {
+  const statusIcon =
+    result.status === "healthy"
+      ? "✅"
+      : result.status === "degraded"
+        ? "⚠️"
+        : "❌";
+
+  const lines: string[] = [
+    "",
+    `╔══════════════════════════════════════════════════════════╗`,
+    `║           HEALTH CHECK REPORT                            ║`,
+    `╚══════════════════════════════════════════════════════════╝`,
+    "",
+    `${statusIcon} Overall Status: ${result.status.toUpperCase()}`,
+    `🕐 Checked at: ${new Date(result.timestamp).toLocaleString()}`,
+    "",
+    `📊 Summary:`,
+    `   • Total Services: ${result.summary.total}`,
+    `   • ✅ Healthy: ${result.summary.healthy}`,
+    `   • ⚠️  Degraded: ${result.summary.degraded}`,
+    `   • ❌ Unhealthy: ${result.summary.unhealthy}`,
+    "",
+    `📋 Service Details:`,
+    "",
+  ];
+
+  for (const [, serviceResult] of Object.entries(result.services)) {
+    lines.push(formatHealthCheckResult(serviceResult));
+    lines.push("");
+  }
+
+  lines.push("═══════════════════════════════════════════════════════════", "");
+
+  return lines.join("\n");
+}
+
+/**
  * Create a new health check registry (for testing or isolation)
  */
 export function createHealthCheckRegistry(): HealthCheckRegistry {
