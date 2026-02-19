@@ -216,3 +216,6 @@ export const DEFAULT_SENSITIVE_FIELD_PATTERNS = [
 
 /** Default value redaction string */
 export const DEFAULT_REDACTION_STRING = "[REDACTED]";
+
+export const SENSITIVE_DATA_REDACTION_FORMAT = (key: string): string =>
+  `[SENSITIVE DATA REDACTED for key: ${key}]`;

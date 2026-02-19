@@ -22,6 +22,7 @@ import {
   CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
   HEALTH_CHECK_QUERY_LIMIT,
+  API_KEY_PREFIX_LENGTH,
 } from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
@@ -474,7 +475,78 @@ export class SupabaseService extends BaseService {
    */
   getAnonKeyPrefix(): string {
     const { anonKey } = this.config;
-    return anonKey.length >= 8 ? anonKey.substring(0, 8) : anonKey;
+    return anonKey.length >= API_KEY_PREFIX_LENGTH
+      ? anonKey.substring(0, API_KEY_PREFIX_LENGTH)
+      : anonKey;
+  }
+
+  /**
+   * Check if a record exists in the specified table
+   */
+  async exists(
+    table: string,
+    filter: { column: string; operator: string; value: unknown },
+    queryOptions: QueryOptions = {},
+  ): Promise<boolean> {
+    Validator.string(table, "table");
+
+    return this.executeWithResilience(
+      async () => {
+        const { count, error } = await this.client
+          .from(table)
+          .select("id", { count: "exact", head: true })
+          .filter(filter.column, filter.operator, filter.value);
+
+        if (error) {
+          this.handleSupabaseError(error);
+        }
+
+        return (count ?? 0) > 0;
+      },
+      queryOptions,
+      `exists check on ${table}:${filter.column}`,
+    );
+  }
+
+  /**
+   * Count records in the specified table with optional filtering
+   */
+  async count(
+    table: string,
+    options: {
+      filter?: { column: string; operator: string; value: unknown };
+      includeDeleted?: boolean;
+    } = {},
+    queryOptions: QueryOptions = {},
+  ): Promise<number> {
+    const { filter, includeDeleted = false } = options;
+    Validator.string(table, "table");
+
+    return this.executeWithResilience(
+      async () => {
+        let query = this.client
+          .from(table)
+          .select("id", { count: "exact", head: true });
+
+        if (filter) {
+          query = query.filter(filter.column, filter.operator, filter.value);
+        }
+
+        if (!includeDeleted) {
+          query = query.eq("deleted_at", null);
+        }
+
+        const { count, error } = await query;
+
+        if (error) {
+          this.handleSupabaseError(error);
+        }
+
+        return count ?? 0;
+      },
+      queryOptions,
+      `count on ${table}`,
+    );
   }
 }
 

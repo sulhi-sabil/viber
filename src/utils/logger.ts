@@ -5,6 +5,7 @@ import {
   LOGGER_MAX_ARRAY_ITEMS,
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
+  SENSITIVE_DATA_REDACTION_FORMAT,
 } from "../config/constants";
 
 const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
@@ -55,7 +56,7 @@ function sanitizeData(
   }
 
   if (key && isSensitiveKey(key)) {
-    return `[SENSITIVE DATA REDACTED for key: ${key}]`;
+    return SENSITIVE_DATA_REDACTION_FORMAT(key);
   }
 
   if (Array.isArray(data)) {
@@ -191,6 +192,10 @@ export class ConsoleLogger implements Logger {
 
   getLevel(): "debug" | "info" | "warn" | "error" {
     return this.level;
+  }
+
+  setLevel(level: "debug" | "info" | "warn" | "error"): void {
+    this.level = level;
   }
 
   private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {

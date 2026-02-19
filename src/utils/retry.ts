@@ -20,6 +20,49 @@ export interface RetryOptions {
   operationName?: string;
 }
 
+/**
+ * Predefined retry policy presets
+ */
+export const RetryPolicies = {
+  /**
+   * Aggressive retry policy - more retries with longer delays
+   * Use for critical operations that must succeed
+   */
+  AGGRESSIVE: {
+    maxAttempts: 5,
+    initialDelay: 1000,
+    maxDelay: 30000,
+    backoffMultiplier: 2,
+    retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
+    retryableErrorCodes: RETRYABLE_ERROR_CODES,
+  } as const,
+
+  /**
+   * Conservative retry policy - fewer retries with shorter delays
+   * Use for operations where fast failure is preferred
+   */
+  CONSERVATIVE: {
+    maxAttempts: 2,
+    initialDelay: 500,
+    maxDelay: 5000,
+    backoffMultiplier: 2,
+    retryableErrors: [429, 500, 502, 503, 504],
+    retryableErrorCodes: RETRYABLE_ERROR_CODES,
+  } as const,
+
+  /**
+   * Default retry policy - balanced approach
+   */
+  DEFAULT: {
+    maxAttempts: DEFAULT_MAX_RETRY_ATTEMPTS,
+    initialDelay: DEFAULT_RETRY_INITIAL_DELAY_MS,
+    maxDelay: DEFAULT_RETRY_MAX_DELAY_MS,
+    backoffMultiplier: DEFAULT_RETRY_BACKOFF_MULTIPLIER,
+    retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
+    retryableErrorCodes: RETRYABLE_ERROR_CODES,
+  } as const,
+};
+
 const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxAttempts: DEFAULT_MAX_RETRY_ATTEMPTS,
   initialDelay: DEFAULT_RETRY_INITIAL_DELAY_MS,
