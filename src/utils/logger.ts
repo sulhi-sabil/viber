@@ -111,6 +111,11 @@ export interface Logger {
     meta?: Record<string, unknown>,
     context?: LogContext,
   ): void;
+  success(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void;
   info(
     message: string,
     meta?: Record<string, unknown>,
@@ -133,6 +138,12 @@ export interface LoggerOptions {
 const LOG_LEVEL_CONFIG = {
   debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
   info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
+  success: {
+    emoji: "✅",
+    label: "SUCCESS",
+    color: "\x1b[32m",
+    reset: "\x1b[0m",
+  },
   warn: { emoji: "⚠️ ", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
   error: { emoji: "❌", label: "ERROR", color: "\x1b[31m", reset: "\x1b[0m" },
 } as const;
@@ -241,7 +252,9 @@ export class ConsoleLogger implements Logger {
     return { ...contextFields, ...meta };
   }
 
-  private formatLogLevel(level: "debug" | "info" | "warn" | "error"): string {
+  private formatLogLevel(
+    level: "debug" | "info" | "success" | "warn" | "error",
+  ): string {
     const config = LOG_LEVEL_CONFIG[level];
     const emoji = this.useEmoji ? `${config.emoji} ` : "";
     const label = `[${config.label}]`;
@@ -253,7 +266,7 @@ export class ConsoleLogger implements Logger {
   }
 
   private formatJsonLog(
-    level: "debug" | "info" | "warn" | "error",
+    level: "debug" | "info" | "success" | "warn" | "error",
     message: string,
     meta?: Record<string, unknown>,
   ): string {
@@ -295,6 +308,37 @@ export class ConsoleLogger implements Logger {
           console.debug(logMessage, metaStr);
         } else {
           console.debug(logMessage);
+        }
+      }
+    }
+  }
+
+  success(
+    message: string,
+    meta?: Record<string, unknown>,
+    context?: LogContext,
+  ): void {
+    if (this.shouldLog("info")) {
+      const mergedContext = { ...this.context, ...context };
+      const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
+      const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
+
+      if (this.outputFormat === "json") {
+        console.info(
+          this.formatJsonLog(
+            "success",
+            message,
+            sanitizedMeta as Record<string, unknown> | undefined,
+          ),
+        );
+      } else {
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const contextStr = this.formatContext(mergedContext);
+        const logMessage = `${this.formatLogLevel("success")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        if (metaStr) {
+          console.info(logMessage, metaStr);
+        } else {
+          console.info(logMessage);
         }
       }
     }

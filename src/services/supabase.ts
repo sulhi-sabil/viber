@@ -4,12 +4,15 @@ import {
   PostgrestError,
 } from "@supabase/supabase-js";
 import { CircuitBreaker } from "../utils/circuit-breaker";
-import { executeWithResilience } from "../utils/resilience";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { ResilienceConfig } from "../types/service-config";
-import { BaseService, ServiceHealth } from "./base-service";
+import {
+  BaseService,
+  ServiceHealth,
+  ServiceResilienceConfig,
+} from "./base-service";
 import {
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
@@ -158,26 +161,13 @@ export class SupabaseService extends BaseService {
     );
   }
 
-  private async executeWithResilience<T>(
-    operation: () => Promise<T>,
-    options: QueryOptions = {},
-    operationName: string = "Supabase operation",
-  ): Promise<T> {
-    return executeWithResilience<T>({
-      operation,
-      options,
-      defaultTimeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
-      circuitBreaker: this.circuitBreaker,
-      maxRetries: this.config.maxRetries,
+  protected getResilienceConfig(): ServiceResilienceConfig {
+    return {
+      timeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
+      maxRetries: this.config.maxRetries || DEFAULT_MAX_RETRY_ATTEMPTS,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
       retryableErrorCodes: ["PGRST116", "PGRST301", ...RETRYABLE_ERROR_CODES],
-      onRetry: (attempt: number, error: Error) => {
-        logger.warn(`Supabase ${operationName} retry attempt ${attempt}`, {
-          error: error.message,
-        });
-      },
-      timeoutOperationName: operationName,
-    });
+    };
   }
 
   async select<T extends DatabaseRow>(
