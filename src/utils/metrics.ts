@@ -8,6 +8,7 @@
  */
 
 import { logger } from "./logger";
+import { DEFAULT_LATENCY_HISTOGRAM_BUCKETS } from "../config/constants";
 
 /**
  * Metric label type for dimensional metrics
@@ -300,9 +301,7 @@ export class MetricsRegistry {
   createHistogram(
     name: string,
     help: string,
-    buckets: number[] = [
-      0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
-    ],
+    buckets: number[] = DEFAULT_LATENCY_HISTOGRAM_BUCKETS,
     labels?: MetricLabels,
   ): Histogram {
     const key = this.getMetricKey(name, labels);
@@ -515,7 +514,7 @@ export class ServiceMetricsCollector {
     this.requestDuration = this.registry.createHistogram(
       "service_request_duration_seconds",
       "Service request duration in seconds",
-      [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+      DEFAULT_LATENCY_HISTOGRAM_BUCKETS,
       { service: serviceName },
     );
 

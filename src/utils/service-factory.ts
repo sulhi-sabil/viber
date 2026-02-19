@@ -269,12 +269,24 @@ export class ServiceFactory {
     const healthCheck: HealthCheckFunction = async () => {
       const start = Date.now();
       const health = await service.healthCheck();
+      const responseTime = Date.now() - start;
+
+      const metricsCollector = this.serviceMetrics.get(serviceName);
+      if (metricsCollector) {
+        metricsCollector.recordRequest();
+        if (health.healthy) {
+          metricsCollector.recordRequestComplete(responseTime);
+        } else {
+          metricsCollector.recordError("health_check_failed");
+          metricsCollector.recordRequestComplete(responseTime);
+        }
+      }
 
       return {
         status: health.healthy ? "healthy" : "unhealthy",
         service: serviceName,
         timestamp: Date.now(),
-        responseTime: Date.now() - start,
+        responseTime,
         message: health.error,
       };
     };

@@ -179,6 +179,15 @@ export const HEALTH_CHECK_QUERY_LIMIT = 1;
 export const MS_TO_SECONDS = 1000;
 
 // ============================================================================
+// Metrics Configuration
+// ============================================================================
+
+/** Default histogram bucket boundaries for latency metrics (in seconds) */
+export const DEFAULT_LATENCY_HISTOGRAM_BUCKETS = [
+  0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+];
+
+// ============================================================================
 // Security Constants
 // ============================================================================
 
