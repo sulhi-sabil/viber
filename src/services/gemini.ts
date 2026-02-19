@@ -1,11 +1,14 @@
 import { CircuitBreaker } from "../utils/circuit-breaker";
-import { executeWithResilience } from "../utils/resilience";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { RateLimiter } from "../utils/rate-limiter";
 import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
-import { BaseService, ServiceHealth } from "./base-service";
+import {
+  BaseService,
+  ServiceHealth,
+  ServiceResilienceConfig,
+} from "./base-service";
 import {
   MIN_API_KEY_LENGTH,
   HEALTH_CHECK_TIMEOUT_MS,
@@ -421,27 +424,13 @@ export class GeminiService extends BaseService {
     });
   }
 
-  private async executeWithResilience<T>(
-    operation: () => Promise<T>,
-    options: GeminiRequestOptions = {},
-    operationName: string = "Gemini operation",
-  ): Promise<T> {
-    return executeWithResilience<T>({
-      operation,
-      options,
-      defaultTimeout: this.config.timeout || STREAMING_TIMEOUT_MS,
-      circuitBreaker: this.circuitBreaker,
+  protected getResilienceConfig(): ServiceResilienceConfig {
+    return {
+      timeout: this.config.timeout || STREAMING_TIMEOUT_MS,
       maxRetries: this.config.maxRetries,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
       retryableErrorCodes: RETRYABLE_ERROR_CODES,
-      onRetry: (attempt: number, error: Error) => {
-        logger.warn(`${operationName} retry attempt ${attempt}`, {
-          error: error.message,
-        });
-      },
-      timeoutOperationName: operationName,
-      operationName,
-    });
+    };
   }
 
   async healthCheck(): Promise<ServiceHealth> {

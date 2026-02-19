@@ -1,3 +1,12 @@
+import {
+  STREAMING_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
+} from "../config/constants";
+
 export interface ResilienceConfig {
   timeout?: number;
   maxRetries?: number;
@@ -6,10 +15,10 @@ export interface ResilienceConfig {
 }
 
 export const DEFAULT_RESILIENCE_CONFIG: Required<ResilienceConfig> = {
-  timeout: 30000,
-  maxRetries: 3,
-  circuitBreakerThreshold: 5,
-  circuitBreakerResetTimeout: 60000,
+  timeout: STREAMING_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
 };
 
 export interface RateLimitConfig {
@@ -18,6 +27,6 @@ export interface RateLimitConfig {
 }
 
 export const DEFAULT_RATE_LIMIT_CONFIG: Required<RateLimitConfig> = {
-  rateLimitRequests: 15,
-  rateLimitWindow: 60000,
+  rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
 };

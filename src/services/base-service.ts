@@ -1,14 +1,35 @@
 import {
   CircuitBreaker,
   CircuitBreakerOptions,
+  CircuitState,
 } from "../utils/circuit-breaker";
+import { executeWithResilience } from "../utils/resilience";
 import { logger } from "../utils/logger";
 import { ServiceMetricsCollector } from "../utils/metrics";
+
+const CIRCUIT_STATE_INDICATORS: Record<CircuitState, string> = {
+  [CircuitState.CLOSED]: "✅",
+  [CircuitState.OPEN]: "⛔",
+  [CircuitState.HALF_OPEN]: "⚠️",
+};
 
 export interface ServiceHealth {
   healthy: boolean;
   latency: number;
   error?: string;
+}
+
+export interface ResilienceExecutionOptions {
+  timeout?: number;
+  useCircuitBreaker?: boolean;
+  useRetry?: boolean;
+}
+
+export interface ServiceResilienceConfig {
+  timeout: number;
+  maxRetries: number;
+  retryableErrors: number[];
+  retryableErrorCodes: string[];
 }
 
 export abstract class BaseService {
@@ -49,10 +70,46 @@ export abstract class BaseService {
     return new CircuitBreaker({
       ...options,
       onStateChange: (state, reason) => {
+        const indicator = CIRCUIT_STATE_INDICATORS[state];
         logger.warn(
-          `${serviceName} circuit breaker state changed to ${state}: ${reason}`,
+          `${serviceName} circuit breaker ${indicator} state changed to ${state}: ${reason}`,
         );
       },
+    });
+  }
+
+  /**
+   * Get the resilience configuration for this service.
+   * Each service must implement this to provide its specific config.
+   */
+  protected abstract getResilienceConfig(): ServiceResilienceConfig;
+
+  /**
+   * Execute an operation with resilience patterns (circuit breaker, retry, timeout).
+   * This consolidates common resilience logic across all services.
+   */
+  protected async executeWithResilience<T>(
+    operation: () => Promise<T>,
+    options: ResilienceExecutionOptions = {},
+    operationName: string = "Service operation",
+  ): Promise<T> {
+    const config = this.getResilienceConfig();
+
+    return executeWithResilience<T>({
+      operation,
+      options,
+      defaultTimeout: config.timeout,
+      circuitBreaker: this.circuitBreaker,
+      maxRetries: config.maxRetries,
+      retryableErrors: config.retryableErrors,
+      retryableErrorCodes: config.retryableErrorCodes,
+      onRetry: (attempt: number, error: Error) => {
+        logger.warn(`${operationName} retry attempt ${attempt}`, {
+          error: error.message,
+        });
+      },
+      timeoutOperationName: operationName,
+      operationName,
     });
   }
 
