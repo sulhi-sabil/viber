@@ -49,6 +49,16 @@
 
 ### Phase 3 - Flexy Modularization (ULW-Loop) - CURRENT
 
+**[MODULARIZE] Eliminate Hardcoded Values in Health Check and Circuit Breaker**
+
+- **Status**: ✅ Complete
+- **Description**: Moved remaining hardcoded values to configurable constants for better maintainability
+- **Files Modified**:
+  - `src/config/constants.ts` - Added `HEALTH_CHECK_QUERY_LIMIT` and `MS_TO_SECONDS` constants
+  - `src/services/supabase.ts` - Updated to use `HEALTH_CHECK_QUERY_LIMIT` constant instead of hardcoded `.limit(1)`
+  - `src/utils/circuit-breaker.ts` - Updated to use `MS_TO_SECONDS` constant instead of hardcoded `/ 1000` conversions
+- **Impact**: All magic numbers now have semantic meaning and are centralized in constants.ts, making the code more maintainable and self-documenting
+
 **[MODULARIZE] Replace Hardcoded Health Check Timeout with Constant**
 
 - **Status**: ✅ Complete
@@ -70,6 +80,22 @@
 - **Impact**: API endpoints and sensitive data patterns are now centralized and configurable, making the library easier to customize and maintain
 
 ### Phase 2 - Pallete UX Improvements (ULW-Loop) - CURRENT
+
+**[IMPROVE] Add Visual State Indicators to Circuit Breaker Logs**
+
+- **Status**: ✅ Complete
+- **Description**: Enhanced circuit breaker state change logs with visual emoji indicators for immediate state recognition
+- **Files Modified**:
+  - `src/services/base-service.ts` - Added `CIRCUIT_STATE_INDICATORS` mapping and updated logging
+- **Implementation Details**:
+  - Added visual indicators: ✅ (CLOSED/healthy), ⛔ (OPEN/blocking), ⚠️ (HALF_OPEN/testing)
+  - State changes now display visual indicator alongside state name in logs
+  - Makes log scanning faster - developers can instantly recognize circuit state at a glance
+  - No breaking changes - purely visual enhancement to existing log output
+- **Impact**:
+  - Improved developer experience when monitoring circuit breaker states
+  - Faster troubleshooting - visual indicators make state changes stand out in logs
+  - More intuitive log reading - emoji provide immediate context
 
 **[IMPROVE] Add RequestID/Correlation ID Tracking to Logger**
 

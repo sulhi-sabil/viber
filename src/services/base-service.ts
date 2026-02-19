@@ -1,9 +1,16 @@
 import {
   CircuitBreaker,
   CircuitBreakerOptions,
+  CircuitState,
 } from "../utils/circuit-breaker";
 import { logger } from "../utils/logger";
 import { ServiceMetricsCollector } from "../utils/metrics";
+
+const CIRCUIT_STATE_INDICATORS: Record<CircuitState, string> = {
+  [CircuitState.CLOSED]: "✅",
+  [CircuitState.OPEN]: "⛔",
+  [CircuitState.HALF_OPEN]: "⚠️",
+};
 
 export interface ServiceHealth {
   healthy: boolean;
@@ -49,8 +56,9 @@ export abstract class BaseService {
     return new CircuitBreaker({
       ...options,
       onStateChange: (state, reason) => {
+        const indicator = CIRCUIT_STATE_INDICATORS[state];
         logger.warn(
-          `${serviceName} circuit breaker state changed to ${state}: ${reason}`,
+          `${serviceName} circuit breaker ${indicator} state changed to ${state}: ${reason}`,
         );
       },
     });

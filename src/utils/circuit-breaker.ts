@@ -6,6 +6,7 @@ import {
   CIRCUIT_BREAKER_DEFAULT_MONITOR_WINDOW_MS,
   CIRCUIT_BREAKER_MIN_CLEANUP_THRESHOLD,
   CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER,
+  MS_TO_SECONDS,
 } from "../config/constants";
 
 export enum CircuitState {
@@ -55,7 +56,7 @@ export class CircuitBreaker {
           ? this.mergedOptions.resetTimeout -
             (Date.now() - this.lastFailureTime)
           : this.mergedOptions.resetTimeout;
-        const remainingSec = Math.ceil(remainingMs / 1000);
+        const remainingSec = Math.ceil(remainingMs / MS_TO_SECONDS);
         const failureInfo =
           this.failureCount > 0
             ? ` (${this.failureCount}/${this.mergedOptions.failureThreshold} failures)`
@@ -66,7 +67,9 @@ export class CircuitBreaker {
           {
             failureCount: this.failureCount,
             failureThreshold: this.mergedOptions.failureThreshold,
-            resetTimeoutSec: Math.ceil(this.mergedOptions.resetTimeout / 1000),
+            resetTimeoutSec: Math.ceil(
+              this.mergedOptions.resetTimeout / MS_TO_SECONDS,
+            ),
             remainingSec,
             lastFailureTime: this.lastFailureTime,
           },

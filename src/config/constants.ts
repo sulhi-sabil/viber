@@ -169,6 +169,16 @@ export const LOGGER_SANITIZATION_CACHE_SIZE = 1000;
 export const LOGGER_MAX_OBJECT_KEYS_PER_LEVEL = 50;
 
 // ============================================================================
+// Health Check Configuration
+// ============================================================================
+
+/** Query limit for health check operations */
+export const HEALTH_CHECK_QUERY_LIMIT = 1;
+
+/** Milliseconds to seconds conversion factor */
+export const MS_TO_SECONDS = 1000;
+
+// ============================================================================
 // Security Constants
 // ============================================================================
 

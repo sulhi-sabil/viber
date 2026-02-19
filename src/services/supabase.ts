@@ -18,6 +18,7 @@ import {
   DEFAULT_MAX_RETRY_ATTEMPTS,
   CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  HEALTH_CHECK_QUERY_LIMIT,
 } from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
@@ -458,7 +459,10 @@ export class SupabaseService extends BaseService {
 
   async healthCheck(): Promise<ServiceHealth> {
     return this.executeHealthCheck(async () => {
-      const { error } = await this.client.from("users").select("id").limit(1);
+      const { error } = await this.client
+        .from("users")
+        .select("id")
+        .limit(HEALTH_CHECK_QUERY_LIMIT);
 
       if (error && error.code !== "PGRST116") {
         throw error;
