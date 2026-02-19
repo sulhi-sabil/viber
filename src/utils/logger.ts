@@ -451,3 +451,34 @@ const getLogLevel = (): "debug" | "info" | "warn" | "error" => {
 };
 
 export const logger = new ConsoleLogger(getLogLevel());
+
+/**
+ * Prints a startup banner with version and feature information
+ * Only shows in non-production environments for better developer UX
+ */
+export const printStartupBanner = (version: string = "1.0.0"): void => {
+  // Skip banner in production for cleaner logs
+  if (
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV === "production"
+  ) {
+    return;
+  }
+
+  const banner = `
+╔════════════════════════════════════════════════════════════╗
+║   🔌 VIBER INTEGRATION LAYER v${version.padEnd(26)}║
+║                                                            ║
+║   🛡️  Resilient API integrations with:                    ║
+║      • Circuit breaker pattern                             ║
+║      • Intelligent retry logic                             ║
+║      • Rate limiting                                       ║
+║      • Health checks                                       ║
+║      • Idempotency support                                 ║
+║                                                            ║
+║   📚 Docs: Set LOG_LEVEL=debug for verbose output          ║
+╚════════════════════════════════════════════════════════════╝
+  `;
+
+  console.log(banner);
+};
