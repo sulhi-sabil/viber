@@ -2,6 +2,7 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+import { serviceFactory } from "../utils/service-factory";
 import { RateLimiter } from "../utils/rate-limiter";
 import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
 import {
@@ -481,8 +482,7 @@ export class GeminiService extends BaseService {
   }
 }
 
-// Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
+
 
 let geminiInstance: GeminiService | null = null;
 

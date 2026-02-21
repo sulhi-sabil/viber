@@ -7,7 +7,9 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+import { serviceFactory } from "../utils/service-factory";
 import { ResilienceConfig } from "../types/service-config";
+import { DatabaseRow } from "../types/database";
 import {
   BaseService,
   ServiceHealth,
@@ -31,12 +33,8 @@ export interface SupabaseConfig extends ResilienceConfig {
   serviceRoleKey?: string;
 }
 
-export interface DatabaseRow {
-  id: string;
-  created_at?: string;
-  updated_at?: string;
-  [key: string]: unknown;
-}
+// Re-export DatabaseRow for backward compatibility
+export type { DatabaseRow } from "../types/database";
 
 export interface QueryOptions {
   timeout?: number;
@@ -550,8 +548,7 @@ export class SupabaseService extends BaseService {
   }
 }
 
-// Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
+
 
 let supabaseInstance: SupabaseService | null = null;
 
