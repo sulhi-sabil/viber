@@ -1,5 +1,30 @@
 import { ValidationError } from "./errors";
 
+/**
+ * Cached regex patterns for validation.
+ * Compiled once at module load to avoid repeated regex compilation in hot paths.
+ */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Combined HTML escape regex for single-pass sanitization.
+ * Matches all characters that need escaping: & < > " '
+ */
+const HTML_ESCAPE_REGEX = /[&<>"']/g;
+
+/**
+ * HTML entity escape mappings.
+ */
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#039;',
+};
+
+
 export interface ValidationRule {
   validate: (value: unknown, fieldName?: string) => void;
 }
@@ -83,8 +108,7 @@ export class Validator {
 
   static email(value: unknown, fieldName: string = "field"): void {
     this.string(value, fieldName);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value as string)) {
+    if (!EMAIL_REGEX.test(value as string)) {
       throw new ValidationError(`${fieldName} must be a valid email address`);
     }
   }
@@ -100,9 +124,7 @@ export class Validator {
 
   static uuid(value: unknown, fieldName: string = "field"): void {
     this.string(value, fieldName);
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(value as string)) {
+    if (!UUID_REGEX.test(value as string)) {
       throw new ValidationError(`${fieldName} must be a valid UUID`);
     }
   }
@@ -201,12 +223,7 @@ export class Validator {
     }
 
     if (options.escapeHtml) {
-      result = result
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+      result = result.replace(HTML_ESCAPE_REGEX, (char) => HTML_ESCAPES[char]!);
     }
 
     return result;

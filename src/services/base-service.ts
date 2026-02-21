@@ -7,11 +7,11 @@ import { executeWithResilience } from "../utils/resilience";
 import { logger } from "../utils/logger";
 import { ServiceMetricsCollector } from "../utils/metrics";
 
-const CIRCUIT_STATE_INDICATORS: Record<CircuitState, string> = {
+const CIRCUIT_STATE_INDICATORS: Record<CircuitState, string> = Object.freeze({
   [CircuitState.CLOSED]: "✅",
   [CircuitState.OPEN]: "⛔",
   [CircuitState.HALF_OPEN]: "⚠️",
-};
+});
 
 export interface ServiceHealth {
   healthy: boolean;

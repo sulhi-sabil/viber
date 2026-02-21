@@ -2,6 +2,12 @@ import { ValidationError } from "./errors";
 import { logger } from "./logger";
 import { IDEMPOTENCY_DEFAULT_TTL_MS } from "../config/constants";
 
+/**
+ * Cached UUID regex for idempotency key validation.
+ * Compiled once at module load to avoid repeated regex compilation.
+ */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface IdempotencyResult<T> {
   data: T;
   cached: boolean;
@@ -160,10 +166,7 @@ export class IdempotencyManager {
   }
 
   private validateIdempotencyKey(idempotencyKey: string): void {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    if (!uuidRegex.test(idempotencyKey)) {
+    if (!UUID_REGEX.test(idempotencyKey)) {
       throw new ValidationError(
         `Invalid idempotency key: must be a valid UUID, got: ${idempotencyKey}`,
       );
