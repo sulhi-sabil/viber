@@ -335,7 +335,7 @@ export class ServiceFactory {
    */
   printMetricsTable(options?: FormatterOptions): string {
     const table = formatServiceFactoryMetrics(this, options);
-    console.log(table);
+    logger.debug(table);
     return table;
   }
 
