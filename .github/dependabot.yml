@@ -20,6 +20,12 @@ updates:
       - "automated"
     # Limit the number of open pull requests
     open-pull-requests-limit: 10
+    # Target branch for PRs
+    target-branch: "main"
+    # Versioning strategy for npm
+    versioning-strategy: "increase"
+    # Rebase strategy
+    rebase-strategy: "auto"
     # Reviewers to assign to pull requests
     reviewers:
       - "sulhi-sabil"
@@ -27,6 +33,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
+
     # Group all patch updates together
     groups:
       patch-updates:
@@ -57,3 +64,7 @@ updates:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
       include: "scope"
+    # Target branch for PRs
+    target-branch: "main"
+    # Rebase strategy
+    rebase-strategy: "auto"
