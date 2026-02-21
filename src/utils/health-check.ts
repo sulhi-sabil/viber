@@ -13,6 +13,8 @@
 
 import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 import { logger } from "./logger";
+import { InternalError } from "./errors";
+
 
 /**
  * Health status values
@@ -144,7 +146,7 @@ export class HealthCheckRegistry {
     config: Partial<HealthCheckConfig> = {},
   ): void {
     if (this.checks.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Health check already registered for service: ${service}`,
       );
     }
@@ -163,7 +165,7 @@ export class HealthCheckRegistry {
 
     // Check for circular dependencies
     if (dependencies.has(service)) {
-      throw new Error(`Service '${service}' cannot depend on itself`);
+      throw new InternalError(`Service '${service}' cannot depend on itself`);
     }
 
     this.checks.set(service, {
@@ -233,7 +235,7 @@ export class HealthCheckRegistry {
   async check(service: string): Promise<HealthCheckResult> {
     const entry = this.checks.get(service);
     if (!entry) {
-      throw new Error(`No health check registered for service: ${service}`);
+      throw new InternalError(`No health check registered for service: ${service}`);
     }
 
     const startTime = Date.now();
@@ -366,7 +368,7 @@ export class HealthCheckRegistry {
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-        reject(new Error(`Health check timed out after ${timeout}ms`));
+        reject(new InternalError(`Health check timed out after ${timeout}ms`));
       }, timeout);
       timer.unref();
 
@@ -390,7 +392,7 @@ export class HealthCheckRegistry {
     visited: Set<string> = new Set(),
   ): void {
     if (visited.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Circular dependency detected involving service: ${service}`,
       );
     }

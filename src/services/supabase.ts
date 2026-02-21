@@ -7,7 +7,7 @@ import { CircuitBreaker } from "../utils/circuit-breaker";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
-import { ResilienceConfig } from "../types/service-config";
+import { ResilienceConfig, QueryOptions } from "../types/service-config";
 import {
   BaseService,
   ServiceHealth,
@@ -38,11 +38,7 @@ export interface DatabaseRow {
   [key: string]: unknown;
 }
 
-export interface QueryOptions {
-  timeout?: number;
-  useCircuitBreaker?: boolean;
-  useRetry?: boolean;
-}
+
 
 const DEFAULT_SUPABASE_CONFIG: Required<
   Pick<

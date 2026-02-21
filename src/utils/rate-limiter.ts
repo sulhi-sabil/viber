@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { sleep } from "./timing";
 import {
   RATE_LIMITER_DEFAULT_MAX_REQUESTS,
   RATE_LIMITER_DEFAULT_WINDOW_MS,
@@ -74,7 +75,7 @@ export class RateLimiter {
           logger.warn(
             `${this.serviceName} rate limit reached. Waiting ${waitTime}ms`,
           );
-          await this.sleep(waitTime);
+          await sleep(waitTime);
         }
         // If waitTime <= 0, the oldest request has expired, continue loop to recalculate
       }
@@ -152,15 +153,7 @@ export class RateLimiter {
     this.lastCleanupTime = now;
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      const timer = setTimeout(resolve, ms);
-      const timerRef = timer as unknown as { unref?: () => void };
-      if (typeof timerRef.unref === "function") {
-        timerRef.unref();
-      }
-    });
-  }
+
 }
 
 export function createRateLimiter(options?: RateLimiterOptions): RateLimiter {

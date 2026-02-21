@@ -30,3 +30,13 @@ export const DEFAULT_RATE_LIMIT_CONFIG: Required<RateLimitConfig> = {
   rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
   rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
 };
+
+export interface QueryOptions {
+  /** Timeout for the operation in milliseconds */
+  timeout?: number;
+  /** Whether to use circuit breaker protection */
+  useCircuitBreaker?: boolean;
+  /** Whether to use retry logic */
+  useRetry?: boolean;
+}
+
