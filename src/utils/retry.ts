@@ -9,6 +9,10 @@ import {
   RETRYABLE_ERROR_CODES,
 } from "../config/constants";
 
+// Cached Sets for default retryable values - avoid creating new Sets on every retry() call
+const DEFAULT_RETRYABLE_ERROR_SET = new Set(RETRYABLE_HTTP_STATUS_CODES);
+const DEFAULT_RETRYABLE_ERROR_CODE_SET = new Set(RETRYABLE_ERROR_CODES);
+
 export interface RetryOptions {
   maxAttempts?: number;
   initialDelay?: number;
@@ -109,8 +113,13 @@ export async function retry<T>(
     maxDelay,
   } = finalOptions;
 
-  const retryableErrorSet = new Set(retryableErrors);
-  const retryableErrorCodeSet = new Set(retryableErrorCodes);
+  // Use cached Sets for defaults, only create new Sets for custom values
+  const retryableErrorSet = options.retryableErrors
+    ? new Set(retryableErrors)
+    : DEFAULT_RETRYABLE_ERROR_SET;
+  const retryableErrorCodeSet = options.retryableErrorCodes
+    ? new Set(retryableErrorCodes)
+    : DEFAULT_RETRYABLE_ERROR_CODE_SET;
 
   let lastError: Error | undefined;
   let attempt = 1;

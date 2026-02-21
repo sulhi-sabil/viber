@@ -57,11 +57,20 @@ export class RateLimiter {
     while (true) {
       this.lazyCleanup(now);
 
-      const activeRequests = this.requests.filter(
+      // Optimization: Since timestamps are ordered (pushed chronologically),
+      // find the first non-expired timestamp and count from there.
+      // This is O(n) worst case but avoids creating a new array.
+      const firstActiveIndex = this.requests.findIndex(
         (time) => now - time < this.windowMs,
-      ).length;
+      );
+      const activeRequests =
+        firstActiveIndex === -1 ? 0 : this.requests.length - firstActiveIndex;
 
       if (activeRequests < this.maxRequests) {
+        // Remove expired entries at the start (in-place splice)
+        if (firstActiveIndex > 0) {
+          this.requests.splice(0, firstActiveIndex);
+        }
         break;
       }
 
