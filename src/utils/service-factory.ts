@@ -4,6 +4,10 @@ import {
 } from "./circuit-breaker";
 import { logger } from "./logger";
 import {
+  formatServiceFactoryMetrics,
+  type FormatterOptions,
+} from "./formatters";
+import {
   SupabaseService,
   SupabaseConfig,
   isSupabaseService,
@@ -320,6 +324,19 @@ export class ServiceFactory {
    */
   exportMetrics(): string {
     return this.metricsRegistry.toPrometheusString();
+  }
+
+  /**
+   * Print a formatted metrics table to console
+   * Human-readable ASCII table format (useful for debugging/monitoring)
+   * 
+   * @param options - Formatter options
+   * @returns Formatted metrics table string
+   */
+  printMetricsTable(options?: FormatterOptions): string {
+    const table = formatServiceFactoryMetrics(this, options);
+    console.log(table);
+    return table;
   }
 
   /**

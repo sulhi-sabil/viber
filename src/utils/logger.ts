@@ -453,6 +453,28 @@ const getLogLevel = (): "debug" | "info" | "warn" | "error" => {
 export const logger = new ConsoleLogger(getLogLevel());
 
 /**
+ * Calculate visual display width of a string
+ * Accounts for emojis (width 2) vs ASCII chars (width 1)
+ */
+function getVisualWidth(str: string): number {
+  let width = 0;
+  for (const char of str) {
+    // Emoji and wide characters have width 2
+    width += char.charCodeAt(0) > 127 ? 2 : 1;
+  }
+  return width;
+}
+
+/**
+ * Pad string to visual width (handles emojis correctly)
+ */
+function padToVisualWidth(str: string, targetWidth: number): string {
+  const currentWidth = getVisualWidth(str);
+  const padding = Math.max(0, targetWidth - currentWidth);
+  return str + " ".repeat(padding);
+}
+
+/**
  * Prints a startup banner with version and feature information
  * Only shows in non-production environments for better developer UX
  */
@@ -465,9 +487,15 @@ export const printStartupBanner = (version: string = "1.0.0"): void => {
     return;
   }
 
+  // Calculate proper padding for visual alignment (box is 60 chars wide)
+  const CONTENT_WIDTH = 58; // Space between ║ chars
+  const titlePrefix = "║   ";
+  const titleText = `🔌 VIBER INTEGRATION LAYER v${version}`;
+  const paddedTitle = padToVisualWidth(titleText, CONTENT_WIDTH - titlePrefix.length);
+
   const banner = `
 ╔════════════════════════════════════════════════════════════╗
-║   🔌 VIBER INTEGRATION LAYER v${version.padEnd(26)}║
+${titlePrefix}${paddedTitle}║
 ║                                                            ║
 ║   🛡️  Resilient API integrations with:                    ║
 ║      • Circuit breaker pattern                             ║
