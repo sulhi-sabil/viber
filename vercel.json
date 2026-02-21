@@ -2,8 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "fluid": true,
   "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
+    "api/health.ts": {
+      "maxDuration": 10
+    },
+    "api/status.ts": {
+      "maxDuration": 5
+    },
+    "api/ai/generate.ts": {
       "maxDuration": 30
     }
   },
@@ -22,7 +27,25 @@
       ]
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/health",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=10, s-maxage=10, stale-while-revalidate=30"
+        }
+      ]
+    },
+    {
+      "source": "/api/status",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=5, s-maxage=5, stale-while-revalidate=15"
+        }
+      ]
+    },
+    {
+      "source": "/api/ai/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -31,5 +54,10 @@
       ]
     }
   ],
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/health",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

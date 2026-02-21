@@ -91,3 +91,33 @@ export function internalError(
 ): void {
   error(res, "INTERNAL_ERROR", message, 500, details);
 }
+
+/**
+ * Send a 429 Rate Limited error with headers
+ */
+export function rateLimited(
+  res: VercelResponse,
+  message: string,
+  options?: {
+    retryAfter?: number;
+    limit?: number;
+    remaining?: number;
+    reset?: number;
+  },
+): void {
+  // Set rate limit headers
+  if (options?.limit !== undefined) {
+    res.setHeader("X-RateLimit-Limit", options.limit);
+  }
+  if (options?.remaining !== undefined) {
+    res.setHeader("X-RateLimit-Remaining", options.remaining);
+  }
+  if (options?.reset !== undefined) {
+    res.setHeader("X-RateLimit-Reset", options.reset);
+  }
+  if (options?.retryAfter !== undefined) {
+    res.setHeader("Retry-After", options.retryAfter);
+  }
+
+  error(res, "RATE_LIMIT_EXCEEDED", message, 429, options);
+}

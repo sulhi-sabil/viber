@@ -4,8 +4,10 @@ import {
   badRequest,
   serviceUnavailable,
   internalError,
+  rateLimited,
 } from "../_lib/response";
 import { getGemini } from "../_lib/services";
+import { RateLimitError } from "../../src/utils/errors";
 
 interface GenerateRequest {
   prompt: string;
@@ -72,9 +74,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
     });
   } catch (err) {
+    // Handle rate limit errors with proper 429 response and headers
+    if (err instanceof RateLimitError) {
+      const retryAfter = err.details?.retryAfter as number | undefined;
+      rateLimited(res, err.message, { retryAfter });
+      return;
+    }
+
     const message = err instanceof Error ? err.message : "Unknown error";
     internalError(res, `Failed to generate text: ${message}`, {
       prompt: prompt.substring(0, 100),
     });
-  }
 }
