@@ -13,6 +13,7 @@ export * from "./utils/idempotency";
 export * from "./utils/validator";
 export * from "./utils/service-factory";
 export * from "./utils/health-check";
+export * from "./utils/health-middleware";
 export * from "./utils/metrics";
 export * from "./utils/formatters";
 export * from "./services/base-service";
