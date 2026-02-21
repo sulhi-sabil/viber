@@ -169,7 +169,7 @@ describe("createApiError", () => {
   });
 
   it("should handle AppError with undefined code", () => {
-    const error = new Error("Test error") as any;
+    const error = new Error("Test error") as Error & { code?: ErrorCode; isOperational?: boolean };
     delete error.code;
     error.isOperational = true;
     const apiError = createApiError(error);

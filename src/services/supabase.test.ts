@@ -6,6 +6,7 @@ import {
   SupabaseConfig,
   DatabaseRow,
 } from "../services/supabase";
+import type { SupabaseClientOptions } from "@supabase/supabase-js";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { CircuitBreaker } from "../utils/circuit-breaker";
 
@@ -19,7 +20,7 @@ const mockAdminClient = {
 };
 
 jest.mock("@supabase/supabase-js", () => ({
-  createClient: jest.fn((_url: string, key: string, _options: any) => {
+  createClient: jest.fn((_url: string, key: string, _options?: SupabaseClientOptions<string>) => {
     if (key === "test-service-role-key") {
       return mockAdminClient;
     }
