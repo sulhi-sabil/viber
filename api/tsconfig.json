@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "./.vercel/output",
+    "rootDir": "..",
+    "baseUrl": "..",
+    "paths": {
+      "viber-integration-layer": ["./src/index.ts"],
+      "viber-integration-layer/*": ["./src/*"]
+    },
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts", "../src/**/*.ts"],
+  "exclude": ["../node_modules", "../dist", "../coverage"]
+}
