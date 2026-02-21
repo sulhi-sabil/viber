@@ -29,6 +29,8 @@ import {
   GEMINI_API_BASE_URL,
   GEMINI_API_VERSION_PATH,
   API_KEY_PREFIX_LENGTH,
+  HTTP_STATUS_TOO_MANY_REQUESTS,
+  HTTP_STATUS_INTERNAL_ERROR,
 } from "../config/constants";
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
@@ -402,7 +404,7 @@ export class GeminiService extends BaseService {
       details: errorDetails,
     });
 
-    if (response.status === 429) {
+    if (response.status === HTTP_STATUS_TOO_MANY_REQUESTS) {
       const retryAfter = response.headers.get("Retry-After");
       let retryDelay: number | undefined;
       if (retryAfter) {
@@ -412,7 +414,7 @@ export class GeminiService extends BaseService {
       throw new RateLimitError("Gemini API rate limit exceeded", retryDelay);
     }
 
-    if (response.status >= 500) {
+    if (response.status >= HTTP_STATUS_INTERNAL_ERROR) {
       throw new GeminiError(`Gemini API server error: ${errorMessage}`, {
         status: response.status,
         details: errorDetails,

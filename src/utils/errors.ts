@@ -201,7 +201,7 @@ export class SupabaseError extends AppError {
     super(
       ErrorCode.SUPABASE_ERROR,
       message,
-      500,
+      HTTP_STATUS_INTERNAL_ERROR,
       ErrorSeverity.HIGH,
       true,
       details,
@@ -215,7 +215,7 @@ export class GeminiError extends AppError {
     super(
       ErrorCode.GEMINI_ERROR,
       message,
-      500,
+      HTTP_STATUS_INTERNAL_ERROR,
       ErrorSeverity.HIGH,
       true,
       details,
@@ -229,7 +229,7 @@ export class CloudflareError extends AppError {
     super(
       ErrorCode.CLOUDFLARE_ERROR,
       message,
-      500,
+      HTTP_STATUS_INTERNAL_ERROR,
       ErrorSeverity.HIGH,
       true,
       details,

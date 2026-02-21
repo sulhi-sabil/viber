@@ -32,6 +32,28 @@ export const DEFAULT_RETRY_MAX_DELAY_MS = 10000;
 /** Default backoff multiplier for retries */
 export const DEFAULT_RETRY_BACKOFF_MULTIPLIER = 2;
 
+// ============================================================================
+// Retry Policy Presets
+// ============================================================================
+
+/** Aggressive retry policy - initial delay (ms) */
+export const RETRY_POLICY_AGGRESSIVE_INITIAL_DELAY_MS = 1000;
+
+/** Aggressive retry policy - maximum delay (ms) */
+export const RETRY_POLICY_AGGRESSIVE_MAX_DELAY_MS = 30000;
+
+/** Aggressive retry policy - maximum attempts */
+export const RETRY_POLICY_AGGRESSIVE_MAX_ATTEMPTS = 5;
+
+/** Conservative retry policy - initial delay (ms) */
+export const RETRY_POLICY_CONSERVATIVE_INITIAL_DELAY_MS = 500;
+
+/** Conservative retry policy - maximum delay (ms) */
+export const RETRY_POLICY_CONSERVATIVE_MAX_DELAY_MS = 5000;
+
+/** Conservative retry policy - maximum attempts */
+export const RETRY_POLICY_CONSERVATIVE_MAX_ATTEMPTS = 2;
+
 /** HTTP status codes that trigger automatic retry */
 export const RETRYABLE_HTTP_STATUS_CODES = [
   408, // Request Timeout

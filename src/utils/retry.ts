@@ -12,6 +12,12 @@ import {
   HTTP_STATUS_BAD_GATEWAY,
   HTTP_STATUS_SERVICE_UNAVAILABLE,
   HTTP_STATUS_GATEWAY_TIMEOUT,
+  RETRY_POLICY_AGGRESSIVE_INITIAL_DELAY_MS,
+  RETRY_POLICY_AGGRESSIVE_MAX_DELAY_MS,
+  RETRY_POLICY_AGGRESSIVE_MAX_ATTEMPTS,
+  RETRY_POLICY_CONSERVATIVE_INITIAL_DELAY_MS,
+  RETRY_POLICY_CONSERVATIVE_MAX_DELAY_MS,
+  RETRY_POLICY_CONSERVATIVE_MAX_ATTEMPTS,
 } from "../config/constants";
 
 export interface RetryOptions {
@@ -34,10 +40,10 @@ export const RetryPolicies = {
    * Use for critical operations that must succeed
    */
   AGGRESSIVE: {
-    maxAttempts: 5,
-    initialDelay: 1000,
-    maxDelay: 30000,
-    backoffMultiplier: 2,
+    maxAttempts: RETRY_POLICY_AGGRESSIVE_MAX_ATTEMPTS,
+    initialDelay: RETRY_POLICY_AGGRESSIVE_INITIAL_DELAY_MS,
+    maxDelay: RETRY_POLICY_AGGRESSIVE_MAX_DELAY_MS,
+    backoffMultiplier: DEFAULT_RETRY_BACKOFF_MULTIPLIER,
     retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
     retryableErrorCodes: RETRYABLE_ERROR_CODES,
   } as const,
@@ -47,10 +53,10 @@ export const RetryPolicies = {
    * Use for operations where fast failure is preferred
    */
   CONSERVATIVE: {
-    maxAttempts: 2,
-    initialDelay: 500,
-    maxDelay: 5000,
-    backoffMultiplier: 2,
+    maxAttempts: RETRY_POLICY_CONSERVATIVE_MAX_ATTEMPTS,
+    initialDelay: RETRY_POLICY_CONSERVATIVE_INITIAL_DELAY_MS,
+    maxDelay: RETRY_POLICY_CONSERVATIVE_MAX_DELAY_MS,
+    backoffMultiplier: DEFAULT_RETRY_BACKOFF_MULTIPLIER,
     retryableErrors: [
       HTTP_STATUS_TOO_MANY_REQUESTS,
       HTTP_STATUS_INTERNAL_ERROR,
