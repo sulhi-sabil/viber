@@ -290,46 +290,51 @@ export class GeminiService extends BaseService {
         const decoder = new TextDecoder();
         let buffer = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
 
-          if (done) break;
+            if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
 
-          for (const line of lines) {
-            if (line.trim().startsWith("data:")) {
-              try {
-                const jsonStr = line.trim().slice(5);
-                const chunk = JSON.parse(jsonStr) as GeminiResponse;
+            for (const line of lines) {
+              if (line.trim().startsWith("data:")) {
+                try {
+                  const jsonStr = line.trim().slice(5);
+                  const chunk = JSON.parse(jsonStr) as GeminiResponse;
 
-                // Safely extract text from nested arrays with validation
-                const candidate = chunk.candidates?.[0];
-                const text = candidate?.content?.parts?.[0]?.text || "";
-                const finishReason = candidate?.finishReason;
+                  // Safely extract text from nested arrays with validation
+                  const candidate = chunk.candidates?.[0];
+                  const text = candidate?.content?.parts?.[0]?.text || "";
+                  const finishReason = candidate?.finishReason;
 
-                const streamingChunk: StreamingChunk = {
-                  text,
-                  finishReason,
-                  usageMetadata: chunk.usageMetadata,
-                };
+                  const streamingChunk: StreamingChunk = {
+                    text,
+                    finishReason,
+                    usageMetadata: chunk.usageMetadata,
+                  };
 
-                if (onChunk) {
-                  onChunk(streamingChunk);
+                  if (onChunk) {
+                    onChunk(streamingChunk);
+                  }
+
+                  if (chunk.usageMetadata) {
+                    this.costTracker += chunk.usageMetadata.totalTokenCount;
+                  }
+                } catch (e) {
+                  logger.warn("Failed to parse streaming chunk", {
+                    error: e instanceof Error ? e.message : String(e),
+                  });
                 }
-
-                if (chunk.usageMetadata) {
-                  this.costTracker += chunk.usageMetadata.totalTokenCount;
-                }
-              } catch (e) {
-                logger.warn("Failed to parse streaming chunk", {
-                  error: e instanceof Error ? e.message : String(e),
-                });
               }
             }
           }
+        } finally {
+          // Ensure reader is always released to prevent resource leaks
+          reader.releaseLock();
         }
 
         logger.debug("Gemini streaming complete");
