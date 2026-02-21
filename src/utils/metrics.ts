@@ -17,6 +17,21 @@ import { DEFAULT_LATENCY_HISTOGRAM_BUCKETS } from "../config/constants";
 export type MetricLabels = Record<string, string | number>;
 
 /**
+ * Format metric labels into Prometheus label string format
+ * @param labels - Optional metric labels
+ * @returns Formatted label string (e.g., `{label="value"}`) or empty string if no labels
+ */
+function formatMetricLabels(labels: MetricLabels | undefined): string {
+  if (!labels || Object.keys(labels).length === 0) {
+    return "";
+  }
+  const labelPairs = Object.entries(labels).map(
+    ([key, value]) => `${key}="${value}"`,
+  );
+  return `{${labelPairs.join(",")}}`;
+}
+
+/**
  * Counter metric for incrementing values
  */
 export interface Counter {
@@ -118,13 +133,7 @@ class CounterImpl implements Counter {
   }
 
   private formatLabels(): string {
-    if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
-    }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    return formatMetricLabels(this.labels);
   }
 }
 
@@ -208,13 +217,7 @@ class HistogramImpl implements Histogram {
   }
 
   private formatLabels(): string {
-    if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
-    }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    return formatMetricLabels(this.labels);
   }
 }
 
@@ -259,13 +262,7 @@ class GaugeImpl implements Gauge {
   }
 
   private formatLabels(): string {
-    if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
-    }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    return formatMetricLabels(this.labels);
   }
 }
 
