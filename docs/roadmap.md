@@ -1,5 +1,7 @@
 # Strategic Roadmap
 
+> **Historical Reference**: This roadmap reflects the original 2024 planning. For current status, see the project issues and recent commits.
+
 ## Version 1.0 - Foundation (Q1 2024)
 
 **Status**: In Progress (79% complete)
