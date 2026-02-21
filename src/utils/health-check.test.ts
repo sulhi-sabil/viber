@@ -288,7 +288,7 @@ describe("HealthCheckRegistry", () => {
 
       expect(result.status).toBe("unhealthy");
       expect(result.dependencies).toBeDefined();
-      expect(result.dependencies?.dependency!.status).toBe("unhealthy");
+      expect(result.dependencies!.dependency!.status).toBe("unhealthy");
     });
 
     it("should mark service degraded when dependency is degraded", async () => {
