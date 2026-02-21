@@ -302,6 +302,12 @@ export class SupabaseService extends BaseService {
     rows: Partial<T>[],
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
+    Validator.string(table, "table");
+    Validator.array(rows, "rows");
+    rows.forEach((row, index) => {
+      Validator.required(row, `rows[${index}]`);
+    });
+
     return this.executeWithResilience(
       async () => {
         const { data, error } = await this.client

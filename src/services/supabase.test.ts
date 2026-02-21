@@ -6,7 +6,7 @@ import {
   SupabaseConfig,
   DatabaseRow,
 } from "../services/supabase";
-import { SupabaseError, InternalError } from "../utils/errors";
+import { SupabaseError, InternalError, ValidationError } from "../utils/errors";
 import { CircuitBreaker } from "../utils/circuit-breaker";
 
 const mockSupabaseClient = {
@@ -436,6 +436,34 @@ describe("SupabaseService", () => {
       await expect(
         service.insertMany<TestRow>("users", newRows),
       ).rejects.toThrow(SupabaseError);
+    });
+
+    it("should throw ValidationError for invalid table name", async () => {
+      const service = new SupabaseService(mockConfig);
+      await expect(
+        service.insertMany<TestRow>(123 as unknown as string, [{ name: "Test" }]),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw ValidationError for non-array rows", async () => {
+      const service = new SupabaseService(mockConfig);
+      await expect(
+        service.insertMany<TestRow>("users", "not-an-array" as unknown as Partial<TestRow>[]),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw ValidationError for null row in array", async () => {
+      const service = new SupabaseService(mockConfig);
+      await expect(
+        service.insertMany<TestRow>("users", [null as unknown as Partial<TestRow>]),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("should throw ValidationError for undefined row in array", async () => {
+      const service = new SupabaseService(mockConfig);
+      await expect(
+        service.insertMany<TestRow>("users", [undefined as unknown as Partial<TestRow>]),
+      ).rejects.toThrow(ValidationError);
     });
   });
 
