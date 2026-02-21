@@ -1,9 +1,9 @@
+import { GeminiService } from "../services/gemini";
 import {
-  GeminiService,
   createGeminiClient,
   getGeminiClient,
   resetGeminiClient,
-} from "../services/gemini";
+} from "../services/deprecated-singletons";
 import { RateLimitError, GeminiError, TimeoutError } from "../utils/errors";
 
 describe("GeminiService", () => {

@@ -4,6 +4,15 @@
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/types/*": ["src/types/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/services/*": ["src/services/*"],
+      "@/config/*": ["src/config/*"],
+      "@/migrations/*": ["src/migrations/*"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

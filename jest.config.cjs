@@ -14,12 +14,17 @@ module.exports = {
   },
   moduleNameMapper: {
     "^uuid$": "<rootDir>/node_modules/uuid/dist/index.js",
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@/types/(.*)$": "<rootDir>/src/types/$1",
+    "^@/utils/(.*)$": "<rootDir>/src/utils/$1",
+    "^@/services/(.*)$": "<rootDir>/src/services/$1",
+    "^@/config/(.*)$": "<rootDir>/src/config/$1",
+    "^@/migrations/(.*)$": "<rootDir>/src/migrations/$1",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  // Performance optimizations
-  testTimeout: 30000, // 30 second timeout for slow integration tests
-  maxWorkers: process.env.CI ? 2 : "50%", // Limit workers in CI for stability
-  cache: true, // Enable test caching
-  clearMocks: true, // Clear mock calls between tests
-  restoreMocks: true, // Restore mock state between tests
+  testTimeout: 30000,
+  maxWorkers: process.env.CI ? 2 : "50%",
+  cache: true,
+  clearMocks: true,
+  restoreMocks: true,
 };

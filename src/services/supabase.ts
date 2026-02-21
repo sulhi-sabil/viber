@@ -550,41 +550,6 @@ export class SupabaseService extends BaseService {
   }
 }
 
-// Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
-
-let supabaseInstance: SupabaseService | null = null;
-
-/**
- * Create a singleton Supabase client using ServiceFactory
- * @deprecated Use serviceFactory.createSupabaseClient() for new code
- * @param config - Supabase configuration
- * @returns SupabaseService instance
- */
-export function createSupabaseClient(config: SupabaseConfig): SupabaseService {
-  // Use ServiceFactory for proper singleton management with health checks and metrics
-  const service = serviceFactory.createSupabaseClient(config);
-  supabaseInstance = service;
-  return service;
-}
-
-/**
- * Get the current Supabase client instance
- * @deprecated Use serviceFactory.getService() for new code
- * @returns SupabaseService instance or null
- */
-export function getSupabaseClient(): SupabaseService | null {
-  return supabaseInstance;
-}
-
-/**
- * Reset the Supabase client instance
- * @deprecated Use serviceFactory.resetService() for new code
- */
-export function resetSupabaseClient(): void {
-  serviceFactory.resetService("supabase");
-  supabaseInstance = null;
-}
 
 /**
  * Type guard to check if a service is a SupabaseService

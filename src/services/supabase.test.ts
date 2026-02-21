@@ -1,11 +1,13 @@
 import {
   SupabaseService,
-  createSupabaseClient,
-  getSupabaseClient,
-  resetSupabaseClient,
   SupabaseConfig,
   DatabaseRow,
 } from "../services/supabase";
+import {
+  createSupabaseClient,
+  getSupabaseClient,
+  resetSupabaseClient,
+} from "../services/deprecated-singletons";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { CircuitBreaker } from "../utils/circuit-breaker";
 

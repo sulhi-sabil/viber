@@ -481,41 +481,6 @@ export class GeminiService extends BaseService {
   }
 }
 
-// Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
-
-let geminiInstance: GeminiService | null = null;
-
-/**
- * Create a singleton Gemini client using ServiceFactory
- * @deprecated Use serviceFactory.createGeminiClient() for new code
- * @param config - Gemini configuration
- * @returns GeminiService instance
- */
-export function createGeminiClient(config: GeminiConfig): GeminiService {
-  // Use ServiceFactory for proper singleton management with health checks and metrics
-  const service = serviceFactory.createGeminiClient(config);
-  geminiInstance = service;
-  return service;
-}
-
-/**
- * Get the current Gemini client instance
- * @deprecated Use serviceFactory.getService() for new code
- * @returns GeminiService instance or null
- */
-export function getGeminiClient(): GeminiService | null {
-  return geminiInstance;
-}
-
-/**
- * Reset the Gemini client instance
- * @deprecated Use serviceFactory.resetService() for new code
- */
-export function resetGeminiClient(): void {
-  serviceFactory.resetService("gemini");
-  geminiInstance = null;
-}
 
 /**
  * Type guard to check if a service is a GeminiService
