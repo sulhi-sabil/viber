@@ -1,4 +1,5 @@
-import { retry, sleep, withTimeout } from "../utils/retry";
+import { retry, withTimeout } from "../utils/retry";
+import { sleep } from "./timing";
 
 interface ErrorWithStatusCode extends Error {
   statusCode?: number;

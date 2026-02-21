@@ -15,6 +15,7 @@ export * from "./utils/service-factory";
 export * from "./utils/health-check";
 export * from "./utils/metrics";
 export * from "./utils/formatters";
+export * from "./utils/timing";
 export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
