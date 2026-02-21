@@ -7,6 +7,7 @@ import {
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
   SENSITIVE_DATA_REDACTION_FORMAT,
 } from "../config/constants";
+import { isEdgeRuntime } from "./edge-runtime";
 
 const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
 
@@ -165,14 +166,16 @@ export class ConsoleLogger implements Logger {
     // Auto-enable colors in development/TTY environments, disable in production
     this.useColors =
       options.useColors ??
-      (typeof process !== "undefined" &&
+      (!isEdgeRuntime() &&
+        typeof process !== "undefined" &&
         process.env?.NODE_ENV !== "production" &&
         (process.stdout?.isTTY || false));
     this.useEmoji = options.useEmoji ?? true;
     // Auto-enable JSON format in production environments for log aggregation
     this.outputFormat =
       options.outputFormat ??
-      (typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+      (isEdgeRuntime() ||
+      (typeof process !== "undefined" && process.env?.NODE_ENV === "production")
         ? "json"
         : "console");
     this.context = context;
@@ -444,6 +447,9 @@ export class ConsoleLogger implements Logger {
 }
 
 const getLogLevel = (): "debug" | "info" | "warn" | "error" => {
+  if (isEdgeRuntime()) {
+    return "info"; // Default in edge runtime
+  }
   if (typeof process !== "undefined" && process.env && process.env.LOG_LEVEL) {
     return process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error";
   }
@@ -480,6 +486,9 @@ function padToVisualWidth(str: string, targetWidth: number): string {
  */
 export const printStartupBanner = (version: string = "1.0.0"): void => {
   // Skip banner in production for cleaner logs
+  if (isEdgeRuntime()) {
+    return; // Skip banner in edge runtime
+  }
   if (
     typeof process !== "undefined" &&
     process.env?.NODE_ENV === "production"
