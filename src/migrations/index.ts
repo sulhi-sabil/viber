@@ -98,6 +98,22 @@ export const migrations: Migration[] = [
       );
     },
   },
+  {
+    name: "Add created_at indexes for users and sessions",
+    version: "20260221001",
+    up: async () => {
+      logger.info(
+        "📊 Migration 20260221001: 'Add created_at indexes for users and sessions' - Please run the following SQL file manually:",
+        { file: "20260221001-add-users-sessions-created-at-indexes.sql", action: "up", location: "Supabase SQL Editor" }
+      );
+    },
+    down: async () => {
+      logger.info(
+        "🔄 Rollback 20260221001: 'Add created_at indexes for users and sessions' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260221001-add-users-sessions-created-at-indexes.sql", action: "down" }
+      );
+    },
+  },
 ];
 
 export function createMigrationRunner(supabase: unknown): MigrationRunner {
