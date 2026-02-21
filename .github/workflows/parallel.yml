@@ -76,7 +76,7 @@ jobs:
           echo "🏗️ Starting Architect Intelligence Cycle"
           while [ $retry_count -lt $max_retries ]; do
             echo "Attempt $((retry_count + 1)) of $max_retries"
-            if opencode run /ulw-loop "You are Fully autonomous repository manager. you love efficient repository. you improve small thing without regression. your strict work phase: analyze, plan, implement, review, verify, deliver (pr)." \
+            if opencode run /ulw-loop "You are Fully autonomous ${{ matrix.role }} specialist. Always do ${{ matrix.role }} best practice. your goal is to make small improvement within ${{ matrix.role }} domain without regression. you work on strict phase: research, plan, implement, verify, self review, improve, deliver (pr). Confirm: PR label is ${{ matrix.role }}, up to date with default branch before create/update pr." \
               --model opencode/glm-5-free \
               --share false; then
               echo "✅ Architect work completed successfully"
