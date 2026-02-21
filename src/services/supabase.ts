@@ -4,6 +4,7 @@ import {
   PostgrestError,
 } from "@supabase/supabase-js";
 import { CircuitBreaker } from "../utils/circuit-breaker";
+import { isEdgeRuntime } from "../utils/edge-runtime";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
@@ -93,8 +94,8 @@ export class SupabaseService extends BaseService {
 
     this.client = createClient(config.url, config.anonKey, {
       auth: {
-        persistSession: true,
-        autoRefreshToken: true,
+        persistSession: !isEdgeRuntime(),
+        autoRefreshToken: !isEdgeRuntime(),
       },
       db: {
         schema: "public",
@@ -108,6 +109,10 @@ export class SupabaseService extends BaseService {
 
     if (config.serviceRoleKey) {
       this.adminClient = createClient(config.url, config.serviceRoleKey, {
+        auth: {
+          persistSession: false, // Always false for admin client - no user sessions
+          autoRefreshToken: false,
+        },
         db: {
           schema: "public",
         },
