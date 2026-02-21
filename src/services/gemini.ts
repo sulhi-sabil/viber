@@ -199,11 +199,12 @@ export class GeminiService extends BaseService {
         });
 
         const response = await fetch(
-          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:generateContent?key=${this.apiKey}`,
+          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:generateContent`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "x-goog-api-key": this.apiKey,
             },
             body: JSON.stringify(requestBody),
           },
@@ -268,11 +269,12 @@ export class GeminiService extends BaseService {
         });
 
         const response = await fetch(
-          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
+          `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:streamGenerateContent`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "x-goog-api-key": this.apiKey,
             },
             body: JSON.stringify(requestBody),
           },
