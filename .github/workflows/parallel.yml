@@ -96,7 +96,7 @@ jobs:
   # STAGE 2: THE MUSCLE (Specialist Executors)
   # ------------------------------------------------------------------
   specialists:
-    name: "Specialist: ${{ matrix.role }}"
+    name: ${{ matrix.role }}"
     continue-on-error: true
     needs: architect
     runs-on: ubuntu-24.04-arm
@@ -166,49 +166,10 @@ jobs:
             echo "This may be expected if no issues were found or work took longer than timeout"
             exit 0  # Don't fail the workflow, just log the issue
           fi
-  # ------------------------------------------------------------------
-  # STAGE 3: ISSUE MANAGER
-  # ------------------------------------------------------------------
-  PR-Handler:
-    name: "PR-Handler"
-    needs: specialists
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v5
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-      - name: Setup Node & OpenCode
-        uses: actions/setup-node@v6
-        with:
-          node-version: "20"
-      - name: Install OpenCode CLI
-        run: |
-          curl -fsSL https://opencode.ai/install | bash
-          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
-      - name: Process Pull Requests
-        timeout-minutes: 60
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          opencode run /ulw-loop \
-            "You are **PR-Handler**, github PR manager work on this repository. **PR-Handler** love to manage PR, he work from latest open pr. **PR-Handler** Goal: manage ALL open pr begun from latest, merge without conflict, warnings, errors. If conflicts, close pr. confirm: build/lint/test/check success without warnings, up to date with default branch. remember, no errors or warnings." \
-            --model opencode/glm-5-free \
-            --share false
-  # ------------------------------------------------------------------
-  # STAGE 4: THE GATEKEEPER (Integrator)
-  # ------------------------------------------------------------------
-  integrator:
+  Fixer:
     name: "Fixer"
-    needs: PR-Handler
+    needs: specialists
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
@@ -240,6 +201,42 @@ jobs:
           API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           opencode run /ulw-loop \
-            "Check all open pr, Select based created time, for each open pr: fix - verify- ensure build/lint success without errors/warnings - create/update pr linked to issues, ensure up to date with main before create/update pr - monitor comments and check status on pr - if all green, merge. if red, fix until green. merge only if build/lint success without error/warning. if any error/warning while build/lint, its big failure." \
+            "Check all non-merged pr, Select based created time, for each pr, confirm: up to date with default branch, no merge conflicts, build/lint/test success without errors/warnings. update pr with detailed comments. Do not merge pr." \
+            --model opencode/glm-5-free \
+            --share false
+
+
+  PR-Handler:
+    name: "PR-Handler"
+    needs: Fixer
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+      - name: Setup Node & OpenCode
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+      - name: Install OpenCode CLI
+        run: |
+          curl -fsSL https://opencode.ai/install | bash
+          echo "$HOME/.opencode/bin" >> $GITHUB_PATH
+      - name: Process Pull Requests
+        timeout-minutes: 60
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IFLOW_API_KEY: ${{ secrets.IFLOW_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          opencode run /ulw-loop \
+            "You are **PR-Handler**, github PR manager work on this repository. **PR-Handler** love to manage PR, he work from latest open pr. **PR-Handler** Goal: manage ALL open pr begun from latest, merge without conflict, warnings, errors. If conflicts, close pr. confirm: build/lint/test/check success without warnings, up to date with default branch. remember, no errors or warnings." \
             --model opencode/glm-5-free \
             --share false
