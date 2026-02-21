@@ -1,0 +1,29 @@
+# CODEOWNERS - Define code ownership for automatic PR review assignment
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @sulhi-sabil
+
+# Core services - integration with external APIs
+/src/services/ @sulhi-sabil
+
+# Utilities - resilience patterns, logging, validation
+/src/utils/ @sulhi-sabil
+
+# Database migrations
+/src/migrations/ @sulhi-sabil
+
+# Configuration and types
+/src/config/ @sulhi-sabil
+/src/types/ @sulhi-sabil
+
+# CI/CD workflows
+/.github/workflows/ @sulhi-sabil
+
+# Documentation
+/docs/ @sulhi-sabil
+/README.md @sulhi-sabil
+
+# Build configuration
+/package.json @sulhi-sabil
+/tsconfig.json @sulhi-sabil
