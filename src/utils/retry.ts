@@ -1,5 +1,7 @@
 import { logger } from "./logger";
 import { InternalError, TimeoutError } from "./errors";
+import { sleep } from "./timing";
+
 import {
   DEFAULT_MAX_RETRY_ATTEMPTS,
   DEFAULT_RETRY_INITIAL_DELAY_MS,
@@ -74,15 +76,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   operationName: "Operation",
 };
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    const timerRef = timer as unknown as { unref?: () => void };
-    if (typeof timerRef.unref === "function") {
-      timerRef.unref();
-    }
-  });
-}
+
 
 export function calculateDelay(
   attempt: number,

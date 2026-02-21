@@ -3,7 +3,7 @@ import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { RateLimiter } from "../utils/rate-limiter";
-import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
+import { ResilienceConfig, RateLimitConfig, QueryOptions } from "../types/service-config";
 import {
   BaseService,
   ServiceHealth,
@@ -40,10 +40,7 @@ export interface GeminiMessage {
   parts: Array<{ text: string }>;
 }
 
-export interface GeminiRequestOptions {
-  timeout?: number;
-  useCircuitBreaker?: boolean;
-  useRetry?: boolean;
+export interface GeminiRequestOptions extends QueryOptions {
   temperature?: number;
   maxOutputTokens?: number;
   topK?: number;

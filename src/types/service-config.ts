@@ -30,3 +30,12 @@ export const DEFAULT_RATE_LIMIT_CONFIG: Required<RateLimitConfig> = {
   rateLimitWindow: 60000, // Default time window for rate limiting (ms)
 };
 
+export interface QueryOptions {
+  /** Timeout for the operation in milliseconds */
+  timeout?: number;
+  /** Whether to use circuit breaker protection */
+  useCircuitBreaker?: boolean;
+  /** Whether to use retry logic */
+  useRetry?: boolean;
+}
+

@@ -145,7 +145,7 @@ export class HealthCheckRegistry {
     config: Partial<HealthCheckConfig> = {},
   ): void {
     if (this.checks.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Health check already registered for service: ${service}`,
       );
     }
@@ -367,7 +367,7 @@ export class HealthCheckRegistry {
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-        reject(new Error(`Health check timed out after ${timeout}ms`));
+        reject(new InternalError(`Health check timed out after ${timeout}ms`));
       }, timeout);
       timer.unref();
 
@@ -391,7 +391,7 @@ export class HealthCheckRegistry {
     visited: Set<string> = new Set(),
   ): void {
     if (visited.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Circular dependency detected involving service: ${service}`,
       );
     }
