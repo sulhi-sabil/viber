@@ -32,6 +32,10 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_role ON users(role) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_deleted_at ON users(deleted_at);
+-- Created at index for time-based queries
+CREATE INDEX idx_users_created_at
+  ON users(created_at DESC)
+  WHERE deleted_at IS NULL;
 
 -- Check constraint for password_hash
 ALTER TABLE users ADD CONSTRAINT chk_users_password_or_null
@@ -61,6 +65,10 @@ CREATE INDEX idx_sessions_deleted_at ON sessions(deleted_at);
 
 -- Composite index for session cleanup queries
 CREATE INDEX idx_sessions_user_expires ON sessions(user_id, expires_at) WHERE deleted_at IS NULL;
+-- Created at index for time-based queries
+CREATE INDEX idx_sessions_created_at
+  ON sessions(created_at DESC)
+  WHERE deleted_at IS NULL;
 
 -- Check constraint for timestamp consistency
 ALTER TABLE sessions ADD CONSTRAINT chk_sessions_timestamps
