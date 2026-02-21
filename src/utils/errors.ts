@@ -293,17 +293,24 @@ export function wrapError(
   }
 
   const errorObj = error instanceof Error ? error : new Error(String(error));
+  const isProduction =
+    typeof process !== "undefined" && process.env?.NODE_ENV === "production";
 
-  if (message) {
-    return new InternalError(message, {
-      originalError: errorObj.message,
-      stack: errorObj.stack,
-    });
+  const details: Record<string, unknown> = {
+    originalError: errorObj.message,
+  };
+
+  if (!isProduction) {
+    details.stack = errorObj.stack;
   }
 
-  return new InternalError(errorObj.message || "An unexpected error occurred", {
-    originalError: errorObj.message,
-    stack: errorObj.stack,
-    code: errorCode,
-  });
+  if (message) {
+    return new InternalError(message, details);
+  }
+
+  if (errorCode) {
+    details.code = errorCode;
+  }
+
+  return new InternalError(errorObj.message || "An unexpected error occurred", details);
 }

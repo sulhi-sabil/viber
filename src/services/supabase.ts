@@ -4,7 +4,7 @@ import {
   PostgrestError,
 } from "@supabase/supabase-js";
 import { CircuitBreaker } from "../utils/circuit-breaker";
-import { SupabaseError, InternalError } from "../utils/errors";
+import { SupabaseError, InternalError, ValidationError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
 import { ResilienceConfig } from "../types/service-config";
@@ -23,6 +23,8 @@ import {
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
   HEALTH_CHECK_QUERY_LIMIT,
   API_KEY_PREFIX_LENGTH,
+  ALLOWED_FILTER_OPERATORS,
+  FilterOperator,
 } from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
@@ -66,7 +68,7 @@ export class SupabaseService extends BaseService {
   private config: SupabaseConfig;
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
-    Validator.url(config.url, "Supabase URL");
+    Validator.httpsUrl(config.url, "Supabase URL");
     Validator.string(config.anonKey, "anonKey");
 
     if (config.serviceRoleKey) {
@@ -162,6 +164,14 @@ export class SupabaseService extends BaseService {
     );
   }
 
+  private validateFilterOperator(operator: string): void {
+    if (!ALLOWED_FILTER_OPERATORS.includes(operator as FilterOperator)) {
+      throw new ValidationError(
+        `Invalid filter operator: ${operator}. Allowed operators: ${ALLOWED_FILTER_OPERATORS.join(", ")}`,
+      );
+    }
+  }
+
   protected getResilienceConfig(): ServiceResilienceConfig {
     return {
       timeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
@@ -193,12 +203,16 @@ export class SupabaseService extends BaseService {
     } = options;
 
     Validator.string(table, "table");
+    if (filter) {
+      this.validateFilterOperator(filter.operator);
+    }
 
     return this.executeWithResilience(
       async () => {
         let query = this.client.from(table).select(columns);
 
         if (filter) {
+          this.validateFilterOperator(filter.operator);
           query = query.filter(filter.column, filter.operator, filter.value);
         }
 
@@ -429,6 +443,25 @@ export class SupabaseService extends BaseService {
     );
   }
 
+  /**
+   * Execute a raw SQL query via RPC
+   *
+   * @⚠️ SECURITY WARNING: This method executes raw SQL and is susceptible to SQL injection.
+   * Never pass unsanitized user input directly to the query string.
+   * Always use parameterized queries via the `params` array for user-provided values.
+   *
+   * @example
+   * // ❌ DANGEROUS - SQL injection vulnerability
+   * await supabase.raw(`SELECT * FROM users WHERE name = '${userName}'`);
+   *
+   * // ✅ SAFE - Parameterized query
+   * await supabase.raw('SELECT * FROM users WHERE name = $1', [userName]);
+   *
+   * @param query - SQL query string (use $1, $2, etc. for parameters)
+   * @param params - Parameter values to safely substitute in the query
+   * @param queryOptions - Query options (timeout, circuit breaker, retry)
+   * @returns Array of results from the query
+   */
   async raw<T = unknown>(
     query: string,
     params: unknown[] = [],
@@ -489,6 +522,9 @@ export class SupabaseService extends BaseService {
     queryOptions: QueryOptions = {},
   ): Promise<boolean> {
     Validator.string(table, "table");
+    if (filter) {
+      this.validateFilterOperator(filter.operator);
+    }
 
     return this.executeWithResilience(
       async () => {
@@ -521,6 +557,9 @@ export class SupabaseService extends BaseService {
   ): Promise<number> {
     const { filter, includeDeleted = false } = options;
     Validator.string(table, "table");
+    if (filter) {
+      this.validateFilterOperator(filter.operator);
+    }
 
     return this.executeWithResilience(
       async () => {
@@ -529,6 +568,7 @@ export class SupabaseService extends BaseService {
           .select("id", { count: "exact", head: true });
 
         if (filter) {
+          this.validateFilterOperator(filter.operator);
           query = query.filter(filter.column, filter.operator, filter.value);
         }
 

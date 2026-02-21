@@ -98,6 +98,28 @@ export class Validator {
     }
   }
 
+  static httpsUrl(value: unknown, fieldName: string = "field"): void {
+    this.string(value, fieldName);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(value as string);
+    } catch {
+      throw new ValidationError(`${fieldName} must be a valid URL`);
+    }
+
+    const isLocalhost =
+      parsedUrl.hostname === "localhost" ||
+      parsedUrl.hostname === "127.0.0.1" ||
+      parsedUrl.hostname === "[::1]" ||
+      parsedUrl.hostname.endsWith(".localhost");
+
+    if (parsedUrl.protocol !== "https:" && !isLocalhost) {
+      throw new ValidationError(
+        `${fieldName} must use HTTPS (got: ${parsedUrl.protocol})`,
+      );
+    }
+  }
+
   static uuid(value: unknown, fieldName: string = "field"): void {
     this.string(value, fieldName);
     const uuidRegex =

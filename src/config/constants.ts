@@ -228,3 +228,31 @@ export const DEFAULT_REDACTION_STRING = "[REDACTED]";
 
 export const SENSITIVE_DATA_REDACTION_FORMAT = (key: string): string =>
   `[SENSITIVE DATA REDACTED for key: ${key}]`;
+
+// ============================================================================
+// Supabase Filter Operators
+// ============================================================================
+
+/** Allowed filter operators for Supabase queries */
+export const ALLOWED_FILTER_OPERATORS = [
+  "eq",
+  "neq",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "like",
+  "ilike",
+  "in",
+  "is",
+  "cs",
+  "cd",
+  "ov",
+  "sl",
+  "sr",
+  "nxr",
+  "nxl",
+  "adj",
+] as const;
+
+export type FilterOperator = (typeof ALLOWED_FILTER_OPERATORS)[number];
