@@ -99,6 +99,11 @@ CREATE INDEX idx_content_types_fields_schema ON content_types USING GIN(fields_s
 CREATE INDEX idx_content_types_created_at
   ON content_types(created_at DESC)
   WHERE deleted_at IS NULL;
+-- Updated at index for modification tracking
+CREATE INDEX idx_content_types_updated_at
+  ON content_types(updated_at DESC)
+  WHERE deleted_at IS NULL;
+
 
 -- Check constraint for timestamp consistency
 ALTER TABLE content_types ADD CONSTRAINT chk_content_types_timestamps
@@ -125,6 +130,8 @@ CREATE INDEX idx_entries_type_slug ON entries(type_slug) WHERE deleted_at IS NUL
 CREATE INDEX idx_entries_slug ON entries(slug) WHERE deleted_at IS NULL AND slug IS NOT NULL;
 CREATE INDEX idx_entries_status ON entries(status) WHERE deleted_at IS NULL;
 CREATE INDEX idx_entries_created_at ON entries(created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_entries_updated_at ON entries(updated_at DESC) WHERE deleted_at IS NULL;
+
 CREATE INDEX idx_entries_deleted_at ON entries(deleted_at);
 
 -- Unique constraint on slug within type_slug for published entries
@@ -165,6 +172,8 @@ CREATE INDEX idx_assets_r2_key ON assets(r2_key) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_mime_type ON assets(mime_type) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_entry_id ON assets(entry_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_created_at ON assets(created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_assets_updated_at ON assets(updated_at DESC) WHERE deleted_at IS NULL;
+
 CREATE INDEX idx_assets_deleted_at ON assets(deleted_at);
 
 -- Check constraint for timestamp consistency
@@ -386,7 +395,10 @@ Query Indexes (for common query patterns):
 - entries.slug: Fast entry lookup by slug
 - entries.status: Filter entries by status
 - entries.created_at: Order entries by creation date
+- entries.updated_at: Order entries by modification date
 - entries(type_slug, status, created_at): Composite index for entry listing
+- content_types.updated_at: Order content types by modification date
+- assets.updated_at: Order assets by modification date
 - assets.r2_key: Fast asset lookup by R2 key
 - assets.mime_type: Filter assets by MIME type
 
