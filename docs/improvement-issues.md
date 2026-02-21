@@ -17,7 +17,7 @@ Currently, services have individual health check methods but there's no centrali
 - Provide a single endpoint to check all service health
 - Support health check aggregation for microservices architectures
 - Enable dependency health tracking (e.g., if Supabase depends on PostgREST)
-- Follow 2025 best practices for service observability
+- Follow 2026 best practices for service observability
 
 ### Proposed Implementation
 
