@@ -874,6 +874,10 @@ We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTIN
 - Submit pull requests
 - Follow our coding standards
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for a history of notable changes to this project.
+
 ## Security
 
 For security-related information, please see our [Security Policy](./SECURITY.md) for:
