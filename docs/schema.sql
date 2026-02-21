@@ -36,6 +36,10 @@ CREATE INDEX idx_users_deleted_at ON users(deleted_at);
 CREATE INDEX idx_users_created_at
   ON users(created_at DESC)
   WHERE deleted_at IS NULL;
+-- Updated at index for modification tracking
+CREATE INDEX idx_users_updated_at
+  ON users(updated_at DESC)
+  WHERE deleted_at IS NULL;
 
 -- Check constraint for password_hash
 ALTER TABLE users ADD CONSTRAINT chk_users_password_or_null
@@ -68,6 +72,10 @@ CREATE INDEX idx_sessions_user_expires ON sessions(user_id, expires_at) WHERE de
 -- Created at index for time-based queries
 CREATE INDEX idx_sessions_created_at
   ON sessions(created_at DESC)
+  WHERE deleted_at IS NULL;
+-- Updated at index for modification tracking
+CREATE INDEX idx_sessions_updated_at
+  ON sessions(updated_at DESC)
   WHERE deleted_at IS NULL;
 
 -- Check constraint for timestamp consistency
@@ -389,7 +397,9 @@ Foreign Key Indexes (for join performance):
 
 Query Indexes (for common query patterns):
 - users.role: Filter users by role
+- users.updated_at: Order users by modification date
 - sessions.expires_at: Cleanup expired sessions
+- sessions.updated_at: Order sessions by modification date
 - sessions(user_id, expires_at): Composite index for session queries
 - content_types.slug: Fast content type lookup
 - entries.slug: Fast entry lookup by slug
