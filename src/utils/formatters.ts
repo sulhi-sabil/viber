@@ -292,3 +292,118 @@ export function formatServiceFactoryMetrics(
   const rows = extractMetricsRows(registry);
   return formatMetricsTable(rows, options);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TIMESTAMP FORMATTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Timestamp format options */
+export type TimestampFormat = "iso" | "locale" | "relative";
+
+/** Options for timestamp formatting */
+export interface TimestampOptions {
+  /** Output format: iso (default for prod), locale (default for dev), relative */
+  format?: TimestampFormat;
+  /** Reference time for relative format (defaults to now) */
+  referenceTime?: number;
+  /** Enable colors for relative time indicators */
+  useColors?: boolean;
+}
+
+/**
+ * Format a timestamp for display
+ *
+ * @param timestamp - Unix timestamp in milliseconds
+ * @param options - Formatting options
+ * @returns Formatted timestamp string
+ *
+ * @example
+ * ```typescript
+ * // Auto-detect mode: locale for TTY, ISO for production
+ * formatTimestamp(Date.now()) // "1/15/2024, 10:30:45 AM" (TTY)
+ * formatTimestamp(Date.now()) // "2024-01-15T10:30:45.123Z" (production)
+ *
+ * // Explicit format
+ * formatTimestamp(Date.now(), { format: 'iso' })     // ISO 8601
+ * formatTimestamp(Date.now(), { format: 'locale' })  // Localized
+ * formatTimestamp(Date.now(), { format: 'relative' }) // "2s ago"
+ * ```
+ */
+export function formatTimestamp(
+  timestamp: number,
+  options: TimestampOptions = {},
+): string {
+  const format = options.format ?? getDefaultTimestampFormat();
+
+  switch (format) {
+    case "iso":
+      return new Date(timestamp).toISOString();
+
+    case "locale":
+      return new Date(timestamp).toLocaleString();
+
+    case "relative": {
+      const now = options.referenceTime ?? Date.now();
+      const diff = now - timestamp;
+      return formatRelativeTime(diff, options.useColors ?? false);
+    }
+
+    default:
+      return new Date(timestamp).toISOString();
+  }
+}
+
+/**
+ * Get default timestamp format based on environment
+ */
+function getDefaultTimestampFormat(): TimestampFormat {
+  // Use ISO in production for log aggregation, locale in dev for readability
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "production") {
+    return "iso";
+  }
+  // Use locale in TTY environments for better readability
+  if (typeof process !== "undefined" && process.stdout?.isTTY === true) {
+    return "locale";
+  }
+  return "iso";
+}
+
+/**
+ * Format relative time with optional colors
+ */
+function formatRelativeTime(diffMs: number, useColors: boolean): string {
+  const absDiff = Math.abs(diffMs);
+  const isPast = diffMs >= 0;
+
+  const colorize = (text: string, color: string): string =>
+    useColors ? `${color}${text}${COLORS.reset}` : text;
+
+  if (absDiff < 1000) {
+    return isPast ? "just now" : "in a moment";
+  }
+
+  const seconds = Math.floor(absDiff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  let result: string;
+  let color: string;
+
+  if (days > 0) {
+    result = `${days}d ${hours % 24}h`;
+    color = COLORS.dim;
+  } else if (hours > 0) {
+    result = `${hours}h ${minutes % 60}m`;
+    color = COLORS.dim;
+  } else if (minutes > 0) {
+    result = `${minutes}m ${seconds % 60}s`;
+    color = COLORS.cyan;
+  } else {
+    result = `${seconds}s`;
+    color = COLORS.green;
+  }
+
+  const suffix = isPast ? " ago" : "";
+  return colorize(result + suffix, color);
+}
