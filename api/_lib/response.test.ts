@@ -5,6 +5,7 @@ import {
   unauthorized,
   serviceUnavailable,
   internalError,
+  rateLimited,
 } from "./response";
 
 type MockResponse = {
@@ -144,6 +145,55 @@ describe("response helpers", () => {
             details: { stack: "..." },
           }),
         }),
+      );
+    });
+  });
+
+  describe("rateLimited", () => {
+    it("should send 429 error with default options", () => {
+      rateLimited(mockRes as unknown as any, "Too many requests");
+
+      expect(mockRes.status).toHaveBeenCalledWith(429);
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many requests",
+          }),
+        }),
+      );
+    });
+
+    it("should set rate limit headers when provided", () => {
+      rateLimited(mockRes as unknown as any, "Rate limit exceeded", {
+        limit: 100,
+        remaining: 0,
+        reset: 1700000000,
+        retryAfter: 60,
+      });
+
+      expect(mockRes.setHeader).toHaveBeenCalledWith("X-RateLimit-Limit", 100);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        "X-RateLimit-Remaining",
+        0,
+      );
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        "X-RateLimit-Reset",
+        1700000000,
+      );
+      expect(mockRes.setHeader).toHaveBeenCalledWith("Retry-After", 60);
+    });
+
+    it("should work with partial options", () => {
+      rateLimited(mockRes as unknown as any, "Rate limited", {
+        retryAfter: 30,
+      });
+
+      expect(mockRes.setHeader).toHaveBeenCalledWith("Retry-After", 30);
+      expect(mockRes.setHeader).not.toHaveBeenCalledWith(
+        "X-RateLimit-Limit",
+        expect.anything(),
       );
     });
   });

@@ -225,4 +225,29 @@ describe("ai/generate endpoint", () => {
 
     expect(res._status).toBe(200);
   });
+
+  it("should handle RateLimitError with 429 response", async () => {
+    const { RateLimitError } = require("../../src/utils/errors");
+    const { getGemini } = require("../_lib/services");
+    const mockGemini = getGemini();
+    
+    const rateLimitError = new RateLimitError(
+      "API rate limit exceeded",
+      { retryAfter: 60 }
+    );
+    mockGemini.generateText.mockRejectedValueOnce(rateLimitError);
+
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: { prompt: "Test" },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(429);
+    expect(res._json.data.error.code).toBe("RATE_LIMIT_EXCEEDED");
+    expect(res._headers["Retry-After"]).toBe(60);
+  });
 });
