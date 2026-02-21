@@ -1,4 +1,5 @@
 import { ValidationError } from "./errors";
+import { logger } from "./logger";
 
 export interface ValidationRule {
   validate: (value: unknown, fieldName?: string) => void;
@@ -236,6 +237,10 @@ export class Validator {
         if (error instanceof ValidationError) {
           errors.push(error.message);
         } else {
+          logger.warn("Unexpected error during validation", {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           errors.push(String(error));
         }
       }
@@ -273,6 +278,11 @@ export class SchemaValidator<T extends Record<string, unknown>> {
       } catch (error) {
         if (error instanceof ValidationError) {
           errors.push(error.message);
+        } else {
+          logger.warn("Unexpected error during schema validation", {
+            field: String(field),
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     }
@@ -303,6 +313,11 @@ export class SchemaValidator<T extends Record<string, unknown>> {
       } catch (error) {
         if (error instanceof ValidationError) {
           errors.push(error.message);
+        } else {
+          logger.warn("Unexpected error during partial validation", {
+            field: String(field),
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     }
