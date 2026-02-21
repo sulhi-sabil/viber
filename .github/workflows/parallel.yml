@@ -66,7 +66,7 @@ jobs:
           curl -fsSL https://opencode.ai/install | bash
           echo "$HOME/.opencode/bin" >> $GITHUB_PATH
       - name: arsitek
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,7 +76,7 @@ jobs:
           echo "🏗️ Starting Architect Intelligence Cycle"
           while [ $retry_count -lt $max_retries ]; do
             echo "Attempt $((retry_count + 1)) of $max_retries"
-            if opencode run /ulw-loop "You are Fully autonomous repository manager. you love efficient repository." \
+            if opencode run /ulw-loop "You are Fully autonomous repository manager. you love efficient repository. you improve small thing without regression. your strict work phase: analyze, plan, implement, review, verify, deliver (pr)." \
               --model opencode/glm-5-free \
               --share false; then
               echo "✅ Architect work completed successfully"
