@@ -122,7 +122,7 @@ healthCheckRegistry.register(
 
 ```
 Test Suites: 15 passed, 15 total
-Tests:       395 passed, 395 total
+Tests:       436 passed, 436 total
 Snapshots:   0 total
 Time:        ~27s
 ```
