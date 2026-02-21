@@ -288,7 +288,7 @@ describe("HealthCheckRegistry", () => {
 
       expect(result.status).toBe("unhealthy");
       expect(result.dependencies).toBeDefined();
-      expect(result.dependencies?.dependency.status).toBe("unhealthy");
+      expect(result.dependencies?.dependency!.status).toBe("unhealthy");
     });
 
     it("should mark service degraded when dependency is degraded", async () => {
@@ -364,8 +364,8 @@ describe("HealthCheckRegistry", () => {
       const result = await registry.checkAll();
 
       expect(result.status).toBe("healthy");
-      expect(result.services["service-1"].status).toBe("healthy");
-      expect(result.services["service-2"].status).toBe("healthy");
+      expect(result.services["service-1"]!.status).toBe("healthy");
+      expect(result.services["service-2"]!.status).toBe("healthy");
     });
 
     it("should calculate aggregate status correctly", async () => {
@@ -415,8 +415,8 @@ describe("HealthCheckRegistry", () => {
       const result = await registry.checkAll();
 
       expect(result.status).toBe("unhealthy");
-      expect(result.services["good-service"].status).toBe("healthy");
-      expect(result.services["bad-service"].status).toBe("unhealthy");
+      expect(result.services["good-service"]!.status).toBe("healthy");
+      expect(result.services["bad-service"]!.status).toBe("unhealthy");
     });
 
     it("should return healthy when no services registered", async () => {
