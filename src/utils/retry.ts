@@ -200,17 +200,19 @@ export function withTimeout<T>(
   timeoutMs: number,
   operationName: string = "operation",
 ): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      const timer = setTimeout(
-        () => reject(new TimeoutError(operationName, timeoutMs)),
-        timeoutMs,
-      );
-      const timerRef = timer as unknown as { unref?: () => void };
-      if (typeof timerRef.unref === "function") {
-        timerRef.unref();
-      }
-    }),
-  ]);
+  let timer: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new TimeoutError(operationName, timeoutMs));
+    }, timeoutMs);
+    const timerRef = timer as unknown as { unref?: () => void };
+    if (typeof timerRef.unref === "function") {
+      timerRef.unref();
+    }
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timer);
+  });
 }
