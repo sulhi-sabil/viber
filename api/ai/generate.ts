@@ -27,10 +27,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  const contentType = req.headers["content-type"];
+  if (!contentType?.includes("application/json")) {
+    badRequest(res, "Content-Type must be application/json");
+    return;
+  }
+
   const body = req.body as GenerateRequest | undefined;
 
-  if (!body?.prompt || typeof body.prompt !== "string") {
+  if (!body) {
+    badRequest(res, "Request body is required");
+    return;
+  }
+
+  if (!body.prompt || typeof body.prompt !== "string") {
     badRequest(res, "prompt is required and must be a string");
+    return;
+  }
+
+  if (body.prompt.length > 32000) {
+    badRequest(res, "prompt must be less than 32000 characters");
     return;
   }
 

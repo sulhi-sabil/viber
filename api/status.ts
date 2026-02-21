@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { json } from "./_lib/response";
-import { getServiceFactory, getSupabase, getGemini } from "./_lib/services";
+import { getServiceFactory, getGemini } from "./_lib/services";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -13,15 +13,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const circuitBreakerStates = factory.getAllCircuitBreakerStates();
 
   const rateLimiters: Record<string, unknown> = {};
-
-  const supabase = getSupabase();
-  if (supabase) {
-    try {
-      rateLimiters.supabase = null;
-    } catch {
-      rateLimiters.supabase = null;
-    }
-  }
 
   const gemini = getGemini();
   if (gemini) {
