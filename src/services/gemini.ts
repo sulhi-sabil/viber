@@ -11,6 +11,7 @@ import {
 } from "./base-service";
 import {
   MIN_API_KEY_LENGTH,
+  API_KEY_PREFIX_LENGTH,
   HEALTH_CHECK_TIMEOUT_MS,
   STREAMING_TIMEOUT_MS,
   DEFAULT_MAX_RETRY_ATTEMPTS,
@@ -469,7 +470,7 @@ export class GeminiService extends BaseService {
    * @internal
    */
   getApiKeyPrefix(): string {
-    return this.apiKey.length >= 8 ? this.apiKey.substring(0, 8) : this.apiKey;
+    return this.apiKey.length >= API_KEY_PREFIX_LENGTH ? this.apiKey.substring(0, API_KEY_PREFIX_LENGTH) : this.apiKey;
   }
 
   /**

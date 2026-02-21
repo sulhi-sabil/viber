@@ -346,7 +346,7 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `Supabase update ${table}:${id.slice(0, 8)}...`,
+      `Supabase update ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 
@@ -378,7 +378,7 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase delete ${table}:${id.slice(0, 8)}...`,
+      `Supabase delete ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 
@@ -425,7 +425,7 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase restore ${table}:${id.slice(0, 8)}...`,
+      `Supabase restore ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 

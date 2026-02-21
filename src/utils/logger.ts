@@ -6,6 +6,7 @@ import {
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
   SENSITIVE_DATA_REDACTION_FORMAT,
+  API_KEY_PREFIX_LENGTH,
 } from "../config/constants";
 
 const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
@@ -214,10 +215,10 @@ export class ConsoleLogger implements Logger {
 
     const parts: string[] = [];
     if (context.requestId) {
-      parts.push(`req-${context.requestId.slice(0, 8)}`);
+      parts.push(`req-${context.requestId.slice(0, API_KEY_PREFIX_LENGTH)}`);
     }
     if (context.correlationId && context.correlationId !== context.requestId) {
-      parts.push(`corr-${context.correlationId.slice(0, 8)}`);
+      parts.push(`corr-${context.correlationId.slice(0, API_KEY_PREFIX_LENGTH)}`);
     }
     if (context.operation) {
       parts.push(context.operation);
