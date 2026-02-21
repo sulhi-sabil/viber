@@ -50,8 +50,53 @@ describe("ai/generate endpoint", () => {
     expect(res._headers["Allow"]).toBe("POST");
   });
 
+  it("should return 400 when Content-Type is not application/json", async () => {
+    const req = {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: { prompt: "Test" },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(400);
+    expect(res._json.data.error.code).toBe("BAD_REQUEST");
+    expect(res._json.data.error.message).toContain("Content-Type");
+  });
+
+  it("should accept application/json with charset", async () => {
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: { prompt: "Test" },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(200);
+  });
+
+  it("should return 400 when body is missing", async () => {
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(400);
+    expect(res._json.data.error.message).toContain("body");
+  });
+
   it("should return 400 when prompt is missing", async () => {
-    const req = { method: "POST", body: {} } as any;
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: {},
+    } as any;
     const res = createMockRes();
 
     await handler(req, res);
@@ -61,7 +106,11 @@ describe("ai/generate endpoint", () => {
   });
 
   it("should return 400 when prompt is not a string", async () => {
-    const req = { method: "POST", body: { prompt: 123 } } as any;
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: { prompt: 123 },
+    } as any;
     const res = createMockRes();
 
     await handler(req, res);
@@ -70,9 +119,37 @@ describe("ai/generate endpoint", () => {
     expect(res._json.data.error.code).toBe("BAD_REQUEST");
   });
 
+  it("should return 400 when prompt exceeds max length", async () => {
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: { prompt: "x".repeat(32001) },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(400);
+    expect(res._json.data.error.message).toContain("32000");
+  });
+
+  it("should accept prompt at max length", async () => {
+    const req = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: { prompt: "x".repeat(32000) },
+    } as any;
+    const res = createMockRes();
+
+    await handler(req, res);
+
+    expect(res._status).toBe(200);
+  });
+
   it("should return generated text for valid request", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Hello, world!" },
     } as any;
     const res = createMockRes();
@@ -87,6 +164,7 @@ describe("ai/generate endpoint", () => {
   it("should include prompt in response", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Test prompt" },
     } as any;
     const res = createMockRes();
@@ -99,6 +177,7 @@ describe("ai/generate endpoint", () => {
   it("should include model in response", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Test" },
     } as any;
     const res = createMockRes();
@@ -111,6 +190,7 @@ describe("ai/generate endpoint", () => {
   it("should accept temperature option", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Test", temperature: 0.5 },
     } as any;
     const res = createMockRes();
@@ -123,6 +203,7 @@ describe("ai/generate endpoint", () => {
   it("should accept maxOutputTokens option", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Test", maxOutputTokens: 100 },
     } as any;
     const res = createMockRes();
@@ -135,6 +216,7 @@ describe("ai/generate endpoint", () => {
   it("should clamp temperature to valid range", async () => {
     const req = {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: { prompt: "Test", temperature: 5 },
     } as any;
     const res = createMockRes();
