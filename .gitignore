@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json - COMMITTED for reproducible builds (repository manager improvement)
 yarn.lock
 
 # Build output
