@@ -1,5 +1,6 @@
 import { Migration, MigrationRecord } from "./types";
 import { logger } from "../utils/logger";
+import { InternalError } from "../utils/errors";
 
 export interface SupabaseClient {
   from(table: string): QueryBuilder;
@@ -73,11 +74,11 @@ export class MigrationRunner {
       const migration = this.migrations.find((m) => m.version === version);
 
       if (!migration) {
-        throw new Error(`Migration version ${version} not found`);
+        throw new InternalError(`Migration version ${version} not found`);
       }
 
       if (!executedMigrations.find((m) => m.version === version)) {
-        throw new Error(`Migration version ${version} has not been executed`);
+        throw new InternalError(`Migration version ${version} has not been executed`);
       }
 
       await this.rollbackMigration(migration);
@@ -125,7 +126,7 @@ export class MigrationRunner {
     };
 
     if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to get migrations: ${error.message}`);
+      throw new InternalError(`Failed to get migrations: ${error.message}`);
     }
 
     return (data as unknown as MigrationRecord[]) || [];
@@ -177,7 +178,7 @@ export class MigrationRunner {
     const { error } = result as { error?: { message?: string } };
 
     if (error) {
-      throw new Error(`Failed to record migration: ${error.message}`);
+      throw new InternalError(`Failed to record migration: ${error.message}`);
     }
   }
 
@@ -190,7 +191,7 @@ export class MigrationRunner {
     const { error } = result as { error?: { message?: string } };
 
     if (error) {
-      throw new Error(`Failed to remove migration record: ${error.message}`);
+      throw new InternalError(`Failed to remove migration record: ${error.message}`);
     }
   }
 }

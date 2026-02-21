@@ -204,7 +204,7 @@ describe("GeminiService", () => {
 
       const result = await geminiService.generateContent(messages);
 
-      expect(result.candidates[0].content.parts[0].text).toBe("Response");
+      expect(result.candidates[0]?.content.parts[0]?.text).toBe("Response");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 

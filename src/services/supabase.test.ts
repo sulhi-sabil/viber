@@ -392,15 +392,15 @@ describe("SupabaseService", () => {
       const insertedRows: TestRow[] = [
         {
           id: "3",
-          name: newRows[0].name || "Alice",
-          email: newRows[0].email || "alice@example.com",
-          age: newRows[0].age || 28,
+          name: newRows[0]?.name || "Alice",
+          email: newRows[0]?.email || "alice@example.com",
+          age: newRows[0]?.age || 28,
         },
         {
           id: "4",
-          name: newRows[1].name || "Bob",
-          email: newRows[1].email || "bob@example.com",
-          age: newRows[1].age || 32,
+          name: newRows[1]?.name || "Bob",
+          email: newRows[1]?.email || "bob@example.com",
+          age: newRows[1]?.age || 32,
         },
       ];
 

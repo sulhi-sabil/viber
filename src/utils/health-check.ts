@@ -13,6 +13,7 @@
 
 import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
 import { logger } from "./logger";
+import { InternalError } from "./errors";
 
 /**
  * Health status values
@@ -163,7 +164,7 @@ export class HealthCheckRegistry {
 
     // Check for circular dependencies
     if (dependencies.has(service)) {
-      throw new Error(`Service '${service}' cannot depend on itself`);
+      throw new InternalError(`Service '${service}' cannot depend on itself`);
     }
 
     this.checks.set(service, {
@@ -233,7 +234,7 @@ export class HealthCheckRegistry {
   async check(service: string): Promise<HealthCheckResult> {
     const entry = this.checks.get(service);
     if (!entry) {
-      throw new Error(`No health check registered for service: ${service}`);
+      throw new InternalError(`No health check registered for service: ${service}`);
     }
 
     const startTime = Date.now();
