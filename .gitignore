@@ -14,7 +14,7 @@ build/
 .env.*.local
 
 # IDE
-.vscode/
+# .vscode/ is NOT ignored - workspace settings are shared for DX
 .idea/
 *.swp
 *.swo
