@@ -5,6 +5,7 @@ export * from "./types/database";
 export * from "./types/service-config";
 export * from "./utils/errors";
 export * from "./utils/logger";
+export * from "./utils/cli-output";
 export * from "./utils/retry";
 export * from "./utils/circuit-breaker";
 export * from "./utils/resilience";
