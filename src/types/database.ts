@@ -1,9 +1,9 @@
-import { DatabaseRow } from "../services/supabase";
+import { DatabaseRow } from '../services/supabase';
 
 export interface User extends DatabaseRow {
   email: string;
   password_hash?: string;
-  role: "admin" | "editor";
+  role: 'admin' | 'editor';
   deleted_at?: string;
 }
 
@@ -25,7 +25,7 @@ export interface Entry extends DatabaseRow {
   slug?: string;
   title: string;
   data: Record<string, unknown>;
-  status: "published" | "draft";
+  status: 'published' | 'draft';
   deleted_at?: string;
 }
 

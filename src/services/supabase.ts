@@ -1,19 +1,10 @@
-import {
-  createClient,
-  SupabaseClient,
-  PostgrestError,
-} from "@supabase/supabase-js";
-import { CircuitBreaker } from "../utils/circuit-breaker";
-import { isEdgeRuntime } from "../utils/edge-runtime";
-import { SupabaseError, InternalError } from "../utils/errors";
-import { logger } from "../utils/logger";
-import { Validator } from "../utils/validator";
-import { ResilienceConfig } from "../types/service-config";
-import {
-  BaseService,
-  ServiceHealth,
-  ServiceResilienceConfig,
-} from "./base-service";
+import { createClient, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
+import { CircuitBreaker } from '../utils/circuit-breaker';
+import { SupabaseError, InternalError } from '../utils/errors';
+import { logger } from '../utils/logger';
+import { Validator } from '../utils/validator';
+import { ResilienceConfig } from '../types/service-config';
+import { BaseService, ServiceHealth, ServiceResilienceConfig } from './base-service';
 import {
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
@@ -24,7 +15,7 @@ import {
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
   HEALTH_CHECK_QUERY_LIMIT,
   API_KEY_PREFIX_LENGTH,
-} from "../config/constants";
+} from '../config/constants';
 
 export interface SupabaseConfig extends ResilienceConfig {
   url: string;
@@ -48,10 +39,7 @@ export interface QueryOptions {
 const DEFAULT_SUPABASE_CONFIG: Required<
   Pick<
     SupabaseConfig,
-    | "timeout"
-    | "maxRetries"
-    | "circuitBreakerThreshold"
-    | "circuitBreakerResetTimeout"
+    'timeout' | 'maxRetries' | 'circuitBreakerThreshold' | 'circuitBreakerResetTimeout'
   >
 > = {
   timeout: DEFAULT_OPERATION_TIMEOUT_MS,
@@ -61,29 +49,27 @@ const DEFAULT_SUPABASE_CONFIG: Required<
 };
 
 export class SupabaseService extends BaseService {
-  protected serviceName = "Supabase";
+  protected serviceName = 'Supabase';
   public client: SupabaseClient;
   public adminClient: SupabaseClient | null = null;
   private config: SupabaseConfig;
 
   constructor(config: SupabaseConfig, circuitBreaker?: CircuitBreaker) {
-    Validator.url(config.url, "Supabase URL");
-    Validator.string(config.anonKey, "anonKey");
+    Validator.url(config.url, 'Supabase URL');
+    Validator.string(config.anonKey, 'anonKey');
 
     if (config.serviceRoleKey) {
-      Validator.string(config.serviceRoleKey, "serviceRoleKey");
+      Validator.string(config.serviceRoleKey, 'serviceRoleKey');
     }
 
     const failureThreshold =
-      config.circuitBreakerThreshold ??
-      DEFAULT_SUPABASE_CONFIG.circuitBreakerThreshold;
+      config.circuitBreakerThreshold ?? DEFAULT_SUPABASE_CONFIG.circuitBreakerThreshold;
     const resetTimeout =
-      config.circuitBreakerResetTimeout ??
-      DEFAULT_SUPABASE_CONFIG.circuitBreakerResetTimeout;
+      config.circuitBreakerResetTimeout ?? DEFAULT_SUPABASE_CONFIG.circuitBreakerResetTimeout;
 
     const cb =
       circuitBreaker ??
-      BaseService.createCircuitBreaker("Supabase", {
+      BaseService.createCircuitBreaker('Supabase', {
         failureThreshold,
         resetTimeout,
       });
@@ -94,38 +80,34 @@ export class SupabaseService extends BaseService {
 
     this.client = createClient(config.url, config.anonKey, {
       auth: {
-        persistSession: !isEdgeRuntime(),
-        autoRefreshToken: !isEdgeRuntime(),
+        persistSession: true,
+        autoRefreshToken: true,
       },
       db: {
-        schema: "public",
+        schema: 'public',
       },
       global: {
         headers: {
-          "x-client-info": "viber-integration-layer",
+          'x-client-info': 'viber-integration-layer',
         },
       },
     });
 
     if (config.serviceRoleKey) {
       this.adminClient = createClient(config.url, config.serviceRoleKey, {
-        auth: {
-          persistSession: false, // Always false for admin client - no user sessions
-          autoRefreshToken: false,
-        },
         db: {
-          schema: "public",
+          schema: 'public',
         },
         global: {
           headers: {
-            "x-client-info": "viber-integration-layer-admin",
+            'x-client-info': 'viber-integration-layer-admin',
           },
         },
       });
     }
 
-    logger.info("Supabase service initialized", {
-      url: config.url.replace(/\/$/, ""),
+    logger.info('Supabase service initialized', {
+      url: config.url.replace(/\/$/, ''),
       hasAdminClient: !!config.serviceRoleKey,
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
@@ -135,7 +117,7 @@ export class SupabaseService extends BaseService {
 
   private handleSupabaseError(error: PostgrestError | Error | unknown): never {
     if (this.isPostgrestError(error)) {
-      logger.error("Supabase error", {
+      logger.error('Supabase error', {
         message: error.message,
         details: error.details,
         hint: error.hint,
@@ -149,9 +131,8 @@ export class SupabaseService extends BaseService {
       });
     }
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    logger.error("Unexpected Supabase error", { error: errorMessage });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Unexpected Supabase error', { error: errorMessage });
 
     throw new InternalError(`Supabase operation failed: ${errorMessage}`, {
       originalError: errorMessage,
@@ -159,12 +140,7 @@ export class SupabaseService extends BaseService {
   }
 
   private isPostgrestError(error: unknown): error is PostgrestError {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "message" in error &&
-      "code" in error
-    );
+    return typeof error === 'object' && error !== null && 'message' in error && 'code' in error;
   }
 
   protected getResilienceConfig(): ServiceResilienceConfig {
@@ -172,7 +148,7 @@ export class SupabaseService extends BaseService {
       timeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
       maxRetries: this.config.maxRetries || DEFAULT_MAX_RETRY_ATTEMPTS,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
-      retryableErrorCodes: ["PGRST116", "PGRST301", ...RETRYABLE_ERROR_CODES],
+      retryableErrorCodes: ['PGRST116', 'PGRST301', ...RETRYABLE_ERROR_CODES],
     };
   }
 
@@ -186,18 +162,11 @@ export class SupabaseService extends BaseService {
       offset?: number;
       includeDeleted?: boolean;
     } = {},
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T[]> {
-    const {
-      columns = "*",
-      filter,
-      orderBy,
-      limit,
-      offset,
-      includeDeleted = false,
-    } = options;
+    const { columns = '*', filter, orderBy, limit, offset, includeDeleted = false } = options;
 
-    Validator.string(table, "table");
+    Validator.string(table, 'table');
 
     return this.executeWithResilience(
       async () => {
@@ -208,7 +177,7 @@ export class SupabaseService extends BaseService {
         }
 
         if (!includeDeleted) {
-          query = query.eq("deleted_at", null);
+          query = query.eq('deleted_at', null);
         }
 
         if (orderBy) {
@@ -222,10 +191,7 @@ export class SupabaseService extends BaseService {
         }
 
         if (offset) {
-          query = query.range(
-            offset,
-            offset + (limit || DEFAULT_PAGINATION_LIMIT) - 1,
-          );
+          query = query.range(offset, offset + (limit || DEFAULT_PAGINATION_LIMIT) - 1);
         }
 
         const { data, error } = await query;
@@ -237,32 +203,32 @@ export class SupabaseService extends BaseService {
         return (data as unknown as T[]) || [];
       },
       queryOptions,
-      `select from ${table}`,
+      `select from ${table}`
     );
   }
 
   async selectById<T extends DatabaseRow>(
     table: string,
     id: string,
-    columns: string = "*",
+    columns: string = '*',
     includeDeleted: boolean = false,
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T | null> {
-    Validator.string(table, "table");
-    Validator.string(id, "id");
+    Validator.string(table, 'table');
+    Validator.string(id, 'id');
 
     return this.executeWithResilience(
       async () => {
-        let query = this.client.from(table).select(columns).eq("id", id);
+        let query = this.client.from(table).select(columns).eq('id', id);
 
         if (!includeDeleted) {
-          query = query.eq("deleted_at", null);
+          query = query.eq('deleted_at', null);
         }
 
         const { data, error } = await query.single();
 
         if (error) {
-          if (error.code === "PGRST116") {
+          if (error.code === 'PGRST116') {
             return null;
           }
           this.handleSupabaseError(error);
@@ -271,25 +237,21 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `selectById ${table}:${id}`,
+      `selectById ${table}:${id}`
     );
   }
 
   async insert<T extends DatabaseRow>(
     table: string,
     row: Partial<T>,
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T> {
-    Validator.string(table, "table");
-    Validator.required(row, "row");
+    Validator.string(table, 'table');
+    Validator.required(row, 'row');
 
     return this.executeWithResilience(
       async () => {
-        const { data, error } = await this.client
-          .from(table)
-          .insert(row)
-          .select()
-          .single();
+        const { data, error } = await this.client.from(table).insert(row).select().single();
 
         if (error) {
           this.handleSupabaseError(error);
@@ -298,21 +260,18 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `Supabase insert into ${table}`,
+      `Supabase insert into ${table}`
     );
   }
 
   async insertMany<T extends DatabaseRow>(
     table: string,
     rows: Partial<T>[],
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T[]> {
     return this.executeWithResilience(
       async () => {
-        const { data, error } = await this.client
-          .from(table)
-          .insert(rows)
-          .select();
+        const { data, error } = await this.client.from(table).insert(rows).select();
 
         if (error) {
           this.handleSupabaseError(error);
@@ -321,7 +280,7 @@ export class SupabaseService extends BaseService {
         return (data as unknown as T[]) || [];
       },
       queryOptions,
-      `Supabase insertMany into ${table}`,
+      `Supabase insertMany into ${table}`
     );
   }
 
@@ -329,18 +288,18 @@ export class SupabaseService extends BaseService {
     table: string,
     id: string,
     updates: Partial<T>,
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T> {
-    Validator.string(table, "table");
-    Validator.string(id, "id");
-    Validator.required(updates, "updates");
+    Validator.string(table, 'table');
+    Validator.string(id, 'id');
+    Validator.required(updates, 'updates');
 
     return this.executeWithResilience(
       async () => {
         const { data, error } = await this.client
           .from(table)
           .update({ ...updates, updated_at: new Date().toISOString() })
-          .eq("id", id)
+          .eq('id', id)
           .select()
           .single();
 
@@ -351,7 +310,7 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `Supabase update ${table}:${id.slice(0, 8)}...`,
+      `Supabase update ${table}:${id.slice(0, 8)}...`
     );
   }
 
@@ -359,7 +318,7 @@ export class SupabaseService extends BaseService {
     table: string,
     id: string,
     softDelete: boolean = true,
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<void> {
     return this.executeWithResilience(
       async () => {
@@ -367,13 +326,13 @@ export class SupabaseService extends BaseService {
           const { error } = await this.client
             .from(table)
             .update({ deleted_at: new Date().toISOString() })
-            .eq("id", id);
+            .eq('id', id);
 
           if (error) {
             this.handleSupabaseError(error);
           }
         } else {
-          const { error } = await this.client.from(table).delete().eq("id", id);
+          const { error } = await this.client.from(table).delete().eq('id', id);
 
           if (error) {
             this.handleSupabaseError(error);
@@ -383,20 +342,20 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase delete ${table}:${id.slice(0, 8)}...`,
+      `Supabase delete ${table}:${id.slice(0, 8)}...`
     );
   }
 
   async upsert<T extends DatabaseRow>(
     table: string,
     row: Partial<T>,
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T> {
     return this.executeWithResilience(
       async () => {
         const { data, error } = await this.client
           .from(table)
-          .upsert(row, { onConflict: "id" })
+          .upsert(row, { onConflict: 'id' })
           .select()
           .single();
 
@@ -407,21 +366,14 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `Supabase upsert ${table}`,
+      `Supabase upsert ${table}`
     );
   }
 
-  async restore(
-    table: string,
-    id: string,
-    queryOptions: QueryOptions = {},
-  ): Promise<void> {
+  async restore(table: string, id: string, queryOptions: QueryOptions = {}): Promise<void> {
     return this.executeWithResilience(
       async () => {
-        const { error } = await this.client
-          .from(table)
-          .update({ deleted_at: null })
-          .eq("id", id);
+        const { error } = await this.client.from(table).update({ deleted_at: null }).eq('id', id);
 
         if (error) {
           this.handleSupabaseError(error);
@@ -430,17 +382,17 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase restore ${table}:${id.slice(0, 8)}...`,
+      `Supabase restore ${table}:${id.slice(0, 8)}...`
     );
   }
 
   async raw<T = unknown>(
     query: string,
     params: unknown[] = [],
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<T[]> {
     return this.executeWithResilience(async () => {
-      const { data, error } = await this.client.rpc("exec_sql", {
+      const { data, error } = await this.client.rpc('exec_sql', {
         query,
         params,
       });
@@ -456,11 +408,11 @@ export class SupabaseService extends BaseService {
   async healthCheck(): Promise<ServiceHealth> {
     return this.executeHealthCheck(async () => {
       const { error } = await this.client
-        .from("users")
-        .select("id")
+        .from('users')
+        .select('id')
         .limit(HEALTH_CHECK_QUERY_LIMIT);
 
-      if (error && error.code !== "PGRST116") {
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
     });
@@ -491,15 +443,15 @@ export class SupabaseService extends BaseService {
   async exists(
     table: string,
     filter: { column: string; operator: string; value: unknown },
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<boolean> {
-    Validator.string(table, "table");
+    Validator.string(table, 'table');
 
     return this.executeWithResilience(
       async () => {
         const { count, error } = await this.client
           .from(table)
-          .select("id", { count: "exact", head: true })
+          .select('id', { count: 'exact', head: true })
           .filter(filter.column, filter.operator, filter.value);
 
         if (error) {
@@ -509,7 +461,7 @@ export class SupabaseService extends BaseService {
         return (count ?? 0) > 0;
       },
       queryOptions,
-      `exists check on ${table}:${filter.column}`,
+      `exists check on ${table}:${filter.column}`
     );
   }
 
@@ -522,23 +474,21 @@ export class SupabaseService extends BaseService {
       filter?: { column: string; operator: string; value: unknown };
       includeDeleted?: boolean;
     } = {},
-    queryOptions: QueryOptions = {},
+    queryOptions: QueryOptions = {}
   ): Promise<number> {
     const { filter, includeDeleted = false } = options;
-    Validator.string(table, "table");
+    Validator.string(table, 'table');
 
     return this.executeWithResilience(
       async () => {
-        let query = this.client
-          .from(table)
-          .select("id", { count: "exact", head: true });
+        let query = this.client.from(table).select('id', { count: 'exact', head: true });
 
         if (filter) {
           query = query.filter(filter.column, filter.operator, filter.value);
         }
 
         if (!includeDeleted) {
-          query = query.eq("deleted_at", null);
+          query = query.eq('deleted_at', null);
         }
 
         const { count, error } = await query;
@@ -550,13 +500,13 @@ export class SupabaseService extends BaseService {
         return count ?? 0;
       },
       queryOptions,
-      `count on ${table}`,
+      `count on ${table}`
     );
   }
 }
 
 // Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
+import { serviceFactory } from '../utils/service-factory';
 
 let supabaseInstance: SupabaseService | null = null;
 
@@ -587,7 +537,7 @@ export function getSupabaseClient(): SupabaseService | null {
  * @deprecated Use serviceFactory.resetService() for new code
  */
 export function resetSupabaseClient(): void {
-  serviceFactory.resetService("supabase");
+  serviceFactory.resetService('supabase');
   supabaseInstance = null;
 }
 
@@ -596,8 +546,6 @@ export function resetSupabaseClient(): void {
  * @param service - Service instance to check
  * @returns True if the service is a SupabaseService
  */
-export function isSupabaseService(
-  service: unknown,
-): service is SupabaseService {
+export function isSupabaseService(service: unknown): service is SupabaseService {
   return service instanceof SupabaseService;
 }

@@ -1,39 +1,18 @@
-import {
-  CircuitBreaker,
-  DEFAULT_CIRCUIT_BREAKER_OPTIONS,
-} from "./circuit-breaker";
-import { logger } from "./logger";
-import {
-  formatServiceFactoryMetrics,
-  type FormatterOptions,
-} from "./formatters";
-import {
-  SupabaseService,
-  SupabaseConfig,
-  isSupabaseService,
-} from "../services/supabase";
-import {
-  GeminiService,
-  GeminiConfig,
-  isGeminiService,
-} from "../services/gemini";
-import { BaseService } from "../services/base-service";
+import { CircuitBreaker, DEFAULT_CIRCUIT_BREAKER_OPTIONS } from './circuit-breaker';
+import { logger } from './logger';
+import { formatServiceFactoryMetrics, type FormatterOptions } from './formatters';
+import { SupabaseService, SupabaseConfig, isSupabaseService } from '../services/supabase';
+import { GeminiService, GeminiConfig, isGeminiService } from '../services/gemini';
+import { BaseService } from '../services/base-service';
 import {
   HealthCheckRegistry,
   HealthCheckFunction,
   HealthCheckConfig,
   healthCheckRegistry,
-} from "./health-check";
-import {
-  MetricsRegistry,
-  ServiceMetricsCollector,
-  metricsRegistry,
-} from "./metrics";
-import {
-  MigrationRunner,
-  SupabaseClient as MigrationSupabaseClient,
-} from "../migrations/runner";
-import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
+} from './health-check';
+import { MetricsRegistry, ServiceMetricsCollector, metricsRegistry } from './metrics';
+import { MigrationRunner, SupabaseClient as MigrationSupabaseClient } from '../migrations/runner';
+import { HEALTH_CHECK_TIMEOUT_MS } from '../config/constants';
 
 export interface CircuitBreakerConfig {
   failureThreshold?: number;
@@ -77,9 +56,7 @@ export class ServiceFactory {
     this.serviceMetrics = new Map();
   }
 
-  static getInstance(
-    circuitBreakerConfigs?: CircuitBreakerConfigMap,
-  ): ServiceFactory {
+  static getInstance(circuitBreakerConfigs?: CircuitBreakerConfigMap): ServiceFactory {
     if (!ServiceFactory.instance) {
       ServiceFactory.instance = new ServiceFactory(circuitBreakerConfigs);
     }
@@ -90,17 +67,12 @@ export class ServiceFactory {
     ServiceFactory.instance = new ServiceFactory();
   }
 
-  private createCircuitBreaker(
-    serviceName: string,
-    config?: CircuitBreakerConfig,
-  ): CircuitBreaker {
+  private createCircuitBreaker(serviceName: string, config?: CircuitBreakerConfig): CircuitBreaker {
     const finalConfig = {
       ...DEFAULT_CIRCUIT_BREAKER_OPTIONS,
       ...config,
       onStateChange: (state: string, reason: string) => {
-        logger.warn(
-          `${serviceName} circuit breaker state changed to ${state}: ${reason}`,
-        );
+        logger.warn(`${serviceName} circuit breaker state changed to ${state}: ${reason}`);
         config?.onStateChange?.(state, reason);
       },
     };
@@ -116,8 +88,7 @@ export class ServiceFactory {
       return cached;
     }
 
-    const config =
-      this.circuitBreakerConfigs[serviceName as keyof CircuitBreakerConfigMap];
+    const config = this.circuitBreakerConfigs[serviceName as keyof CircuitBreakerConfigMap];
     return this.createCircuitBreaker(serviceName, config);
   }
 
@@ -128,30 +99,29 @@ export class ServiceFactory {
       return cached;
     }
 
-    const circuitBreaker = this.getCircuitBreaker("supabase");
+    const circuitBreaker = this.getCircuitBreaker('supabase');
     const service = new SupabaseService(config, circuitBreaker);
-    const metricsCollector = this.registerServiceMetrics("supabase");
+    const metricsCollector = this.registerServiceMetrics('supabase');
     service.setMetricsCollector(metricsCollector);
     this.services.set(cacheKey, service);
-    this.registerServiceHealthCheck("supabase", service);
+    this.registerServiceHealthCheck('supabase', service);
     return service;
   }
 
   createGeminiClient(config: GeminiConfig): GeminiService {
-    const apiKeyPrefix =
-      config.apiKey.length >= 8 ? config.apiKey.substring(0, 8) : config.apiKey;
+    const apiKeyPrefix = config.apiKey.length >= 8 ? config.apiKey.substring(0, 8) : config.apiKey;
     const cacheKey = `gemini-${apiKeyPrefix}`;
     const cached = this.services.get(cacheKey) as GeminiService;
     if (cached) {
       return cached;
     }
 
-    const circuitBreaker = this.getCircuitBreaker("gemini");
+    const circuitBreaker = this.getCircuitBreaker('gemini');
     const service = new GeminiService(config, circuitBreaker);
-    const metricsCollector = this.registerServiceMetrics("gemini");
+    const metricsCollector = this.registerServiceMetrics('gemini');
     service.setMetricsCollector(metricsCollector);
     this.services.set(cacheKey, service);
-    this.registerServiceHealthCheck("gemini", service);
+    this.registerServiceHealthCheck('gemini', service);
     return service;
   }
 
@@ -178,10 +148,10 @@ export class ServiceFactory {
     const services: Array<{ name: string; type: string }> = [];
     this.services.forEach((service, key) => {
       const type = isSupabaseService(service)
-        ? "supabase"
+        ? 'supabase'
         : isGeminiService(service)
-          ? "gemini"
-          : "unknown";
+          ? 'gemini'
+          : 'unknown';
       services.push({ name: key, type });
     });
     return services;
@@ -227,7 +197,7 @@ export class ServiceFactory {
   registerHealthCheck(
     serviceName: string,
     check: HealthCheckFunction,
-    config?: Partial<HealthCheckConfig>,
+    config?: Partial<HealthCheckConfig>
   ): void {
     this.healthCheckRegistry.register(serviceName, check, config);
     logger.info(`Registered health check for service: ${serviceName}`);
@@ -262,10 +232,7 @@ export class ServiceFactory {
    * Register health check for a BaseService instance
    * Converts ServiceHealth result to HealthCheckResult format
    */
-  private registerServiceHealthCheck(
-    serviceName: string,
-    service: BaseService,
-  ): void {
+  private registerServiceHealthCheck(serviceName: string, service: BaseService): void {
     if (this.healthCheckRegistry.isRegistered(serviceName)) {
       return;
     }
@@ -281,13 +248,13 @@ export class ServiceFactory {
         if (health.healthy) {
           metricsCollector.recordRequestComplete(responseTime);
         } else {
-          metricsCollector.recordError("health_check_failed");
+          metricsCollector.recordError('health_check_failed');
           metricsCollector.recordRequestComplete(responseTime);
         }
       }
 
       return {
-        status: health.healthy ? "healthy" : "unhealthy",
+        status: health.healthy ? 'healthy' : 'unhealthy',
         service: serviceName,
         timestamp: Date.now(),
         responseTime,
@@ -329,7 +296,7 @@ export class ServiceFactory {
   /**
    * Print a formatted metrics table to console
    * Human-readable ASCII table format (useful for debugging/monitoring)
-   * 
+   *
    * @param options - Formatter options
    * @returns Formatted metrics table string
    */
@@ -348,10 +315,7 @@ export class ServiceFactory {
       return this.serviceMetrics.get(serviceName)!;
     }
 
-    const metricsCollector = new ServiceMetricsCollector(
-      serviceName,
-      this.metricsRegistry,
-    );
+    const metricsCollector = new ServiceMetricsCollector(serviceName, this.metricsRegistry);
     this.serviceMetrics.set(serviceName, metricsCollector);
     logger.info(`Registered metrics collector for service: ${serviceName}`);
     return metricsCollector;

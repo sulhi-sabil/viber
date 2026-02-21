@@ -7,9 +7,9 @@
  * @module utils/metrics
  */
 
-import { logger } from "./logger";
-import { InternalError } from "./errors";
-import { DEFAULT_LATENCY_HISTOGRAM_BUCKETS } from "../config/constants";
+import { logger } from './logger';
+import { InternalError } from './errors';
+import { DEFAULT_LATENCY_HISTOGRAM_BUCKETS } from '../config/constants';
 
 /**
  * Metric label type for dimensional metrics
@@ -83,7 +83,7 @@ export interface Gauge {
 /**
  * Metric type enumeration
  */
-export type MetricType = "counter" | "histogram" | "gauge";
+export type MetricType = 'counter' | 'histogram' | 'gauge';
 
 /**
  * Counter implementation
@@ -114,17 +114,15 @@ class CounterImpl implements Counter {
       `# HELP ${this.name} ${this.help}`,
       `# TYPE ${this.name} counter`,
       `${this.name}${labelsStr} ${this.value}`,
-    ].join("\n");
+    ].join('\n');
   }
 
   private formatLabels(): string {
     if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
+      return '';
     }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    const labelPairs = Object.entries(this.labels).map(([key, value]) => `${key}="${value}"`);
+    return `{${labelPairs.join(',')}}`;
   }
 }
 
@@ -140,12 +138,7 @@ class HistogramImpl implements Histogram {
   private sum: number = 0;
   private count: number = 0;
 
-  constructor(
-    name: string,
-    help: string,
-    buckets: number[],
-    labels?: MetricLabels,
-  ) {
+  constructor(name: string, help: string, buckets: number[], labels?: MetricLabels) {
     this.name = name;
     this.help = help;
     this.buckets = [...buckets].sort((a, b) => a - b);
@@ -180,10 +173,7 @@ class HistogramImpl implements Histogram {
 
   toPrometheusString(): string {
     const labelsStr = this.formatLabels();
-    const lines: string[] = [
-      `# HELP ${this.name} ${this.help}`,
-      `# TYPE ${this.name} histogram`,
-    ];
+    const lines: string[] = [`# HELP ${this.name} ${this.help}`, `# TYPE ${this.name} histogram`];
 
     // Bucket lines
     for (const bucket of this.buckets) {
@@ -195,26 +185,22 @@ class HistogramImpl implements Histogram {
     }
 
     // +Inf bucket
-    const infLabels = labelsStr
-      ? `${labelsStr.slice(0, -1)},le="+Inf"}`
-      : `{le="+Inf"}`;
+    const infLabels = labelsStr ? `${labelsStr.slice(0, -1)},le="+Inf"}` : `{le="+Inf"}`;
     lines.push(`${this.name}_bucket${infLabels} ${this.count}`);
 
     // Sum and count
     lines.push(`${this.name}_sum${labelsStr} ${this.sum}`);
     lines.push(`${this.name}_count${labelsStr} ${this.count}`);
 
-    return lines.join("\n");
+    return lines.join('\n');
   }
 
   private formatLabels(): string {
     if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
+      return '';
     }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    const labelPairs = Object.entries(this.labels).map(([key, value]) => `${key}="${value}"`);
+    return `{${labelPairs.join(',')}}`;
   }
 }
 
@@ -255,17 +241,15 @@ class GaugeImpl implements Gauge {
       `# HELP ${this.name} ${this.help}`,
       `# TYPE ${this.name} gauge`,
       `${this.name}${labelsStr} ${this.value}`,
-    ].join("\n");
+    ].join('\n');
   }
 
   private formatLabels(): string {
     if (!this.labels || Object.keys(this.labels).length === 0) {
-      return "";
+      return '';
     }
-    const labelPairs = Object.entries(this.labels).map(
-      ([key, value]) => `${key}="${value}"`,
-    );
-    return `{${labelPairs.join(",")}}`;
+    const labelPairs = Object.entries(this.labels).map(([key, value]) => `${key}="${value}"`);
+    return `{${labelPairs.join(',')}}`;
   }
 }
 
@@ -284,7 +268,7 @@ export class MetricsRegistry {
 
     if (this.metrics.has(key)) {
       const existing = this.metrics.get(key);
-      if (existing && "increment" in existing) {
+      if (existing && 'increment' in existing) {
         return existing as Counter;
       }
       throw new InternalError(`Metric ${name} already exists with different type`);
@@ -303,13 +287,13 @@ export class MetricsRegistry {
     name: string,
     help: string,
     buckets: number[] = DEFAULT_LATENCY_HISTOGRAM_BUCKETS,
-    labels?: MetricLabels,
+    labels?: MetricLabels
   ): Histogram {
     const key = this.getMetricKey(name, labels);
 
     if (this.metrics.has(key)) {
       const existing = this.metrics.get(key);
-      if (existing && "observe" in existing) {
+      if (existing && 'observe' in existing) {
         return existing as Histogram;
       }
       throw new InternalError(`Metric ${name} already exists with different type`);
@@ -329,7 +313,7 @@ export class MetricsRegistry {
 
     if (this.metrics.has(key)) {
       const existing = this.metrics.get(key);
-      if (existing && "set" in existing) {
+      if (existing && 'set' in existing) {
         return existing as Gauge;
       }
       throw new InternalError(`Metric ${name} already exists with different type`);
@@ -344,10 +328,7 @@ export class MetricsRegistry {
   /**
    * Get a metric by name and labels
    */
-  getMetric(
-    name: string,
-    labels?: MetricLabels,
-  ): Counter | Histogram | Gauge | undefined {
+  getMetric(name: string, labels?: MetricLabels): Counter | Histogram | Gauge | undefined {
     const key = this.getMetricKey(name, labels);
     return this.metrics.get(key);
   }
@@ -378,7 +359,7 @@ export class MetricsRegistry {
   clear(): void {
     this.metrics.clear();
     this.metricNames.clear();
-    logger.info("Cleared all metrics");
+    logger.info('Cleared all metrics');
   }
 
   /**
@@ -410,36 +391,34 @@ export class MetricsRegistry {
         const firstMetric = metrics[0];
         if (!firstMetric) continue;
         outputs.push(`# HELP ${firstMetric.name} ${firstMetric.help}`);
-        outputs.push(
-          `# TYPE ${firstMetric.name} ${this.getMetricType(firstMetric)}`,
-        );
+        outputs.push(`# TYPE ${firstMetric.name} ${this.getMetricType(firstMetric)}`);
 
         // Add value lines for all label combinations
         for (const metric of metrics) {
           if (metric instanceof CounterImpl) {
-            outputs.push(metric.toPrometheusString().split("\n").pop() || "");
+            outputs.push(metric.toPrometheusString().split('\n').pop() || '');
           } else if (metric instanceof GaugeImpl) {
-            outputs.push(metric.toPrometheusString().split("\n").pop() || "");
+            outputs.push(metric.toPrometheusString().split('\n').pop() || '');
           } else if (metric instanceof HistogramImpl) {
             outputs.push(metric.toPrometheusString());
           }
         }
 
-        outputs.push(""); // Empty line between metrics
+        outputs.push(''); // Empty line between metrics
       }
     }
 
-    return outputs.join("\n").trim();
+    return outputs.join('\n').trim();
   }
 
   /**
    * Get metric type string
    */
   private getMetricType(metric: Counter | Histogram | Gauge): string {
-    if (metric instanceof CounterImpl) return "counter";
-    if (metric instanceof HistogramImpl) return "histogram";
-    if (metric instanceof GaugeImpl) return "gauge";
-    return "unknown";
+    if (metric instanceof CounterImpl) return 'counter';
+    if (metric instanceof HistogramImpl) return 'histogram';
+    if (metric instanceof GaugeImpl) return 'gauge';
+    return 'unknown';
   }
 
   /**
@@ -467,7 +446,7 @@ export class MetricsRegistry {
     const labelStr = Object.entries(labels)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([k, v]) => `${k}:${v}`)
-      .join(",");
+      .join(',');
     return `${name}{${labelStr}}`;
   }
 }
@@ -493,55 +472,52 @@ export class ServiceMetricsCollector {
   private rateLimitHits: Counter;
   private rateLimitMisses: Counter;
 
-  constructor(
-    serviceName: string,
-    registry: MetricsRegistry = metricsRegistry,
-  ) {
+  constructor(serviceName: string, registry: MetricsRegistry = metricsRegistry) {
     this.serviceName = serviceName;
     this.registry = registry;
 
     // Initialize service-specific metrics
     this.requestCounter = this.registry.createCounter(
-      "service_requests_total",
-      "Total number of service requests",
-      { service: serviceName },
+      'service_requests_total',
+      'Total number of service requests',
+      { service: serviceName }
     );
 
     this.errorCounter = this.registry.createCounter(
-      "service_errors_total",
-      "Total number of service errors",
-      { service: serviceName },
+      'service_errors_total',
+      'Total number of service errors',
+      { service: serviceName }
     );
 
     this.requestDuration = this.registry.createHistogram(
-      "service_request_duration_seconds",
-      "Service request duration in seconds",
+      'service_request_duration_seconds',
+      'Service request duration in seconds',
       DEFAULT_LATENCY_HISTOGRAM_BUCKETS,
-      { service: serviceName },
+      { service: serviceName }
     );
 
     this.activeRequests = this.registry.createGauge(
-      "service_active_requests",
-      "Number of active requests",
-      { service: serviceName },
+      'service_active_requests',
+      'Number of active requests',
+      { service: serviceName }
     );
 
     this.circuitBreakerState = this.registry.createGauge(
-      "service_circuit_breaker_state",
-      "Circuit breaker state (0=closed, 1=open, 2=half-open)",
-      { service: serviceName },
+      'service_circuit_breaker_state',
+      'Circuit breaker state (0=closed, 1=open, 2=half-open)',
+      { service: serviceName }
     );
 
     this.rateLimitHits = this.registry.createCounter(
-      "service_rate_limit_hits_total",
-      "Total number of rate limit hits",
-      { service: serviceName },
+      'service_rate_limit_hits_total',
+      'Total number of rate limit hits',
+      { service: serviceName }
     );
 
     this.rateLimitMisses = this.registry.createCounter(
-      "service_rate_limit_misses_total",
-      "Total number of rate limit misses (allowed)",
-      { service: serviceName },
+      'service_rate_limit_misses_total',
+      'Total number of rate limit misses (allowed)',
+      { service: serviceName }
     );
 
     logger.info(`Initialized metrics collector for service: ${serviceName}`);
@@ -571,9 +547,9 @@ export class ServiceMetricsCollector {
     if (errorType) {
       // Create labeled counter for specific error types
       const errorCounter = this.registry.createCounter(
-        "service_errors_by_type_total",
-        "Total number of errors by type",
-        { service: this.serviceName, type: errorType },
+        'service_errors_by_type_total',
+        'Total number of errors by type',
+        { service: this.serviceName, type: errorType }
       );
       errorCounter.increment();
     }
@@ -582,8 +558,8 @@ export class ServiceMetricsCollector {
   /**
    * Update circuit breaker state
    */
-  updateCircuitBreakerState(state: "closed" | "open" | "half-open"): void {
-    const stateMap = { closed: 0, open: 1, "half-open": 2 };
+  updateCircuitBreakerState(state: 'closed' | 'open' | 'half-open'): void {
+    const stateMap = { closed: 0, open: 1, 'half-open': 2 };
     this.circuitBreakerState.set(stateMap[state]);
   }
 
@@ -614,7 +590,7 @@ export class ServiceMetricsCollector {
  */
 export function createServiceMetrics(
   serviceName: string,
-  registry?: MetricsRegistry,
+  registry?: MetricsRegistry
 ): ServiceMetricsCollector {
   return new ServiceMetricsCollector(serviceName, registry);
 }

@@ -1,4 +1,4 @@
-import { ServiceUnavailableError } from "./errors";
+import { ServiceUnavailableError } from './errors';
 import {
   CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
@@ -7,12 +7,12 @@ import {
   CIRCUIT_BREAKER_MIN_CLEANUP_THRESHOLD,
   CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER,
   MS_TO_SECONDS,
-} from "../config/constants";
+} from '../config/constants';
 
 export enum CircuitState {
-  CLOSED = "closed",
-  OPEN = "open",
-  HALF_OPEN = "half_open",
+  CLOSED = 'closed',
+  OPEN = 'open',
+  HALF_OPEN = 'half_open',
 }
 
 export interface CircuitBreakerOptions {
@@ -23,14 +23,13 @@ export interface CircuitBreakerOptions {
   onStateChange?: (state: CircuitState, reason: string) => void;
 }
 
-export const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> =
-  {
-    failureThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
-    resetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
-    halfOpenMaxCalls: CIRCUIT_BREAKER_DEFAULT_HALF_OPEN_MAX_CALLS,
-    monitorWindow: CIRCUIT_BREAKER_DEFAULT_MONITOR_WINDOW_MS,
-    onStateChange: () => {},
-  };
+export const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> = {
+  failureThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  resetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  halfOpenMaxCalls: CIRCUIT_BREAKER_DEFAULT_HALF_OPEN_MAX_CALLS,
+  monitorWindow: CIRCUIT_BREAKER_DEFAULT_MONITOR_WINDOW_MS,
+  onStateChange: () => {},
+};
 
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
@@ -50,29 +49,26 @@ export class CircuitBreaker {
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.state === CircuitState.OPEN) {
       if (this.shouldAttemptReset()) {
-        this.transitionToHalfOpen("Reset timeout elapsed");
+        this.transitionToHalfOpen('Reset timeout elapsed');
       } else {
         const remainingMs = this.lastFailureTime
-          ? this.mergedOptions.resetTimeout -
-            (Date.now() - this.lastFailureTime)
+          ? this.mergedOptions.resetTimeout - (Date.now() - this.lastFailureTime)
           : this.mergedOptions.resetTimeout;
         const remainingSec = Math.ceil(remainingMs / MS_TO_SECONDS);
         const failureInfo =
           this.failureCount > 0
             ? ` (${this.failureCount}/${this.mergedOptions.failureThreshold} failures)`
-            : "";
+            : '';
         throw new ServiceUnavailableError(
-          "circuit breaker",
+          'circuit breaker',
           `Circuit breaker is OPEN${failureInfo}. Requests are temporarily blocked. Will retry in ${remainingSec}s`,
           {
             failureCount: this.failureCount,
             failureThreshold: this.mergedOptions.failureThreshold,
-            resetTimeoutSec: Math.ceil(
-              this.mergedOptions.resetTimeout / MS_TO_SECONDS,
-            ),
+            resetTimeoutSec: Math.ceil(this.mergedOptions.resetTimeout / MS_TO_SECONDS),
             remainingSec,
             lastFailureTime: this.lastFailureTime,
-          },
+          }
         );
       }
     }
@@ -95,7 +91,7 @@ export class CircuitBreaker {
       this.halfOpenCallCount++;
 
       if (this.halfOpenCallCount >= this.mergedOptions.halfOpenMaxCalls) {
-        this.transitionToClosed("Half-open calls succeeded");
+        this.transitionToClosed('Half-open calls succeeded');
       }
     } else {
       this.failureCount = Math.max(0, this.failureCount - 1);
@@ -108,11 +104,9 @@ export class CircuitBreaker {
     this.failures.push(Date.now());
 
     if (this.state === CircuitState.HALF_OPEN) {
-      this.transitionToOpen("Half-open call failed");
+      this.transitionToOpen('Half-open call failed');
     } else if (this.failureCount >= this.mergedOptions.failureThreshold) {
-      this.transitionToOpen(
-        `Failure threshold (${this.mergedOptions.failureThreshold}) reached`,
-      );
+      this.transitionToOpen(`Failure threshold (${this.mergedOptions.failureThreshold}) reached`);
     }
   }
 
@@ -169,16 +163,12 @@ export class CircuitBreaker {
 
     const cleanupThreshold = Math.max(
       CIRCUIT_BREAKER_MIN_CLEANUP_THRESHOLD,
-      this.mergedOptions.failureThreshold *
-        CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER,
+      this.mergedOptions.failureThreshold * CIRCUIT_BREAKER_CLEANUP_THRESHOLD_MULTIPLIER
     );
     const timeSinceLastCleanup = now - this.lastCleanupTime;
     const minCleanupInterval = this.mergedOptions.monitorWindow / 2;
 
-    if (
-      totalItems <= cleanupThreshold &&
-      timeSinceLastCleanup < minCleanupInterval
-    ) {
+    if (totalItems <= cleanupThreshold && timeSinceLastCleanup < minCleanupInterval) {
       return;
     }
 
@@ -199,12 +189,10 @@ export class CircuitBreaker {
     this.failures = [];
     this.successes = [];
     this.lastCleanupTime = 0;
-    this.mergedOptions.onStateChange?.(CircuitState.CLOSED, "Manual reset");
+    this.mergedOptions.onStateChange?.(CircuitState.CLOSED, 'Manual reset');
   }
 }
 
-export function createCircuitBreaker(
-  options?: CircuitBreakerOptions,
-): CircuitBreaker {
+export function createCircuitBreaker(options?: CircuitBreakerOptions): CircuitBreaker {
   return new CircuitBreaker(options);
 }

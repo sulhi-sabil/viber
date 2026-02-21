@@ -7,21 +7,12 @@
  * @module utils/formatters
  */
 
-import type {
-  MetricLabels,
-  Counter,
-  Histogram,
-  Gauge,
-  MetricsRegistry,
-} from "./metrics";
+import type { MetricLabels, Counter, Histogram, Gauge, MetricsRegistry } from './metrics';
 // ═══════════════════════════════════════════════════════════════════════════
 // RE-EXPORT HEALTH FORMATTERS (for convenience)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export {
-  formatHealthCheckResult,
-  formatAggregateHealthResult,
-} from "./health-check";
+export { formatHealthCheckResult, formatAggregateHealthResult } from './health-check';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -37,13 +28,13 @@ const COLUMN_WIDTHS = {
 
 /** ANSI color codes */
 const COLORS = {
-  reset: "\x1b[0m",
-  dim: "\x1b[2m",
-  cyan: "\x1b[36m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  magenta: "\x1b[35m",
+  reset: '\x1b[0m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -59,14 +50,12 @@ export interface FormatterOptions {
   maxLabelLength?: number;
 }
 
-function getDefaultOptions(
-  options: FormatterOptions,
-): Required<FormatterOptions> {
+function getDefaultOptions(options: FormatterOptions): Required<FormatterOptions> {
   return {
     useColors:
       options.useColors ??
-      (typeof process !== "undefined" &&
-        process.env?.NODE_ENV !== "production" &&
+      (typeof process !== 'undefined' &&
+        process.env?.NODE_ENV !== 'production' &&
         process.stdout?.isTTY === true),
     includeTimestamp: options.includeTimestamp ?? true,
     maxLabelLength: options.maxLabelLength ?? 30,
@@ -77,27 +66,20 @@ function getDefaultOptions(
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function colorize(
-  text: string,
-  color: keyof typeof COLORS,
-  enabled: boolean,
-): string {
+function colorize(text: string, color: keyof typeof COLORS, enabled: boolean): string {
   return enabled ? `${COLORS[color]}${text}${COLORS.reset}` : text;
 }
 
 function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 1) + "…";
+  return str.slice(0, maxLength - 1) + '…';
 }
 
-function formatLabels(
-  labels: MetricLabels | undefined,
-  maxLength: number,
-): string {
-  if (!labels || Object.keys(labels).length === 0) return "-";
+function formatLabels(labels: MetricLabels | undefined, maxLength: number): string {
+  if (!labels || Object.keys(labels).length === 0) return '-';
   const formatted = Object.entries(labels)
     .map(([k, v]) => `${k}=${v}`)
-    .join(", ");
+    .join(', ');
   return truncate(formatted, maxLength);
 }
 
@@ -105,11 +87,11 @@ function padCenter(str: string, width: number): string {
   const padding = Math.max(0, width - str.length);
   const leftPad = Math.floor(padding / 2);
   const rightPad = padding - leftPad;
-  return " ".repeat(leftPad) + str + " ".repeat(rightPad);
+  return ' '.repeat(leftPad) + str + ' '.repeat(rightPad);
 }
 
 function padRight(str: string, width: number): string {
-  return str + " ".repeat(Math.max(0, width - str.length));
+  return str + ' '.repeat(Math.max(0, width - str.length));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,7 +102,7 @@ export interface MetricRow {
   name: string;
   value: string;
   labels: string;
-  type: "counter" | "histogram" | "gauge";
+  type: 'counter' | 'histogram' | 'gauge';
 }
 
 /**
@@ -139,23 +121,20 @@ export interface MetricRow {
  * console.log(formatMetricsTable(rows));
  * ```
  */
-export function formatMetricsTable(
-  metrics: MetricRow[],
-  options: FormatterOptions = {},
-): string {
+export function formatMetricsTable(metrics: MetricRow[], options: FormatterOptions = {}): string {
   const opts = getDefaultOptions(options);
   const lines: string[] = [];
 
   // Border characters
-  const tl = "┌",
-    tr = "┐",
-    bl = "└",
-    br = "┘";
-  const h = "─",
-    v = "│";
-  const lt = "├",
-    rt = "┤",
-    tt = "┬";
+  const tl = '┌',
+    tr = '┐',
+    bl = '└',
+    br = '┘';
+  const h = '─',
+    v = '│';
+  const lt = '├',
+    rt = '┤',
+    tt = '┬';
 
   const col1 = COLUMN_WIDTHS.metric;
   const col2 = COLUMN_WIDTHS.value;
@@ -165,47 +144,43 @@ export function formatMetricsTable(
 
   // Header
   lines.push(`${tl}${h.repeat(totalWidth - 2)}${tr}`);
-  lines.push(`${v}${padCenter("SERVICE METRICS", totalWidth - 2)}${v}`);
+  lines.push(`${v}${padCenter('SERVICE METRICS', totalWidth - 2)}${v}`);
 
   if (opts.includeTimestamp) {
     const timestamp = new Date().toLocaleString();
     lines.push(
-      `${v}${colorize(padCenter(`Generated: ${timestamp}`, totalWidth - 2), "dim", opts.useColors)}${v}`,
+      `${v}${colorize(padCenter(`Generated: ${timestamp}`, totalWidth - 2), 'dim', opts.useColors)}${v}`
     );
   }
 
-  lines.push(`${v}${" ".repeat(totalWidth - 2)}${v}`);
+  lines.push(`${v}${' '.repeat(totalWidth - 2)}${v}`);
 
   // Column headers
   const headerLine = [
-    padRight("Metric", col1),
-    padRight("Value", col2),
-    padRight("Labels", col3),
-    padRight("Type", col4),
+    padRight('Metric', col1),
+    padRight('Value', col2),
+    padRight('Labels', col3),
+    padRight('Type', col4),
   ].join(`${v}`);
-  lines.push(`${v}${colorize(headerLine, "cyan", opts.useColors)}${v}`);
+  lines.push(`${v}${colorize(headerLine, 'cyan', opts.useColors)}${v}`);
 
   // Separator
   lines.push(
-    `${lt}${h.repeat(col1)}${tt}${h.repeat(col2)}${tt}${h.repeat(col3)}${tt}${h.repeat(col4)}${rt}`,
+    `${lt}${h.repeat(col1)}${tt}${h.repeat(col2)}${tt}${h.repeat(col3)}${tt}${h.repeat(col4)}${rt}`
   );
 
   // Data rows
   if (metrics.length === 0) {
-    lines.push(`${v}${padCenter("No metrics collected", totalWidth - 2)}${v}`);
+    lines.push(`${v}${padCenter('No metrics collected', totalWidth - 2)}${v}`);
   } else {
     for (const metric of metrics) {
       const typeColor: keyof typeof COLORS =
-        metric.type === "counter"
-          ? "green"
-          : metric.type === "histogram"
-            ? "yellow"
-            : "blue";
+        metric.type === 'counter' ? 'green' : metric.type === 'histogram' ? 'yellow' : 'blue';
 
       const row = [
         padRight(truncate(metric.name, col1), col1),
-        padRight(colorize(metric.value, "green", opts.useColors), col2),
-        padRight(colorize(metric.labels, "dim", opts.useColors), col3),
+        padRight(colorize(metric.value, 'green', opts.useColors), col2),
+        padRight(colorize(metric.labels, 'dim', opts.useColors), col3),
         padRight(colorize(metric.type, typeColor, opts.useColors), col4),
       ].join(`${v}`);
       lines.push(`${v}${row}${v}`);
@@ -214,9 +189,9 @@ export function formatMetricsTable(
 
   // Footer
   lines.push(`${bl}${h.repeat(totalWidth - 2)}${br}`);
-  lines.push(""); // Trailing newline
+  lines.push(''); // Trailing newline
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /**
@@ -228,30 +203,24 @@ export function extractMetricsRows(registry: MetricsRegistry): MetricRow[] {
 
   for (const [, metric] of metrics) {
     let value: string;
-    let type: "counter" | "histogram" | "gauge";
+    let type: 'counter' | 'histogram' | 'gauge';
 
     // Determine metric type and extract value
-    if (
-      "observe" in metric &&
-      typeof (metric as Histogram).observe === "function"
-    ) {
+    if ('observe' in metric && typeof (metric as Histogram).observe === 'function') {
       // Histogram
       const hist = metric as Histogram;
       value = `${hist.getCount()} obs`;
-      type = "histogram";
-    } else if ("set" in metric && typeof (metric as Gauge).set === "function") {
+      type = 'histogram';
+    } else if ('set' in metric && typeof (metric as Gauge).set === 'function') {
       // Gauge
       const gauge = metric as Gauge;
       value = String(gauge.getValue());
-      type = "gauge";
-    } else if (
-      "getValue" in metric &&
-      typeof (metric as Counter).getValue === "function"
-    ) {
+      type = 'gauge';
+    } else if ('getValue' in metric && typeof (metric as Counter).getValue === 'function') {
       // Counter
       const counter = metric as Counter;
       value = String(counter.getValue());
-      type = "counter";
+      type = 'counter';
     } else {
       continue;
     }
@@ -266,8 +235,8 @@ export function extractMetricsRows(registry: MetricsRegistry): MetricRow[] {
 
   // Sort by service label, then by name
   return rows.sort((a, b) => {
-    const labelA = a.labels.split(",")[0] || "";
-    const labelB = b.labels.split(",")[0] || "";
+    const labelA = a.labels.split(',')[0] || '';
+    const labelB = b.labels.split(',')[0] || '';
     if (labelA !== labelB) return labelA.localeCompare(labelB);
     return a.name.localeCompare(b.name);
   });
@@ -286,7 +255,7 @@ export interface HasMetricsRegistry {
  */
 export function formatServiceFactoryMetrics(
   factory: HasMetricsRegistry,
-  options: FormatterOptions = {},
+  options: FormatterOptions = {}
 ): string {
   const registry = factory.getMetricsRegistry();
   const rows = extractMetricsRows(registry);

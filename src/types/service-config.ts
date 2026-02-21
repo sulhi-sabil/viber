@@ -1,8 +1,11 @@
-/**
- * Service configuration types
- * Note: Default values are defined inline to maintain layer purity
- * (types should not import from config layer)
- */
+import {
+  STREAMING_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
+} from '../config/constants';
 
 export interface ResilienceConfig {
   timeout?: number;
@@ -11,12 +14,11 @@ export interface ResilienceConfig {
   circuitBreakerResetTimeout?: number;
 }
 
-/** Default resilience configuration values */
 export const DEFAULT_RESILIENCE_CONFIG: Required<ResilienceConfig> = {
-  timeout: 30000,        // Default timeout for streaming operations (ms)
-  maxRetries: 3,         // Default maximum retry attempts
-  circuitBreakerThreshold: 5,     // Default failure threshold before opening circuit
-  circuitBreakerResetTimeout: 60000, // Default reset timeout for circuit breaker (ms)
+  timeout: STREAMING_TIMEOUT_MS,
+  maxRetries: DEFAULT_MAX_RETRY_ATTEMPTS,
+  circuitBreakerThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
+  circuitBreakerResetTimeout: CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
 };
 
 export interface RateLimitConfig {
@@ -24,9 +26,7 @@ export interface RateLimitConfig {
   rateLimitWindow?: number;
 }
 
-/** Default rate limit configuration values */
 export const DEFAULT_RATE_LIMIT_CONFIG: Required<RateLimitConfig> = {
-  rateLimitRequests: 15,  // Default maximum requests per window
-  rateLimitWindow: 60000, // Default time window for rate limiting (ms)
+  rateLimitRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  rateLimitWindow: RATE_LIMITER_DEFAULT_WINDOW_MS,
 };
-

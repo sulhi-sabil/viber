@@ -1,6 +1,6 @@
-import { CircuitBreaker } from "./circuit-breaker";
-import { retry, withTimeout, RetryOptions } from "./retry";
-import { RETRYABLE_HTTP_STATUS_CODES } from "../config/constants";
+import { CircuitBreaker } from './circuit-breaker';
+import { retry, withTimeout, RetryOptions } from './retry';
+import { RETRYABLE_HTTP_STATUS_CODES } from '../config/constants';
 
 export interface ResilienceOptions {
   timeout?: number;
@@ -23,7 +23,7 @@ export interface ExecuteWithResilienceConfig<T extends ResilienceOptions> {
 }
 
 export async function executeWithResilience<T>(
-  config: ExecuteWithResilienceConfig<ResilienceOptions>,
+  config: ExecuteWithResilienceConfig<ResilienceOptions>
 ): Promise<T> {
   const {
     operation,
@@ -36,14 +36,10 @@ export async function executeWithResilience<T>(
     maxRetries,
     onRetry,
     timeoutOperationName,
-    operationName = "Operation",
+    operationName = 'Operation',
   } = config;
 
-  const {
-    timeout = defaultTimeout,
-    useCircuitBreaker = true,
-    useRetry = true,
-  } = options;
+  const { timeout = defaultTimeout, useCircuitBreaker = true, useRetry = true } = options;
 
   const operationWithTimeout = async (): Promise<T> => {
     const promise = operation() as Promise<T>;
@@ -54,8 +50,7 @@ export async function executeWithResilience<T>(
   };
 
   if (useCircuitBreaker) {
-    const operationWithCircuitBreaker = () =>
-      circuitBreaker.execute(operationWithTimeout);
+    const operationWithCircuitBreaker = () => circuitBreaker.execute(operationWithTimeout);
 
     if (useRetry) {
       return retry(operationWithCircuitBreaker, {

@@ -1,6 +1,6 @@
-import { Migration, MigrationRecord } from "./types";
-import { logger } from "../utils/logger";
-import { InternalError } from "../utils/errors";
+import { Migration, MigrationRecord } from './types';
+import { logger } from '../utils/logger';
+import { InternalError } from '../utils/errors';
 
 export interface SupabaseClient {
   from(table: string): QueryBuilder;
@@ -22,7 +22,7 @@ interface QueryBuilder {
   limit(count: number): QueryBuilder;
   range(
     from: number,
-    to: number,
+    to: number
   ): Promise<{ data?: unknown[]; error?: { code?: string; message?: string } }>;
   single(): Promise<{
     data?: unknown;
@@ -32,7 +32,7 @@ interface QueryBuilder {
 
 export class MigrationRunner {
   private migrations: Migration[] = [];
-  private migrationsTable = "_migrations";
+  private migrationsTable = '_migrations';
 
   constructor(private supabase: SupabaseClient) {}
 
@@ -47,12 +47,10 @@ export class MigrationRunner {
     const executedMigrations = await this.getExecutedMigrations();
     const executedVersions = new Set(executedMigrations.map((m) => m.version));
 
-    const pendingMigrations = this.migrations.filter(
-      (m) => !executedVersions.has(m.version),
-    );
+    const pendingMigrations = this.migrations.filter((m) => !executedVersions.has(m.version));
 
     if (pendingMigrations.length === 0) {
-      logger.info("No pending migrations to run");
+      logger.info('No pending migrations to run');
       return;
     }
 
@@ -62,7 +60,7 @@ export class MigrationRunner {
       await this.runMigration(migration);
     }
 
-    logger.info("All migrations completed successfully");
+    logger.info('All migrations completed successfully');
   }
 
   async rollback(version?: string): Promise<void> {
@@ -84,13 +82,11 @@ export class MigrationRunner {
       await this.rollbackMigration(migration);
     } else {
       const migrationsToRollback = executedMigrations.sort((a, b) =>
-        b.version.localeCompare(a.version),
+        b.version.localeCompare(a.version)
       );
 
       for (const record of migrationsToRollback) {
-        const migration = this.migrations.find(
-          (m) => m.version === record.version,
-        );
+        const migration = this.migrations.find((m) => m.version === record.version);
 
         if (migration) {
           await this.rollbackMigration(migration);
@@ -98,16 +94,16 @@ export class MigrationRunner {
       }
     }
 
-    logger.info("Rollback completed");
+    logger.info('Rollback completed');
   }
 
   private async ensureMigrationsTable(): Promise<void> {
     try {
-      await this.supabase.client.rpc("create_migrations_table");
+      await this.supabase.client.rpc('create_migrations_table');
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
-      if (err.code !== "PGRST202") {
-        logger.warn("Failed to create migrations table:", {
+      if (err.code !== 'PGRST202') {
+        logger.warn('Failed to create migrations table:', {
           message: err.message,
         });
       }
@@ -117,15 +113,15 @@ export class MigrationRunner {
   private async getExecutedMigrations(): Promise<MigrationRecord[]> {
     const result = await this.supabase.client
       .from(this.migrationsTable)
-      .select("*")
-      .order("version");
+      .select('*')
+      .order('version');
 
     const { data, error } = result as {
       data?: unknown[];
       error?: { code?: string; message?: string };
     };
 
-    if (error && error.code !== "PGRST116") {
+    if (error && error.code !== 'PGRST116') {
       throw new InternalError(`Failed to get migrations: ${error.message}`);
     }
 
@@ -149,9 +145,7 @@ export class MigrationRunner {
   }
 
   private async rollbackMigration(migration: Migration): Promise<void> {
-    logger.info(
-      `Rolling back migration: ${migration.name} (${migration.version})`,
-    );
+    logger.info(`Rolling back migration: ${migration.name} (${migration.version})`);
 
     try {
       await migration.down();
@@ -167,13 +161,11 @@ export class MigrationRunner {
   }
 
   private async recordMigration(migration: Migration): Promise<void> {
-    const result = await this.supabase.client
-      .from(this.migrationsTable)
-      .insert({
-        version: migration.version,
-        name: migration.name,
-        executed_at: new Date().toISOString(),
-      });
+    const result = await this.supabase.client.from(this.migrationsTable).insert({
+      version: migration.version,
+      name: migration.name,
+      executed_at: new Date().toISOString(),
+    });
 
     const { error } = result as { error?: { message?: string } };
 
@@ -186,7 +178,7 @@ export class MigrationRunner {
     const result = (await this.supabase.client
       .from(this.migrationsTable)
       .delete()
-      .eq("version", version)) as unknown;
+      .eq('version', version)) as unknown;
 
     const { error } = result as { error?: { message?: string } };
 

@@ -1,32 +1,28 @@
-import {
-  RateLimiter,
-  createRateLimiter,
-  RateLimiterOptions,
-} from "./rate-limiter";
+import { RateLimiter, createRateLimiter, RateLimiterOptions } from './rate-limiter';
 
-describe("RateLimiter", () => {
-  describe("Constructor", () => {
-    it("should create instance with default options", () => {
+describe('RateLimiter', () => {
+  describe('Constructor', () => {
+    it('should create instance with default options', () => {
       const limiter = new RateLimiter();
       expect(limiter).toBeInstanceOf(RateLimiter);
     });
 
-    it("should create instance with custom options", () => {
+    it('should create instance with custom options', () => {
       const options: RateLimiterOptions = {
         maxRequests: 10,
         windowMs: 30000,
-        serviceName: "TestService",
+        serviceName: 'TestService',
       };
       const limiter = new RateLimiter(options);
       expect(limiter).toBeInstanceOf(RateLimiter);
     });
 
-    it("should create instance via factory function", () => {
+    it('should create instance via factory function', () => {
       const limiter = createRateLimiter();
       expect(limiter).toBeInstanceOf(RateLimiter);
     });
 
-    it("should create instance via factory function with options", () => {
+    it('should create instance via factory function with options', () => {
       const options: RateLimiterOptions = {
         maxRequests: 20,
         windowMs: 90000,
@@ -36,8 +32,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("checkRateLimit", () => {
-    it("should allow requests within limit", async () => {
+  describe('checkRateLimit', () => {
+    it('should allow requests within limit', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 1000 });
 
       for (let i = 0; i < 5; i++) {
@@ -45,7 +41,7 @@ describe("RateLimiter", () => {
       }
     });
 
-    it("should wait when limit is reached", async () => {
+    it('should wait when limit is reached', async () => {
       const limiter = new RateLimiter({ maxRequests: 2, windowMs: 1000 });
 
       const startTime = Date.now();
@@ -58,7 +54,7 @@ describe("RateLimiter", () => {
       expect(elapsed).toBeGreaterThanOrEqual(900);
     });
 
-    it("should allow requests after window expires", async () => {
+    it('should allow requests after window expires', async () => {
       const limiter = new RateLimiter({ maxRequests: 2, windowMs: 100 });
 
       await limiter.checkRateLimit();
@@ -69,7 +65,7 @@ describe("RateLimiter", () => {
       await expect(limiter.checkRateLimit()).resolves.not.toThrow();
     });
 
-    it("should handle multiple rapid requests", async () => {
+    it('should handle multiple rapid requests', async () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
 
       const promises = Array(15)
@@ -80,13 +76,13 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("getRemainingRequests", () => {
-    it("should return max requests initially", () => {
+  describe('getRemainingRequests', () => {
+    it('should return max requests initially', () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
       expect(limiter.getRemainingRequests()).toBe(10);
     });
 
-    it("should decrease as requests are made", async () => {
+    it('should decrease as requests are made', async () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
 
       await limiter.checkRateLimit();
@@ -96,7 +92,7 @@ describe("RateLimiter", () => {
       expect(limiter.getRemainingRequests()).toBe(7);
     });
 
-    it("should not go below zero", async () => {
+    it('should not go below zero', async () => {
       const limiter = new RateLimiter({ maxRequests: 3, windowMs: 1000 });
 
       await limiter.checkRateLimit();
@@ -108,7 +104,7 @@ describe("RateLimiter", () => {
       expect(remaining).toBeLessThanOrEqual(3);
     });
 
-    it("should reset after window expires", async () => {
+    it('should reset after window expires', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 100 });
 
       await limiter.checkRateLimit();
@@ -123,8 +119,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("getMetrics", () => {
-    it("should return initial metrics", () => {
+  describe('getMetrics', () => {
+    it('should return initial metrics', () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
 
       const metrics = limiter.getMetrics();
@@ -132,11 +128,11 @@ describe("RateLimiter", () => {
       expect(metrics.totalRequests).toBe(0);
       expect(metrics.activeRequests).toBe(0);
       expect(metrics.remainingRequests).toBe(10);
-      expect(typeof metrics.windowStart).toBe("number");
-      expect(typeof metrics.windowEnd).toBe("number");
+      expect(typeof metrics.windowStart).toBe('number');
+      expect(typeof metrics.windowEnd).toBe('number');
     });
 
-    it("should update metrics after requests", async () => {
+    it('should update metrics after requests', async () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
 
       await limiter.checkRateLimit();
@@ -150,7 +146,7 @@ describe("RateLimiter", () => {
       expect(metrics.remainingRequests).toBe(7);
     });
 
-    it("should track active requests correctly", async () => {
+    it('should track active requests correctly', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 100 });
 
       await limiter.checkRateLimit();
@@ -165,8 +161,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("reset", () => {
-    it("should clear all requests", async () => {
+  describe('reset', () => {
+    it('should clear all requests', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 1000 });
 
       await limiter.checkRateLimit();
@@ -180,7 +176,7 @@ describe("RateLimiter", () => {
       expect(limiter.getRemainingRequests()).toBe(5);
     });
 
-    it("should reset metrics", async () => {
+    it('should reset metrics', async () => {
       const limiter = new RateLimiter({ maxRequests: 10, windowMs: 1000 });
 
       await limiter.checkRateLimit();
@@ -195,8 +191,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("Performance", () => {
-    it("should handle high request volume efficiently", async () => {
+  describe('Performance', () => {
+    it('should handle high request volume efficiently', async () => {
       const limiter = new RateLimiter({
         maxRequests: 200,
         windowMs: 60000,
@@ -213,7 +209,7 @@ describe("RateLimiter", () => {
       expect(elapsed).toBeLessThan(500);
     });
 
-    it("should not block synchronous checks", () => {
+    it('should not block synchronous checks', () => {
       const limiter = new RateLimiter({
         maxRequests: 100,
         windowMs: 60000,
@@ -231,8 +227,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("Edge Cases", () => {
-    it("should handle maxRequests of 1", async () => {
+  describe('Edge Cases', () => {
+    it('should handle maxRequests of 1', async () => {
       const limiter = new RateLimiter({ maxRequests: 1, windowMs: 100 });
 
       expect(limiter.getRemainingRequests()).toBe(1);
@@ -240,7 +236,7 @@ describe("RateLimiter", () => {
       expect(limiter.getRemainingRequests()).toBe(0);
     });
 
-    it("should handle very short windows", async () => {
+    it('should handle very short windows', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 50 });
 
       await limiter.checkRateLimit();
@@ -251,7 +247,7 @@ describe("RateLimiter", () => {
       await expect(limiter.checkRateLimit()).resolves.not.toThrow();
     });
 
-    it("should handle very long windows", async () => {
+    it('should handle very long windows', async () => {
       const limiter = new RateLimiter({ maxRequests: 5, windowMs: 600000 });
 
       for (let i = 0; i < 5; i++) {
@@ -261,11 +257,11 @@ describe("RateLimiter", () => {
       expect(limiter.getRemainingRequests()).toBe(0);
     });
 
-    it("should handle service name in logs", async () => {
+    it('should handle service name in logs', async () => {
       const limiter = new RateLimiter({
         maxRequests: 2,
         windowMs: 1000,
-        serviceName: "CustomService",
+        serviceName: 'CustomService',
       });
 
       await limiter.checkRateLimit();
@@ -276,8 +272,8 @@ describe("RateLimiter", () => {
     });
   });
 
-  describe("Lazy Cleanup", () => {
-    it("should not cleanup when below threshold", async () => {
+  describe('Lazy Cleanup', () => {
+    it('should not cleanup when below threshold', async () => {
       const limiter = new RateLimiter({
         maxRequests: 10,
         windowMs: 1000,
@@ -291,7 +287,7 @@ describe("RateLimiter", () => {
       expect(limiter.getRemainingRequests()).toBeLessThan(10);
     });
 
-    it("should cleanup when above threshold", async () => {
+    it('should cleanup when above threshold', async () => {
       const limiter = new RateLimiter({
         maxRequests: 10,
         windowMs: 100,

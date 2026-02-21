@@ -1,23 +1,21 @@
-import { Validator } from "../utils/validator";
+import { Validator } from '../utils/validator';
 import {
   MAX_R2_KEY_LENGTH,
   MAX_FILENAME_LENGTH,
   MAX_CONTENT_TYPE_NAME_LENGTH,
   MAX_ENTRY_TITLE_LENGTH,
-} from "../config/constants";
+} from '../config/constants';
 
-export const userRoleValues = ["admin", "editor"] as const;
+export const userRoleValues = ['admin', 'editor'] as const;
 
-export const entryStatusValues = ["published", "draft"] as const;
+export const entryStatusValues = ['published', 'draft'] as const;
 
 export function validateUserRole(role: string): boolean {
   return userRoleValues.includes(role as (typeof userRoleValues)[number]);
 }
 
 export function validateEntryStatus(status: string): boolean {
-  return entryStatusValues.includes(
-    status as (typeof entryStatusValues)[number],
-  );
+  return entryStatusValues.includes(status as (typeof entryStatusValues)[number]);
 }
 
 export function validateUserEmail(email: string): boolean {
@@ -38,10 +36,8 @@ export function validateSlug(slug: string): boolean {
   return slugRegex.test(slug);
 }
 
-export function validateContentTypeSchema(
-  schema: Record<string, unknown>,
-): boolean {
-  if (!schema || typeof schema !== "object") {
+export function validateContentTypeSchema(schema: Record<string, unknown>): boolean {
+  if (!schema || typeof schema !== 'object') {
     return false;
   }
 
@@ -49,7 +45,7 @@ export function validateContentTypeSchema(
 }
 
 export function validateEntryData(data: Record<string, unknown>): boolean {
-  if (!data || typeof data !== "object") {
+  if (!data || typeof data !== 'object') {
     return false;
   }
 
@@ -82,15 +78,14 @@ export function validateFilename(filename: string): boolean {
   return filenameRegex.test(filename) && filename.length <= MAX_FILENAME_LENGTH;
 }
 
-export function validateUser(user: {
-  email: string;
-  password_hash?: string;
-  role: string;
-}): { valid: boolean; errors: string[] } {
+export function validateUser(user: { email: string; password_hash?: string; role: string }): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!validateUserEmail(user.email)) {
-    errors.push("Invalid email format");
+    errors.push('Invalid email format');
   }
 
   if (!validateUserRole(user.role)) {
@@ -103,22 +98,22 @@ export function validateUser(user: {
   };
 }
 
-export function validateSession(session: {
-  user_id: string;
-  expires_at: string;
-}): { valid: boolean; errors: string[] } {
+export function validateSession(session: { user_id: string; expires_at: string }): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
-  Validator.string(session.user_id, "user_id");
+  Validator.string(session.user_id, 'user_id');
 
-  if (typeof session.expires_at !== "string") {
-    errors.push("expires_at must be a string");
+  if (typeof session.expires_at !== 'string') {
+    errors.push('expires_at must be a string');
   } else {
     const expiryDate = new Date(session.expires_at);
     if (isNaN(expiryDate.getTime())) {
-      errors.push("expires_at must be a valid ISO timestamp");
+      errors.push('expires_at must be a valid ISO timestamp');
     } else if (expiryDate < new Date()) {
-      errors.push("Session has expired");
+      errors.push('Session has expired');
     }
   }
 
@@ -139,17 +134,12 @@ export function validateContentType(contentType: {
     errors.push(`Invalid slug: ${contentType.slug}`);
   }
 
-  if (
-    !contentType.name ||
-    contentType.name.length > MAX_CONTENT_TYPE_NAME_LENGTH
-  ) {
-    errors.push(
-      `name must be between 1 and ${MAX_CONTENT_TYPE_NAME_LENGTH} characters`,
-    );
+  if (!contentType.name || contentType.name.length > MAX_CONTENT_TYPE_NAME_LENGTH) {
+    errors.push(`name must be between 1 and ${MAX_CONTENT_TYPE_NAME_LENGTH} characters`);
   }
 
   if (!validateContentTypeSchema(contentType.fields_schema)) {
-    errors.push("fields_schema must be a valid object");
+    errors.push('fields_schema must be a valid object');
   }
 
   return {
@@ -176,13 +166,11 @@ export function validateEntry(entry: {
   }
 
   if (!entry.title || entry.title.length > MAX_ENTRY_TITLE_LENGTH) {
-    errors.push(
-      `title must be between 1 and ${MAX_ENTRY_TITLE_LENGTH} characters`,
-    );
+    errors.push(`title must be between 1 and ${MAX_ENTRY_TITLE_LENGTH} characters`);
   }
 
   if (!validateEntryData(entry.data)) {
-    errors.push("data must be a valid object");
+    errors.push('data must be a valid object');
   }
 
   if (!validateEntryStatus(entry.status)) {
@@ -217,7 +205,7 @@ export function validateAsset(asset: {
   }
 
   if (asset.entry_id) {
-    Validator.uuid(asset.entry_id, "entry_id");
+    Validator.uuid(asset.entry_id, 'entry_id');
   }
 
   return {

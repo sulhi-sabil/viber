@@ -1,14 +1,10 @@
-import { CircuitBreaker } from "../utils/circuit-breaker";
-import { GeminiError, InternalError, RateLimitError } from "../utils/errors";
-import { logger } from "../utils/logger";
-import { Validator } from "../utils/validator";
-import { RateLimiter } from "../utils/rate-limiter";
-import { ResilienceConfig, RateLimitConfig } from "../types/service-config";
-import {
-  BaseService,
-  ServiceHealth,
-  ServiceResilienceConfig,
-} from "./base-service";
+import { CircuitBreaker } from '../utils/circuit-breaker';
+import { GeminiError, InternalError, RateLimitError } from '../utils/errors';
+import { logger } from '../utils/logger';
+import { Validator } from '../utils/validator';
+import { RateLimiter } from '../utils/rate-limiter';
+import { ResilienceConfig, RateLimitConfig } from '../types/service-config';
+import { BaseService, ServiceHealth, ServiceResilienceConfig } from './base-service';
 import {
   MIN_API_KEY_LENGTH,
   HEALTH_CHECK_TIMEOUT_MS,
@@ -28,7 +24,7 @@ import {
   GEMINI_DEFAULT_MODEL,
   GEMINI_API_BASE_URL,
   GEMINI_API_VERSION_PATH,
-} from "../config/constants";
+} from '../config/constants';
 
 export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
   apiKey: string;
@@ -36,7 +32,7 @@ export interface GeminiConfig extends ResilienceConfig, RateLimitConfig {
 }
 
 export interface GeminiMessage {
-  role: "user" | "model";
+  role: 'user' | 'model';
   parts: Array<{ text: string }>;
 }
 
@@ -76,13 +72,13 @@ export interface StreamingChunk {
 const DEFAULT_GEMINI_CONFIG: Required<
   Pick<
     GeminiConfig,
-    | "timeout"
-    | "maxRetries"
-    | "circuitBreakerThreshold"
-    | "circuitBreakerResetTimeout"
-    | "rateLimitRequests"
-    | "rateLimitWindow"
-    | "model"
+    | 'timeout'
+    | 'maxRetries'
+    | 'circuitBreakerThreshold'
+    | 'circuitBreakerResetTimeout'
+    | 'rateLimitRequests'
+    | 'rateLimitWindow'
+    | 'model'
   >
 > = {
   timeout: STREAMING_TIMEOUT_MS,
@@ -95,16 +91,12 @@ const DEFAULT_GEMINI_CONFIG: Required<
 };
 
 export class GeminiService extends BaseService {
-  protected serviceName = "Gemini";
+  protected serviceName = 'Gemini';
   private apiKey: string;
   private config: Required<
     Pick<
       GeminiConfig,
-      | "timeout"
-      | "maxRetries"
-      | "circuitBreakerThreshold"
-      | "circuitBreakerResetTimeout"
-      | "model"
+      'timeout' | 'maxRetries' | 'circuitBreakerThreshold' | 'circuitBreakerResetTimeout' | 'model'
     >
   >;
   private rateLimiter: RateLimiter;
@@ -112,22 +104,20 @@ export class GeminiService extends BaseService {
 
   constructor(config: GeminiConfig, circuitBreaker?: CircuitBreaker) {
     if (!config.apiKey) {
-      throw new InternalError("Gemini API key is required");
+      throw new InternalError('Gemini API key is required');
     }
 
-    Validator.string(config.apiKey, "apiKey");
-    Validator.minLength(config.apiKey, MIN_API_KEY_LENGTH, "apiKey");
+    Validator.string(config.apiKey, 'apiKey');
+    Validator.minLength(config.apiKey, MIN_API_KEY_LENGTH, 'apiKey');
 
     const failureThreshold =
-      config.circuitBreakerThreshold ??
-      DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold;
+      config.circuitBreakerThreshold ?? DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold;
     const resetTimeout =
-      config.circuitBreakerResetTimeout ??
-      DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout;
+      config.circuitBreakerResetTimeout ?? DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout;
 
     const cb =
       circuitBreaker ??
-      BaseService.createCircuitBreaker("Gemini", {
+      BaseService.createCircuitBreaker('Gemini', {
         failureThreshold,
         resetTimeout,
       });
@@ -139,24 +129,21 @@ export class GeminiService extends BaseService {
       timeout: config.timeout ?? DEFAULT_GEMINI_CONFIG.timeout,
       maxRetries: config.maxRetries ?? DEFAULT_GEMINI_CONFIG.maxRetries,
       circuitBreakerThreshold:
-        config.circuitBreakerThreshold ??
-        DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold,
+        config.circuitBreakerThreshold ?? DEFAULT_GEMINI_CONFIG.circuitBreakerThreshold,
       circuitBreakerResetTimeout:
-        config.circuitBreakerResetTimeout ??
-        DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout,
+        config.circuitBreakerResetTimeout ?? DEFAULT_GEMINI_CONFIG.circuitBreakerResetTimeout,
       model: config.model ?? DEFAULT_GEMINI_CONFIG.model,
     };
 
     this.rateLimiter = new RateLimiter({
-      maxRequests:
-        config.rateLimitRequests ?? DEFAULT_GEMINI_CONFIG.rateLimitRequests,
+      maxRequests: config.rateLimitRequests ?? DEFAULT_GEMINI_CONFIG.rateLimitRequests,
       windowMs: config.rateLimitWindow ?? DEFAULT_GEMINI_CONFIG.rateLimitWindow,
-      serviceName: "Gemini",
+      serviceName: 'Gemini',
     });
 
     this.costTracker = 0;
 
-    logger.info("Gemini service initialized", {
+    logger.info('Gemini service initialized', {
       timeout: this.config.timeout,
       maxRetries: this.config.maxRetries,
       rateLimitRequests: config.rateLimitRequests,
@@ -167,9 +154,9 @@ export class GeminiService extends BaseService {
 
   async generateContent(
     messages: GeminiMessage[],
-    options: GeminiRequestOptions = {},
+    options: GeminiRequestOptions = {}
   ): Promise<GeminiResponse> {
-    Validator.array(messages, "messages");
+    Validator.array(messages, 'messages');
 
     return this.executeWithResilience(
       async () => {
@@ -192,7 +179,7 @@ export class GeminiService extends BaseService {
           },
         };
 
-        logger.debug("Gemini generateContent request", {
+        logger.debug('Gemini generateContent request', {
           messageCount: messages.length,
           temperature,
           maxOutputTokens,
@@ -201,12 +188,12 @@ export class GeminiService extends BaseService {
         const response = await fetch(
           `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:generateContent?key=${this.apiKey}`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
-          },
+          }
         );
 
         if (!response.ok) {
@@ -217,7 +204,7 @@ export class GeminiService extends BaseService {
 
         if (data.usageMetadata) {
           this.costTracker += data.usageMetadata.totalTokenCount;
-          logger.debug("Gemini token usage", {
+          logger.debug('Gemini token usage', {
             promptTokens: data.usageMetadata.promptTokenCount,
             candidatesTokens: data.usageMetadata.candidatesTokenCount,
             totalTokens: data.usageMetadata.totalTokenCount,
@@ -227,7 +214,7 @@ export class GeminiService extends BaseService {
         return data;
       },
       options,
-      "Gemini generateContent",
+      'Gemini generateContent'
     );
   }
 
@@ -235,9 +222,9 @@ export class GeminiService extends BaseService {
     messages: GeminiMessage[],
     options: GeminiRequestOptions & {
       onChunk?: (chunk: StreamingChunk) => void;
-    } = {},
+    } = {}
   ): Promise<void> {
-    Validator.array(messages, "messages");
+    Validator.array(messages, 'messages');
 
     return this.executeWithResilience(
       async () => {
@@ -261,7 +248,7 @@ export class GeminiService extends BaseService {
           },
         };
 
-        logger.debug("Gemini generateContentStream request", {
+        logger.debug('Gemini generateContentStream request', {
           messageCount: messages.length,
           temperature,
           maxOutputTokens,
@@ -270,12 +257,12 @@ export class GeminiService extends BaseService {
         const response = await fetch(
           `${GEMINI_API_BASE_URL}${GEMINI_API_VERSION_PATH}${this.config.model}:streamGenerateContent?key=${this.apiKey}`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
-          },
+          }
         );
 
         if (!response.ok) {
@@ -283,12 +270,12 @@ export class GeminiService extends BaseService {
         }
 
         if (!response.body) {
-          throw new GeminiError("Response body is empty");
+          throw new GeminiError('Response body is empty');
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = "";
+        let buffer = '';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -296,18 +283,18 @@ export class GeminiService extends BaseService {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (line.trim().startsWith("data:")) {
+            if (line.trim().startsWith('data:')) {
               try {
                 const jsonStr = line.trim().slice(5);
                 const chunk = JSON.parse(jsonStr) as GeminiResponse;
 
                 // Safely extract text from nested arrays with validation
                 const candidate = chunk.candidates?.[0];
-                const text = candidate?.content?.parts?.[0]?.text || "";
+                const text = candidate?.content?.parts?.[0]?.text || '';
                 const finishReason = candidate?.finishReason;
 
                 const streamingChunk: StreamingChunk = {
@@ -324,7 +311,7 @@ export class GeminiService extends BaseService {
                   this.costTracker += chunk.usageMetadata.totalTokenCount;
                 }
               } catch (e) {
-                logger.warn("Failed to parse streaming chunk", {
+                logger.warn('Failed to parse streaming chunk', {
                   error: e instanceof Error ? e.message : String(e),
                 });
               }
@@ -332,30 +319,25 @@ export class GeminiService extends BaseService {
           }
         }
 
-        logger.debug("Gemini streaming complete");
+        logger.debug('Gemini streaming complete');
       },
       options,
-      "Gemini generateContentStream",
+      'Gemini generateContentStream'
     );
   }
 
-  async generateText(
-    prompt: string,
-    options: GeminiRequestOptions = {},
-  ): Promise<string> {
-    Validator.string(prompt, "prompt");
-    Validator.minLength(prompt, 1, "prompt");
-    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, "prompt");
+  async generateText(prompt: string, options: GeminiRequestOptions = {}): Promise<string> {
+    Validator.string(prompt, 'prompt');
+    Validator.minLength(prompt, 1, 'prompt');
+    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, 'prompt');
 
-    const messages: GeminiMessage[] = [
-      { role: "user", parts: [{ text: prompt }] },
-    ];
+    const messages: GeminiMessage[] = [{ role: 'user', parts: [{ text: prompt }] }];
     const response = await this.generateContent(messages, options);
 
     const text = response.candidates[0]?.content?.parts[0]?.text;
 
     if (!text) {
-      throw new GeminiError("No content generated");
+      throw new GeminiError('No content generated');
     }
 
     return text;
@@ -363,26 +345,22 @@ export class GeminiService extends BaseService {
 
   async generateTextStream(
     prompt: string,
-    options: GeminiRequestOptions & { onChunk?: (text: string) => void } = {},
+    options: GeminiRequestOptions & { onChunk?: (text: string) => void } = {}
   ): Promise<void> {
-    Validator.string(prompt, "prompt");
-    Validator.minLength(prompt, 1, "prompt");
-    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, "prompt");
+    Validator.string(prompt, 'prompt');
+    Validator.minLength(prompt, 1, 'prompt');
+    Validator.maxLength(prompt, MAX_PROMPT_LENGTH, 'prompt');
 
-    const messages: GeminiMessage[] = [
-      { role: "user", parts: [{ text: prompt }] },
-    ];
+    const messages: GeminiMessage[] = [{ role: 'user', parts: [{ text: prompt }] }];
 
     await this.generateContentStream(messages, {
       ...options,
-      onChunk: options.onChunk
-        ? (chunk) => options.onChunk?.(chunk.text)
-        : undefined,
+      onChunk: options.onChunk ? (chunk) => options.onChunk?.(chunk.text) : undefined,
     });
   }
 
   private async handleErrorResponse(response: Response): Promise<never> {
-    let errorMessage = "Unknown error";
+    let errorMessage = 'Unknown error';
     let errorDetails: Record<string, unknown> = {};
 
     try {
@@ -395,20 +373,20 @@ export class GeminiService extends BaseService {
       errorMessage = await response.text();
     }
 
-    logger.error("Gemini API error", {
+    logger.error('Gemini API error', {
       status: response.status,
       message: errorMessage,
       details: errorDetails,
     });
 
     if (response.status === 429) {
-      const retryAfter = response.headers.get("Retry-After");
+      const retryAfter = response.headers.get('Retry-After');
       let retryDelay: number | undefined;
       if (retryAfter) {
         const parsed = parseInt(retryAfter, 10);
         retryDelay = isNaN(parsed) ? undefined : parsed;
       }
-      throw new RateLimitError("Gemini API rate limit exceeded", retryDelay);
+      throw new RateLimitError('Gemini API rate limit exceeded', retryDelay);
     }
 
     if (response.status >= 500) {
@@ -435,14 +413,14 @@ export class GeminiService extends BaseService {
 
   async healthCheck(): Promise<ServiceHealth> {
     return this.executeHealthCheck(async () => {
-      const response = await this.generateText("Hello", {
+      const response = await this.generateText('Hello', {
         timeout: HEALTH_CHECK_TIMEOUT_MS,
         useCircuitBreaker: false,
         useRetry: false,
       });
 
       if (!response) {
-        throw new GeminiError("Empty response from Gemini");
+        throw new GeminiError('Empty response from Gemini');
       }
     });
   }
@@ -453,14 +431,14 @@ export class GeminiService extends BaseService {
 
   resetCostTracker(): void {
     this.costTracker = 0;
-    logger.info("Gemini cost tracker reset");
+    logger.info('Gemini cost tracker reset');
   }
 
   getRateLimiterStatus() {
     return {
       remainingRequests: this.rateLimiter.getRemainingRequests(),
-      maxRequests: this.rateLimiter["maxRequests"],
-      windowMs: this.rateLimiter["windowMs"],
+      maxRequests: this.rateLimiter['maxRequests'],
+      windowMs: this.rateLimiter['windowMs'],
     };
   }
 
@@ -482,7 +460,7 @@ export class GeminiService extends BaseService {
 }
 
 // Import ServiceFactory for singleton management (consolidated pattern)
-import { serviceFactory } from "../utils/service-factory";
+import { serviceFactory } from '../utils/service-factory';
 
 let geminiInstance: GeminiService | null = null;
 
@@ -513,7 +491,7 @@ export function getGeminiClient(): GeminiService | null {
  * @deprecated Use serviceFactory.resetService() for new code
  */
 export function resetGeminiClient(): void {
-  serviceFactory.resetService("gemini");
+  serviceFactory.resetService('gemini');
   geminiInstance = null;
 }
 

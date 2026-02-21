@@ -1,5 +1,5 @@
-import { logger } from "./logger";
-import { InternalError, TimeoutError } from "./errors";
+import { logger } from './logger';
+import { InternalError, TimeoutError } from './errors';
 import {
   DEFAULT_MAX_RETRY_ATTEMPTS,
   DEFAULT_RETRY_INITIAL_DELAY_MS,
@@ -7,7 +7,7 @@ import {
   DEFAULT_RETRY_BACKOFF_MULTIPLIER,
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
-} from "../config/constants";
+} from '../config/constants';
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -71,14 +71,14 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
   retryableErrorCodes: RETRYABLE_ERROR_CODES,
   onRetry: () => {},
-  operationName: "Operation",
+  operationName: 'Operation',
 };
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, ms);
     const timerRef = timer as unknown as { unref?: () => void };
-    if (typeof timerRef.unref === "function") {
+    if (typeof timerRef.unref === 'function') {
       timerRef.unref();
     }
   });
@@ -88,7 +88,7 @@ export function calculateDelay(
   attempt: number,
   initialDelay: number,
   backoffMultiplier: number,
-  maxDelay: number,
+  maxDelay: number
 ): number {
   const delay = initialDelay * Math.pow(backoffMultiplier, attempt - 1);
   return Math.min(delay, maxDelay);
@@ -96,7 +96,7 @@ export function calculateDelay(
 
 export async function retry<T>(
   operation: () => Promise<T>,
-  options: RetryOptions = {},
+  options: RetryOptions = {}
 ): Promise<T> {
   const finalOptions = { ...DEFAULT_RETRY_OPTIONS, ...options };
   const {
@@ -128,29 +128,20 @@ export async function retry<T>(
     } catch (error) {
       lastError = error as Error;
 
-      const shouldRetry = isRetryable(
-        error,
-        retryableErrorSet,
-        retryableErrorCodeSet,
-      );
+      const shouldRetry = isRetryable(error, retryableErrorSet, retryableErrorCodeSet);
 
       if (!shouldRetry || attempt >= maxAttempts) {
         if (attempt >= maxAttempts && maxAttempts > 1) {
           logger.warn(
-            `${opName} failed after ${maxAttempts} attempts: ${lastError?.message || "Unknown error"}`,
+            `${opName} failed after ${maxAttempts} attempts: ${lastError?.message || 'Unknown error'}`
           );
         }
         throw lastError;
       }
 
-      const delay = calculateDelay(
-        attempt,
-        initialDelay,
-        backoffMultiplier,
-        maxDelay,
-      );
+      const delay = calculateDelay(attempt, initialDelay, backoffMultiplier, maxDelay);
       logger.warn(
-        `${opName} attempt ${attempt} failed: ${lastError?.message || "Unknown error"}. Retrying in ${delay}ms...`,
+        `${opName} attempt ${attempt} failed: ${lastError?.message || 'Unknown error'}. Retrying in ${delay}ms...`
       );
 
       if (onRetry) {
@@ -162,13 +153,13 @@ export async function retry<T>(
     }
   }
 
-  throw lastError || new InternalError("Retry operation failed");
+  throw lastError || new InternalError('Retry operation failed');
 }
 
 function isRetryable(
   error: unknown,
   retryableErrors: Set<number>,
-  retryableErrorCodes: Set<string>,
+  retryableErrorCodes: Set<string>
 ): boolean {
   const errorObj = error as {
     isOperational?: boolean;
@@ -198,21 +189,16 @@ function isRetryable(
 export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
-  operationName: string = "operation",
+  operationName: string = 'operation'
 ): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
-
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new TimeoutError(operationName, timeoutMs));
-    }, timeoutMs);
-    const timerRef = timer as unknown as { unref?: () => void };
-    if (typeof timerRef.unref === "function") {
-      timerRef.unref();
-    }
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    clearTimeout(timer);
-  });
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      const timer = setTimeout(() => reject(new TimeoutError(operationName, timeoutMs)), timeoutMs);
+      const timerRef = timer as unknown as { unref?: () => void };
+      if (typeof timerRef.unref === 'function') {
+        timerRef.unref();
+      }
+    }),
+  ]);
 }

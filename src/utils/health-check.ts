@@ -11,14 +11,14 @@
  * @module utils/health-check
  */
 
-import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
-import { logger } from "./logger";
-import { InternalError } from "./errors";
+import { HEALTH_CHECK_TIMEOUT_MS } from '../config/constants';
+import { logger } from './logger';
+import { InternalError } from './errors';
 
 /**
  * Health status values
  */
-export type HealthStatus = "healthy" | "unhealthy" | "degraded";
+export type HealthStatus = 'healthy' | 'unhealthy' | 'degraded';
 
 /**
  * Result of a health check operation
@@ -55,9 +55,7 @@ export interface HealthCheckConfig {
 /**
  * Function signature for health check implementations
  */
-export type HealthCheckFunction = () =>
-  | Promise<HealthCheckResult>
-  | HealthCheckResult;
+export type HealthCheckFunction = () => Promise<HealthCheckResult> | HealthCheckResult;
 
 /**
  * Registry entry for a health check
@@ -142,12 +140,10 @@ export class HealthCheckRegistry {
   register(
     service: string,
     check: HealthCheckFunction,
-    config: Partial<HealthCheckConfig> = {},
+    config: Partial<HealthCheckConfig> = {}
   ): void {
     if (this.checks.has(service)) {
-      throw new Error(
-        `Health check already registered for service: ${service}`,
-      );
+      throw new Error(`Health check already registered for service: ${service}`);
     }
 
     const fullConfig = { ...DEFAULT_HEALTH_CHECK_CONFIG, ...config };
@@ -156,9 +152,7 @@ export class HealthCheckRegistry {
     // Validate dependencies exist
     for (const dep of dependencies) {
       if (!this.checks.has(dep)) {
-        logger.warn(
-          `Health check dependency '${dep}' not yet registered for '${service}'`,
-        );
+        logger.warn(`Health check dependency '${dep}' not yet registered for '${service}'`);
       }
     }
 
@@ -242,44 +236,37 @@ export class HealthCheckRegistry {
     try {
       // Check dependencies first
       const dependencyResults: Record<string, HealthCheckResult> = {};
-      let dependencyStatus: HealthStatus = "healthy";
+      let dependencyStatus: HealthStatus = 'healthy';
 
       for (const dep of entry.dependencies) {
         const depResult = await this.check(dep);
         dependencyResults[dep] = depResult;
 
-        if (depResult.status === "unhealthy") {
-          dependencyStatus = "unhealthy";
-        } else if (
-          depResult.status === "degraded" &&
-          dependencyStatus !== "unhealthy"
-        ) {
-          dependencyStatus = "degraded";
+        if (depResult.status === 'unhealthy') {
+          dependencyStatus = 'unhealthy';
+        } else if (depResult.status === 'degraded' && dependencyStatus !== 'unhealthy') {
+          dependencyStatus = 'degraded';
         }
       }
 
       // Execute actual health check with timeout
-      const result = await this.executeWithTimeout(
-        () => entry.check(),
-        entry.config.timeout,
-      );
+      const result = await this.executeWithTimeout(() => entry.check(), entry.config.timeout);
 
       const responseTime = Date.now() - startTime;
 
       // Determine overall status considering dependencies
       let finalStatus = result.status;
-      if (dependencyStatus === "unhealthy") {
-        finalStatus = "unhealthy";
-      } else if (dependencyStatus === "degraded" && finalStatus === "healthy") {
-        finalStatus = "degraded";
+      if (dependencyStatus === 'unhealthy') {
+        finalStatus = 'unhealthy';
+      } else if (dependencyStatus === 'degraded' && finalStatus === 'healthy') {
+        finalStatus = 'degraded';
       }
 
       const finalResult: HealthCheckResult = {
         ...result,
         status: finalStatus,
         responseTime,
-        dependencies:
-          entry.dependencies.size > 0 ? dependencyResults : undefined,
+        dependencies: entry.dependencies.size > 0 ? dependencyResults : undefined,
       };
 
       this.logHealthCheck(service, finalResult);
@@ -287,11 +274,11 @@ export class HealthCheckRegistry {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       const errorResult: HealthCheckResult = {
-        status: "unhealthy",
+        status: 'unhealthy',
         service,
         timestamp: Date.now(),
         responseTime,
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
 
       logger.error(`Health check failed for ${service}`, {
@@ -318,34 +305,33 @@ export class HealthCheckRegistry {
           results[service] = await this.check(service);
         } catch (error) {
           results[service] = {
-            status: "unhealthy",
+            status: 'unhealthy',
             service,
             timestamp: Date.now(),
             responseTime: 0,
-            message:
-              error instanceof Error ? error.message : "Check execution failed",
+            message: error instanceof Error ? error.message : 'Check execution failed',
           };
         }
-      }),
+      })
     );
 
     // Calculate aggregate status
     const statuses = Object.values(results).map((r) => r.status);
     const summary = {
       total: statuses.length,
-      healthy: statuses.filter((s) => s === "healthy").length,
-      unhealthy: statuses.filter((s) => s === "unhealthy").length,
-      degraded: statuses.filter((s) => s === "degraded").length,
+      healthy: statuses.filter((s) => s === 'healthy').length,
+      unhealthy: statuses.filter((s) => s === 'unhealthy').length,
+      degraded: statuses.filter((s) => s === 'degraded').length,
     };
 
-    let overallStatus: HealthStatus = "healthy";
+    let overallStatus: HealthStatus = 'healthy';
     if (summary.unhealthy > 0) {
-      overallStatus = "unhealthy";
+      overallStatus = 'unhealthy';
     } else if (summary.degraded > 0) {
-      overallStatus = "degraded";
+      overallStatus = 'degraded';
     }
 
-    logger.info("Aggregate health check completed", {
+    logger.info('Aggregate health check completed', {
       overallStatus,
       summary,
     });
@@ -361,10 +347,7 @@ export class HealthCheckRegistry {
   /**
    * Execute health check with timeout
    */
-  private async executeWithTimeout<T>(
-    fn: () => Promise<T> | T,
-    timeout: number,
-  ): Promise<T> {
+  private async executeWithTimeout<T>(fn: () => Promise<T> | T, timeout: number): Promise<T> {
     return new Promise((resolve, reject) => {
       const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
         reject(new Error(`Health check timed out after ${timeout}ms`));
@@ -386,14 +369,9 @@ export class HealthCheckRegistry {
   /**
    * Validate no circular dependencies exist
    */
-  private validateNoCircularDependencies(
-    service: string,
-    visited: Set<string> = new Set(),
-  ): void {
+  private validateNoCircularDependencies(service: string, visited: Set<string> = new Set()): void {
     if (visited.has(service)) {
-      throw new Error(
-        `Circular dependency detected involving service: ${service}`,
-      );
+      throw new Error(`Circular dependency detected involving service: ${service}`);
     }
 
     visited.add(service);
@@ -416,15 +394,15 @@ export class HealthCheckRegistry {
       responseTime: `${result.responseTime}ms`,
     };
 
-    if (result.status === "healthy") {
-      logger.debug("Health check passed", logData);
-    } else if (result.status === "degraded") {
-      logger.warn("Health check degraded", {
+    if (result.status === 'healthy') {
+      logger.debug('Health check passed', logData);
+    } else if (result.status === 'degraded') {
+      logger.warn('Health check degraded', {
         ...logData,
         message: result.message,
       });
     } else {
-      logger.error("Health check failed", {
+      logger.error('Health check failed', {
         ...logData,
         message: result.message,
       });
@@ -444,9 +422,9 @@ export const healthCheckRegistry = new HealthCheckRegistry();
  */
 export function formatHealthStatus(status: HealthStatus): string {
   const statusEmojis: Record<HealthStatus, string> = {
-    healthy: "✅",
-    degraded: "⚠️",
-    unhealthy: "❌",
+    healthy: '✅',
+    degraded: '⚠️',
+    unhealthy: '❌',
   };
   return `${statusEmojis[status]} ${status.toUpperCase()}`;
 }
@@ -457,17 +435,10 @@ export function formatHealthStatus(status: HealthStatus): string {
  * @param indentLevel - Indentation level for nested output
  * @returns Formatted string
  */
-export function formatHealthCheckResult(
-  result: HealthCheckResult,
-  indentLevel = 0,
-): string {
-  const indent = "  ".repeat(indentLevel);
+export function formatHealthCheckResult(result: HealthCheckResult, indentLevel = 0): string {
+  const indent = '  '.repeat(indentLevel);
   const statusIcon =
-    result.status === "healthy"
-      ? "✅"
-      : result.status === "degraded"
-        ? "⚠️"
-        : "❌";
+    result.status === 'healthy' ? '✅' : result.status === 'degraded' ? '⚠️' : '❌';
 
   let output = `${indent}${statusIcon} ${result.service} (${result.responseTime}ms)`;
 
@@ -479,11 +450,8 @@ export function formatHealthCheckResult(
     output += `\n${indent}   └─ Dependencies:`;
     for (const [depName, depResult] of Object.entries(result.dependencies)) {
       output +=
-        "\n" +
-        formatHealthCheckResult(depResult, indentLevel + 2).replace(
-          depResult.service,
-          depName,
-        );
+        '\n' +
+        formatHealthCheckResult(depResult, indentLevel + 2).replace(depResult.service, depName);
     }
   }
 
@@ -495,43 +463,37 @@ export function formatHealthCheckResult(
  * @param result - Aggregate health result
  * @returns Formatted multi-line string
  */
-export function formatAggregateHealthResult(
-  result: AggregateHealthResult,
-): string {
+export function formatAggregateHealthResult(result: AggregateHealthResult): string {
   const statusIcon =
-    result.status === "healthy"
-      ? "✅"
-      : result.status === "degraded"
-        ? "⚠️"
-        : "❌";
+    result.status === 'healthy' ? '✅' : result.status === 'degraded' ? '⚠️' : '❌';
 
   const lines: string[] = [
-    "",
+    '',
     `╔══════════════════════════════════════════════════════════╗`,
     `║           HEALTH CHECK REPORT                            ║`,
     `╚══════════════════════════════════════════════════════════╝`,
-    "",
+    '',
     `${statusIcon} Overall Status: ${result.status.toUpperCase()}`,
     `🕐 Checked at: ${new Date(result.timestamp).toLocaleString()}`,
-    "",
+    '',
     `📊 Summary:`,
     `   • Total Services: ${result.summary.total}`,
     `   • ✅ Healthy: ${result.summary.healthy}`,
     `   • ⚠️  Degraded: ${result.summary.degraded}`,
     `   • ❌ Unhealthy: ${result.summary.unhealthy}`,
-    "",
+    '',
     `📋 Service Details:`,
-    "",
+    '',
   ];
 
   for (const [, serviceResult] of Object.entries(result.services)) {
     lines.push(formatHealthCheckResult(serviceResult));
-    lines.push("");
+    lines.push('');
   }
 
-  lines.push("═══════════════════════════════════════════════════════════", "");
+  lines.push('═══════════════════════════════════════════════════════════', '');
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /**

@@ -44,10 +44,10 @@ export const RETRYABLE_HTTP_STATUS_CODES = [
 
 /** Network error codes that trigger automatic retry */
 export const RETRYABLE_ERROR_CODES = [
-  "ECONNRESET", // Connection reset by peer
-  "ECONNREFUSED", // Connection refused
-  "ETIMEDOUT", // Operation timed out
-  "ENOTFOUND", // DNS lookup failed
+  'ECONNRESET', // Connection reset by peer
+  'ECONNREFUSED', // Connection refused
+  'ETIMEDOUT', // Operation timed out
+  'ENOTFOUND', // DNS lookup failed
 ];
 
 // ============================================================================
@@ -130,7 +130,7 @@ export const GEMINI_DEFAULT_TOP_K = 40;
 export const GEMINI_DEFAULT_TOP_P = 0.95;
 
 /** Default Gemini model name */
-export const GEMINI_DEFAULT_MODEL = "gemini-1.5-flash";
+export const GEMINI_DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // ============================================================================
 // Pagination Constants
@@ -199,10 +199,10 @@ export const API_KEY_PREFIX_LENGTH = 8;
 // ============================================================================
 
 /** Base URL for Gemini API */
-export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com";
+export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com';
 
 /** Gemini API version path */
-export const GEMINI_API_VERSION_PATH = "/v1beta/models/";
+export const GEMINI_API_VERSION_PATH = '/v1beta/models/';
 
 // ============================================================================
 // Sensitive Data Patterns
@@ -224,7 +224,7 @@ export const DEFAULT_SENSITIVE_FIELD_PATTERNS = [
 ];
 
 /** Default value redaction string */
-export const DEFAULT_REDACTION_STRING = "[REDACTED]";
+export const DEFAULT_REDACTION_STRING = '[REDACTED]';
 
 export const SENSITIVE_DATA_REDACTION_FORMAT = (key: string): string =>
   `[SENSITIVE DATA REDACTED for key: ${key}]`;

@@ -6,8 +6,7 @@ import {
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
   SENSITIVE_DATA_REDACTION_FORMAT,
-} from "../config/constants";
-import { isEdgeRuntime } from "./edge-runtime";
+} from '../config/constants';
 
 const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
 
@@ -42,7 +41,7 @@ function sanitizeData(
   data: unknown,
   key?: string,
   depth: number = 0,
-  keyCount?: KeyCounter,
+  keyCount?: KeyCounter
 ): unknown {
   if (data === null || data === undefined) {
     return data;
@@ -69,22 +68,15 @@ function sanitizeData(
     });
   }
 
-  if (typeof data === "object") {
+  if (typeof data === 'object') {
     const sanitized: Record<string, unknown> = {};
     let localCount = 0;
 
-    for (const [nestedKey, value] of Object.entries(
-      data as Record<string, unknown>,
-    )) {
+    for (const [nestedKey, value] of Object.entries(data as Record<string, unknown>)) {
       if (localCount >= LOGGER_MAX_OBJECT_KEYS_PER_LEVEL) break;
 
       if (keyCount) keyCount.count++;
-      sanitized[nestedKey] = sanitizeData(
-        value,
-        nestedKey,
-        depth + 1,
-        keyCount,
-      );
+      sanitized[nestedKey] = sanitizeData(value, nestedKey, depth + 1, keyCount);
       localCount++;
     }
 
@@ -103,81 +95,59 @@ export interface LogContext {
 }
 
 export interface Logger {
-  error(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void;
-  warn(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void;
-  success(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void;
-  info(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void;
-  debug(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void;
+  error(message: string, meta?: Record<string, unknown>, context?: LogContext): void;
+  warn(message: string, meta?: Record<string, unknown>, context?: LogContext): void;
+  success(message: string, meta?: Record<string, unknown>, context?: LogContext): void;
+  info(message: string, meta?: Record<string, unknown>, context?: LogContext): void;
+  debug(message: string, meta?: Record<string, unknown>, context?: LogContext): void;
   child(additionalContext: LogContext): Logger;
 }
 
 export interface LoggerOptions {
   useColors?: boolean;
   useEmoji?: boolean;
-  outputFormat?: "console" | "json";
+  outputFormat?: 'console' | 'json';
 }
 
 const LOG_LEVEL_CONFIG = {
-  debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
-  info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
+  debug: { emoji: '🔍', label: 'DEBUG', color: '\x1b[36m', reset: '\x1b[0m' },
+  info: { emoji: 'ℹ️ ', label: 'INFO', color: '\x1b[32m', reset: '\x1b[0m' },
   success: {
-    emoji: "✅",
-    label: "SUCCESS",
-    color: "\x1b[32m",
-    reset: "\x1b[0m",
+    emoji: '✅',
+    label: 'SUCCESS',
+    color: '\x1b[32m',
+    reset: '\x1b[0m',
   },
-  warn: { emoji: "⚠️ ", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
-  error: { emoji: "❌", label: "ERROR", color: "\x1b[31m", reset: "\x1b[0m" },
+  warn: { emoji: '⚠️ ', label: 'WARN', color: '\x1b[33m', reset: '\x1b[0m' },
+  error: { emoji: '❌', label: 'ERROR', color: '\x1b[31m', reset: '\x1b[0m' },
 } as const;
 
 export class ConsoleLogger implements Logger {
-  private level: "debug" | "info" | "warn" | "error";
+  private level: 'debug' | 'info' | 'warn' | 'error';
   private useColors: boolean;
   private useEmoji: boolean;
-  private outputFormat: "console" | "json";
+  private outputFormat: 'console' | 'json';
   private context: LogContext;
 
   constructor(
-    level: "debug" | "info" | "warn" | "error" = "info",
+    level: 'debug' | 'info' | 'warn' | 'error' = 'info',
     options: LoggerOptions = {},
-    context: LogContext = {},
+    context: LogContext = {}
   ) {
     this.level = level;
     // Auto-enable colors in development/TTY environments, disable in production
     this.useColors =
       options.useColors ??
-      (!isEdgeRuntime() &&
-        typeof process !== "undefined" &&
-        process.env?.NODE_ENV !== "production" &&
+      (typeof process !== 'undefined' &&
+        process.env?.NODE_ENV !== 'production' &&
         (process.stdout?.isTTY || false));
     this.useEmoji = options.useEmoji ?? true;
     // Auto-enable JSON format in production environments for log aggregation
     this.outputFormat =
       options.outputFormat ??
-      (isEdgeRuntime() ||
-      (typeof process !== "undefined" && process.env?.NODE_ENV === "production")
-        ? "json"
-        : "console");
+      (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
+        ? 'json'
+        : 'console');
     this.context = context;
   }
 
@@ -189,20 +159,20 @@ export class ConsoleLogger implements Logger {
         useEmoji: this.useEmoji,
         outputFormat: this.outputFormat,
       },
-      { ...this.context, ...additionalContext },
+      { ...this.context, ...additionalContext }
     );
   }
 
-  getLevel(): "debug" | "info" | "warn" | "error" {
+  getLevel(): 'debug' | 'info' | 'warn' | 'error' {
     return this.level;
   }
 
-  setLevel(level: "debug" | "info" | "warn" | "error"): void {
+  setLevel(level: 'debug' | 'info' | 'warn' | 'error'): void {
     this.level = level;
   }
 
-  private shouldLog(level: "debug" | "info" | "warn" | "error"): boolean {
-    const levels = ["debug", "info", "warn", "error"];
+  private shouldLog(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
+    const levels = ['debug', 'info', 'warn', 'error'];
     return levels.indexOf(level) >= levels.indexOf(this.level);
   }
 
@@ -212,7 +182,7 @@ export class ConsoleLogger implements Logger {
 
   private formatContext(context?: LogContext): string {
     if (!context || Object.keys(context).length === 0) {
-      return "";
+      return '';
     }
 
     const parts: string[] = [];
@@ -230,17 +200,15 @@ export class ConsoleLogger implements Logger {
     }
 
     if (parts.length === 0) {
-      return "";
+      return '';
     }
 
-    return this.useColors
-      ? `\x1b[90m[${parts.join(" ")}]\x1b[0m`
-      : `[${parts.join(" ")}]`;
+    return this.useColors ? `\x1b[90m[${parts.join(' ')}]\x1b[0m` : `[${parts.join(' ')}]`;
   }
 
   private mergeMetaWithContext(
     meta: Record<string, unknown> | undefined,
-    context: LogContext | undefined,
+    context: LogContext | undefined
   ): Record<string, unknown> | undefined {
     if (!context || Object.keys(context).length === 0) {
       return meta;
@@ -248,8 +216,7 @@ export class ConsoleLogger implements Logger {
 
     const contextFields: Record<string, unknown> = {};
     if (context.requestId) contextFields.requestId = context.requestId;
-    if (context.correlationId)
-      contextFields.correlationId = context.correlationId;
+    if (context.correlationId) contextFields.correlationId = context.correlationId;
     if (context.operation) contextFields.operation = context.operation;
     if (context.component) contextFields.component = context.component;
 
@@ -260,11 +227,9 @@ export class ConsoleLogger implements Logger {
     return { ...contextFields, ...meta };
   }
 
-  private formatLogLevel(
-    level: "debug" | "info" | "success" | "warn" | "error",
-  ): string {
+  private formatLogLevel(level: 'debug' | 'info' | 'success' | 'warn' | 'error'): string {
     const config = LOG_LEVEL_CONFIG[level];
-    const emoji = this.useEmoji ? `${config.emoji} ` : "";
+    const emoji = this.useEmoji ? `${config.emoji} ` : '';
     const label = `[${config.label}]`;
 
     if (this.useColors) {
@@ -274,44 +239,34 @@ export class ConsoleLogger implements Logger {
   }
 
   private formatJsonLog(
-    level: "debug" | "info" | "success" | "warn" | "error",
+    level: 'debug' | 'info' | 'success' | 'warn' | 'error',
     message: string,
-    meta?: Record<string, unknown>,
+    meta?: Record<string, unknown>
   ): string {
     const config = LOG_LEVEL_CONFIG[level];
     const logEntry = {
       timestamp: this.formatTimestamp(),
       level: config.label,
       message,
-      ...(meta && Object.keys(meta).length > 0
-        ? { meta: sanitizeData(meta) }
-        : {}),
+      ...(meta && Object.keys(meta).length > 0 ? { meta: sanitizeData(meta) } : {}),
     };
     return JSON.stringify(logEntry);
   }
 
-  debug(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void {
-    if (this.shouldLog("debug")) {
+  debug(message: string, meta?: Record<string, unknown>, context?: LogContext): void {
+    if (this.shouldLog('debug')) {
       const mergedContext = { ...this.context, ...context };
       const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
       const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
 
-      if (this.outputFormat === "json") {
+      if (this.outputFormat === 'json') {
         console.debug(
-          this.formatJsonLog(
-            "debug",
-            message,
-            sanitizedMeta as Record<string, unknown> | undefined,
-          ),
+          this.formatJsonLog('debug', message, sanitizedMeta as Record<string, unknown> | undefined)
         );
       } else {
-        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : '';
         const contextStr = this.formatContext(mergedContext);
-        const logMessage = `${this.formatLogLevel("debug")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        const logMessage = `${this.formatLogLevel('debug')} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.debug(logMessage, metaStr);
         } else {
@@ -321,28 +276,24 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  success(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void {
-    if (this.shouldLog("info")) {
+  success(message: string, meta?: Record<string, unknown>, context?: LogContext): void {
+    if (this.shouldLog('info')) {
       const mergedContext = { ...this.context, ...context };
       const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
       const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
 
-      if (this.outputFormat === "json") {
+      if (this.outputFormat === 'json') {
         console.info(
           this.formatJsonLog(
-            "success",
+            'success',
             message,
-            sanitizedMeta as Record<string, unknown> | undefined,
-          ),
+            sanitizedMeta as Record<string, unknown> | undefined
+          )
         );
       } else {
-        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : '';
         const contextStr = this.formatContext(mergedContext);
-        const logMessage = `${this.formatLogLevel("success")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        const logMessage = `${this.formatLogLevel('success')} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.info(logMessage, metaStr);
         } else {
@@ -352,28 +303,20 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  info(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void {
-    if (this.shouldLog("info")) {
+  info(message: string, meta?: Record<string, unknown>, context?: LogContext): void {
+    if (this.shouldLog('info')) {
       const mergedContext = { ...this.context, ...context };
       const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
       const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
 
-      if (this.outputFormat === "json") {
+      if (this.outputFormat === 'json') {
         console.info(
-          this.formatJsonLog(
-            "info",
-            message,
-            sanitizedMeta as Record<string, unknown> | undefined,
-          ),
+          this.formatJsonLog('info', message, sanitizedMeta as Record<string, unknown> | undefined)
         );
       } else {
-        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : '';
         const contextStr = this.formatContext(mergedContext);
-        const logMessage = `${this.formatLogLevel("info")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        const logMessage = `${this.formatLogLevel('info')} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.info(logMessage, metaStr);
         } else {
@@ -383,28 +326,20 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  warn(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void {
-    if (this.shouldLog("warn")) {
+  warn(message: string, meta?: Record<string, unknown>, context?: LogContext): void {
+    if (this.shouldLog('warn')) {
       const mergedContext = { ...this.context, ...context };
       const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
       const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
 
-      if (this.outputFormat === "json") {
+      if (this.outputFormat === 'json') {
         console.warn(
-          this.formatJsonLog(
-            "warn",
-            message,
-            sanitizedMeta as Record<string, unknown> | undefined,
-          ),
+          this.formatJsonLog('warn', message, sanitizedMeta as Record<string, unknown> | undefined)
         );
       } else {
-        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : '';
         const contextStr = this.formatContext(mergedContext);
-        const logMessage = `${this.formatLogLevel("warn")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        const logMessage = `${this.formatLogLevel('warn')} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.warn(logMessage, metaStr);
         } else {
@@ -414,28 +349,20 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  error(
-    message: string,
-    meta?: Record<string, unknown>,
-    context?: LogContext,
-  ): void {
-    if (this.shouldLog("error")) {
+  error(message: string, meta?: Record<string, unknown>, context?: LogContext): void {
+    if (this.shouldLog('error')) {
       const mergedContext = { ...this.context, ...context };
       const mergedMeta = this.mergeMetaWithContext(meta, mergedContext);
       const sanitizedMeta = mergedMeta ? sanitizeData(mergedMeta) : undefined;
 
-      if (this.outputFormat === "json") {
+      if (this.outputFormat === 'json') {
         console.error(
-          this.formatJsonLog(
-            "error",
-            message,
-            sanitizedMeta as Record<string, unknown> | undefined,
-          ),
+          this.formatJsonLog('error', message, sanitizedMeta as Record<string, unknown> | undefined)
         );
       } else {
-        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : "";
+        const metaStr = sanitizedMeta ? JSON.stringify(sanitizedMeta) : '';
         const contextStr = this.formatContext(mergedContext);
-        const logMessage = `${this.formatLogLevel("error")} ${contextStr} [${this.formatTimestamp()}] ${message}`;
+        const logMessage = `${this.formatLogLevel('error')} ${contextStr} [${this.formatTimestamp()}] ${message}`;
         if (metaStr) {
           console.error(logMessage, metaStr);
         } else {
@@ -446,14 +373,11 @@ export class ConsoleLogger implements Logger {
   }
 }
 
-const getLogLevel = (): "debug" | "info" | "warn" | "error" => {
-  if (isEdgeRuntime()) {
-    return "info"; // Default in edge runtime
+const getLogLevel = (): 'debug' | 'info' | 'warn' | 'error' => {
+  if (typeof process !== 'undefined' && process.env && process.env.LOG_LEVEL) {
+    return process.env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error';
   }
-  if (typeof process !== "undefined" && process.env && process.env.LOG_LEVEL) {
-    return process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error";
-  }
-  return "info";
+  return 'info';
 };
 
 export const logger = new ConsoleLogger(getLogLevel());
@@ -477,28 +401,22 @@ function getVisualWidth(str: string): number {
 function padToVisualWidth(str: string, targetWidth: number): string {
   const currentWidth = getVisualWidth(str);
   const padding = Math.max(0, targetWidth - currentWidth);
-  return str + " ".repeat(padding);
+  return str + ' '.repeat(padding);
 }
 
 /**
  * Prints a startup banner with version and feature information
  * Only shows in non-production environments for better developer UX
  */
-export const printStartupBanner = (version: string = "1.0.0"): void => {
+export const printStartupBanner = (version: string = '1.0.0'): void => {
   // Skip banner in production for cleaner logs
-  if (isEdgeRuntime()) {
-    return; // Skip banner in edge runtime
-  }
-  if (
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV === "production"
-  ) {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
     return;
   }
 
   // Calculate proper padding for visual alignment (box is 60 chars wide)
   const CONTENT_WIDTH = 58; // Space between ║ chars
-  const titlePrefix = "║   ";
+  const titlePrefix = '║   ';
   const titleText = `🔌 VIBER INTEGRATION LAYER v${version}`;
   const paddedTitle = padToVisualWidth(titleText, CONTENT_WIDTH - titlePrefix.length);
 

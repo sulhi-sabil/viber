@@ -1,6 +1,6 @@
-import { ValidationError } from "./errors";
-import { logger } from "./logger";
-import { IDEMPOTENCY_DEFAULT_TTL_MS } from "../config/constants";
+import { ValidationError } from './errors';
+import { logger } from './logger';
+import { IDEMPOTENCY_DEFAULT_TTL_MS } from '../config/constants';
 
 export interface IdempotencyResult<T> {
   data: T;
@@ -52,11 +52,7 @@ export class InMemoryIdempotencyStore implements IdempotencyStore {
     return response as StoredResponse<T>;
   }
 
-  async set<T>(
-    key: string,
-    value: StoredResponse<T>,
-    ttl: number,
-  ): Promise<void> {
+  async set<T>(key: string, value: StoredResponse<T>, ttl: number): Promise<void> {
     this.cache.set(key, {
       ...value,
       expiresAt: Date.now() + ttl,
@@ -89,16 +85,14 @@ export class IdempotencyManager {
 
   async execute<T>(
     idempotencyKey: string,
-    operation: () => Promise<T>,
+    operation: () => Promise<T>
   ): Promise<IdempotencyResult<T>> {
     this.validateIdempotencyKey(idempotencyKey);
 
     const cached = await this.store.get<T>(idempotencyKey);
 
     if (cached) {
-      logger.info(
-        `Returning cached response for idempotency key: ${idempotencyKey}`,
-      );
+      logger.info(`Returning cached response for idempotency key: ${idempotencyKey}`);
       return {
         data: cached.data,
         cached: true,
@@ -109,9 +103,7 @@ export class IdempotencyManager {
 
     const inFlight = this.inFlightOperations.get(idempotencyKey);
     if (inFlight) {
-      logger.info(
-        `Waiting for in-flight operation for idempotency key: ${idempotencyKey}`,
-      );
+      logger.info(`Waiting for in-flight operation for idempotency key: ${idempotencyKey}`);
       const result = (await inFlight) as T;
       const timestamp = Date.now();
       return {
@@ -129,11 +121,7 @@ export class IdempotencyManager {
       const result = await operationPromise;
       const timestamp = Date.now();
 
-      await this.store.set(
-        idempotencyKey,
-        { data: result, timestamp },
-        this.ttlMs,
-      );
+      await this.store.set(idempotencyKey, { data: result, timestamp }, this.ttlMs);
 
       logger.info(`Stored response for idempotency key: ${idempotencyKey}`);
 
@@ -156,23 +144,20 @@ export class IdempotencyManager {
 
   async clear(): Promise<void> {
     await this.store.clear();
-    logger.info("Cleared all idempotency keys");
+    logger.info('Cleared all idempotency keys');
   }
 
   private validateIdempotencyKey(idempotencyKey: string): void {
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (!uuidRegex.test(idempotencyKey)) {
       throw new ValidationError(
-        `Invalid idempotency key: must be a valid UUID, got: ${idempotencyKey}`,
+        `Invalid idempotency key: must be a valid UUID, got: ${idempotencyKey}`
       );
     }
   }
 }
 
-export function createIdempotencyManager(
-  options?: IdempotencyManagerOptions,
-): IdempotencyManager {
+export function createIdempotencyManager(options?: IdempotencyManagerOptions): IdempotencyManager {
   return new IdempotencyManager(options);
 }

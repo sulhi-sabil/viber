@@ -1,16 +1,12 @@
-import {
-  CircuitBreaker,
-  CircuitBreakerOptions,
-  CircuitState,
-} from "../utils/circuit-breaker";
-import { executeWithResilience } from "../utils/resilience";
-import { logger } from "../utils/logger";
-import { ServiceMetricsCollector } from "../utils/metrics";
+import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from '../utils/circuit-breaker';
+import { executeWithResilience } from '../utils/resilience';
+import { logger } from '../utils/logger';
+import { ServiceMetricsCollector } from '../utils/metrics';
 
 const CIRCUIT_STATE_INDICATORS: Record<CircuitState, string> = {
-  [CircuitState.CLOSED]: "✅",
-  [CircuitState.OPEN]: "⛔",
-  [CircuitState.HALF_OPEN]: "⚠️",
+  [CircuitState.CLOSED]: '✅',
+  [CircuitState.OPEN]: '⛔',
+  [CircuitState.HALF_OPEN]: '⚠️',
 };
 
 export interface ServiceHealth {
@@ -37,10 +33,7 @@ export abstract class BaseService {
   protected circuitBreaker: CircuitBreaker;
   protected metricsCollector?: ServiceMetricsCollector;
 
-  constructor(
-    circuitBreaker: CircuitBreaker,
-    metricsCollector?: ServiceMetricsCollector,
-  ) {
+  constructor(circuitBreaker: CircuitBreaker, metricsCollector?: ServiceMetricsCollector) {
     this.circuitBreaker = circuitBreaker;
     this.metricsCollector = metricsCollector;
   }
@@ -65,14 +58,14 @@ export abstract class BaseService {
    */
   protected static createCircuitBreaker(
     serviceName: string,
-    options: CircuitBreakerOptions,
+    options: CircuitBreakerOptions
   ): CircuitBreaker {
     return new CircuitBreaker({
       ...options,
       onStateChange: (state, reason) => {
         const indicator = CIRCUIT_STATE_INDICATORS[state];
         logger.warn(
-          `${serviceName} circuit breaker ${indicator} state changed to ${state}: ${reason}`,
+          `${serviceName} circuit breaker ${indicator} state changed to ${state}: ${reason}`
         );
       },
     });
@@ -91,7 +84,7 @@ export abstract class BaseService {
   protected async executeWithResilience<T>(
     operation: () => Promise<T>,
     options: ResilienceExecutionOptions = {},
-    operationName: string = "Service operation",
+    operationName: string = 'Service operation'
   ): Promise<T> {
     const config = this.getResilienceConfig();
 
@@ -129,9 +122,7 @@ export abstract class BaseService {
     this.circuitBreaker.reset();
   }
 
-  protected async executeHealthCheck(
-    operation: () => Promise<void>,
-  ): Promise<ServiceHealth> {
+  protected async executeHealthCheck(operation: () => Promise<void>): Promise<ServiceHealth> {
     const start = Date.now();
 
     try {
@@ -147,8 +138,7 @@ export abstract class BaseService {
       };
     } catch (error) {
       const latency = Date.now() - start;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       logger.error(`${this.serviceName} health check failed`, {
         error: errorMessage,

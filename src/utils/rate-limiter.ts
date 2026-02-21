@@ -1,10 +1,10 @@
-import { logger } from "./logger";
+import { logger } from './logger';
 import {
   RATE_LIMITER_DEFAULT_MAX_REQUESTS,
   RATE_LIMITER_DEFAULT_WINDOW_MS,
   RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
   RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER,
-} from "../config/constants";
+} from '../config/constants';
 
 export interface RateLimiterOptions {
   maxRequests?: number;
@@ -21,9 +21,7 @@ export interface RateLimiterMetrics {
   windowEnd: number;
 }
 
-const DEFAULT_RATE_LIMITER_OPTIONS: Required<
-  Omit<RateLimiterOptions, "serviceName">
-> = {
+const DEFAULT_RATE_LIMITER_OPTIONS: Required<Omit<RateLimiterOptions, 'serviceName'>> = {
   maxRequests: RATE_LIMITER_DEFAULT_MAX_REQUESTS,
   windowMs: RATE_LIMITER_DEFAULT_WINDOW_MS,
   cleanupThreshold: RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
@@ -41,13 +39,13 @@ export class RateLimiter {
     const mergedOptions = { ...DEFAULT_RATE_LIMITER_OPTIONS, ...options };
     this.maxRequests = mergedOptions.maxRequests;
     this.windowMs = mergedOptions.windowMs;
-    this.serviceName = mergedOptions.serviceName ?? "RateLimiter";
+    this.serviceName = mergedOptions.serviceName ?? 'RateLimiter';
     this.lastCleanupTime = Date.now();
     this.cleanupThreshold =
       mergedOptions.cleanupThreshold ??
       Math.max(
         RATE_LIMITER_MIN_CLEANUP_THRESHOLD,
-        this.maxRequests * RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER,
+        this.maxRequests * RATE_LIMITER_CLEANUP_THRESHOLD_MULTIPLIER
       );
   }
 
@@ -57,9 +55,7 @@ export class RateLimiter {
     while (true) {
       this.lazyCleanup(now);
 
-      const activeRequests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      ).length;
+      const activeRequests = this.requests.filter((time) => now - time < this.windowMs).length;
 
       if (activeRequests < this.maxRequests) {
         break;
@@ -72,9 +68,7 @@ export class RateLimiter {
 
           // Ensure waitTime is positive to prevent busy-waiting on clock drift
           if (waitTime > 0) {
-            logger.warn(
-              `${this.serviceName} rate limit reached. Waiting ${waitTime}ms`,
-            );
+            logger.warn(`${this.serviceName} rate limit reached. Waiting ${waitTime}ms`);
             await this.sleep(waitTime);
           }
           // If waitTime <= 0, the oldest request has expired, continue loop to recalculate
@@ -91,17 +85,13 @@ export class RateLimiter {
     const now = Date.now();
 
     if (this.requests.length < this.cleanupThreshold) {
-      const activeRequests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      ).length;
+      const activeRequests = this.requests.filter((time) => now - time < this.windowMs).length;
       return Math.max(0, this.maxRequests - activeRequests);
     }
 
     const timeSinceLastCleanup = now - this.lastCleanupTime;
     if (timeSinceLastCleanup >= this.windowMs / 2) {
-      this.requests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      );
+      this.requests = this.requests.filter((time) => now - time < this.windowMs);
       this.lastCleanupTime = now;
     }
 
@@ -115,9 +105,7 @@ export class RateLimiter {
     let activeRequestsArray: number[];
 
     if (this.requests.length < this.cleanupThreshold) {
-      activeRequestsArray = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      );
+      activeRequestsArray = this.requests.filter((time) => now - time < this.windowMs);
       activeRequests = activeRequestsArray.length;
     } else {
       this.lazyCleanup(now);
@@ -129,8 +117,7 @@ export class RateLimiter {
       totalRequests: this.requests.length,
       activeRequests,
       remainingRequests: Math.max(0, this.maxRequests - activeRequests),
-      windowStart:
-        (activeRequestsArray.length > 0 ? activeRequestsArray[0] : now) ?? now,
+      windowStart: (activeRequestsArray.length > 0 ? activeRequestsArray[0] : now) ?? now,
       windowEnd: now,
     };
   }
@@ -158,7 +145,7 @@ export class RateLimiter {
     return new Promise((resolve) => {
       const timer = setTimeout(resolve, ms);
       const timerRef = timer as unknown as { unref?: () => void };
-      if (typeof timerRef.unref === "function") {
+      if (typeof timerRef.unref === 'function') {
         timerRef.unref();
       }
     });
