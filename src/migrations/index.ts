@@ -114,6 +114,22 @@ export const migrations: Migration[] = [
       );
     },
   },
+  {
+    name: "Add updated_at indexes for frequently updated tables",
+    version: "20260221002",
+    up: async () => {
+      logger.info(
+        "📊 Migration 20260221002: 'Add updated_at indexes for frequently updated tables' - Please run the following SQL file manually:",
+        { file: "20260221002-add-updated-at-indexes.sql", action: "up", location: "Supabase SQL Editor" }
+      );
+    },
+    down: async () => {
+      logger.info(
+        "🔄 Rollback 20260221002: 'Add updated_at indexes for frequently updated tables' - Please run the DOWN migration in the following SQL file:",
+        { file: "20260221002-add-updated-at-indexes.sql", action: "down" }
+      );
+    },
+  },
 ];
 
 export function createMigrationRunner(supabase: unknown): MigrationRunner {
