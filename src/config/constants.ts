@@ -188,10 +188,48 @@ export const DEFAULT_LATENCY_HISTOGRAM_BUCKETS = [
 ];
 
 // ============================================================================
+// HTTP Status Codes
+// ============================================================================
+
+/** Bad Request - The server could not understand the request */
+export const HTTP_STATUS_BAD_REQUEST = 400;
+
+/** Unauthorized - Authentication is required */
+export const HTTP_STATUS_UNAUTHORIZED = 401;
+
+/** Forbidden - The server refuses to authorize the request */
+export const HTTP_STATUS_FORBIDDEN = 403;
+
+/** Not Found - The requested resource could not be found */
+export const HTTP_STATUS_NOT_FOUND = 404;
+
+/** Unprocessable Entity - The request was well-formed but semantically invalid */
+export const HTTP_STATUS_UNPROCESSABLE_ENTITY = 422;
+
+/** Too Many Requests - The user has sent too many requests in a given time */
+export const HTTP_STATUS_TOO_MANY_REQUESTS = 429;
+
+/** Internal Server Error - The server encountered an unexpected condition */
+export const HTTP_STATUS_INTERNAL_ERROR = 500;
+
+/** Bad Gateway - The server received an invalid response from an upstream server */
+export const HTTP_STATUS_BAD_GATEWAY = 502;
+
+/** Service Unavailable - The server is currently unavailable */
+export const HTTP_STATUS_SERVICE_UNAVAILABLE = 503;
+
+/** Gateway Timeout - The server did not receive a timely response from an upstream server */
+export const HTTP_STATUS_GATEWAY_TIMEOUT = 504;
+
+// ============================================================================
 // Security Constants
 // ============================================================================
 
-/** Prefix length for logging API keys (for debugging) */
+/**
+ * Prefix length for truncating identifiers in logs and debug output.
+ * Used for API keys, request IDs, correlation IDs, and record IDs.
+ * Provides enough context for debugging while protecting sensitive data.
+ */
 export const API_KEY_PREFIX_LENGTH = 8;
 
 // ============================================================================
@@ -228,3 +266,73 @@ export const DEFAULT_REDACTION_STRING = "[REDACTED]";
 
 export const SENSITIVE_DATA_REDACTION_FORMAT = (key: string): string =>
   `[SENSITIVE DATA REDACTED for key: ${key}]`;
+
+// ============================================================================
+// Supabase/PostgREST Error Codes
+// ============================================================================
+
+/** No rows found - returned when a query expecting a single row returns none */
+export const SUPABASE_ERROR_NOT_FOUND = "PGRST116";
+
+/** Range not satisfiable - invalid pagination/offset range requested */
+export const SUPABASE_ERROR_RANGE_NOT_SATISFIABLE = "PGRST301";
+
+/** Embedded resource not found - specified relation/table doesn't exist */
+export const SUPABASE_ERROR_RELATION_NOT_FOUND = "PGRST202";
+
+// ============================================================================
+// Client Identifiers
+// ============================================================================
+
+/** Client identifier for standard Supabase client requests */
+export const CLIENT_IDENTIFIER = "viber-integration-layer";
+
+/** Client identifier for admin/service role Supabase client requests */
+export const CLIENT_IDENTIFIER_ADMIN = "viber-integration-layer-admin";
+
+// ============================================================================
+// Validation Patterns
+// ============================================================================
+
+/** Regular expression for validating email address format */
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Regular expression for validating UUID v1-v5 format */
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// ============================================================================
+// Display Constants (Logger)
+// ============================================================================
+
+/** ANSI escape code - Reset all formatting */
+export const ANSI_RESET = "\x1b[0m";
+
+/** ANSI escape code - Cyan text color */
+export const ANSI_CYAN = "\x1b[36m";
+
+/** ANSI escape code - Green text color */
+export const ANSI_GREEN = "\x1b[32m";
+
+/** ANSI escape code - Yellow text color */
+export const ANSI_YELLOW = "\x1b[33m";
+
+/** ANSI escape code - Red text color */
+export const ANSI_RED = "\x1b[31m";
+
+/** ANSI escape code - Gray/Dim text color */
+export const ANSI_GRAY = "\x1b[90m";
+
+/** Emoji for debug level logging */
+export const EMOJI_DEBUG = "🔍";
+
+/** Emoji for info level logging */
+export const EMOJI_INFO = "ℹ️ ";
+
+/** Emoji for success level logging */
+export const EMOJI_SUCCESS = "✅";
+
+/** Emoji for warning level logging */
+export const EMOJI_WARN = "⚠️ ";
+
+/** Emoji for error level logging */
+export const EMOJI_ERROR = "❌";

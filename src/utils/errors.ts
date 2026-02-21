@@ -6,6 +6,17 @@ import {
   ErrorContext,
   HttpError,
 } from "../types/errors";
+import {
+  HTTP_STATUS_UNPROCESSABLE_ENTITY,
+  HTTP_STATUS_UNAUTHORIZED,
+  HTTP_STATUS_FORBIDDEN,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_TOO_MANY_REQUESTS,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+  HTTP_STATUS_GATEWAY_TIMEOUT,
+  HTTP_STATUS_INTERNAL_ERROR,
+  HTTP_STATUS_BAD_REQUEST,
+} from "../config/constants";
 
 export { ErrorCode, ErrorSeverity };
 
@@ -21,7 +32,7 @@ export class AppError extends Error implements HttpError {
   constructor(
     code: ErrorCode,
     message: string,
-    statusCode: number = 500,
+    statusCode: number = HTTP_STATUS_INTERNAL_ERROR,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     isOperational: boolean = true,
     details?: Record<string, unknown>,
@@ -67,7 +78,7 @@ export class ValidationError extends AppError {
     super(
       ErrorCode.VALIDATION_ERROR,
       message,
-      422,
+      HTTP_STATUS_UNPROCESSABLE_ENTITY,
       ErrorSeverity.LOW,
       true,
       details,
@@ -81,7 +92,7 @@ export class UnauthorizedError extends AppError {
     super(
       ErrorCode.UNAUTHORIZED,
       message,
-      401,
+      HTTP_STATUS_UNAUTHORIZED,
       ErrorSeverity.MEDIUM,
       true,
       undefined,
@@ -95,7 +106,7 @@ export class ForbiddenError extends AppError {
     super(
       ErrorCode.FORBIDDEN,
       message,
-      403,
+      HTTP_STATUS_FORBIDDEN,
       ErrorSeverity.MEDIUM,
       true,
       undefined,
@@ -109,7 +120,7 @@ export class NotFoundError extends AppError {
     super(
       ErrorCode.NOT_FOUND,
       `${resource} not found`,
-      404,
+      HTTP_STATUS_NOT_FOUND,
       ErrorSeverity.LOW,
       true,
       undefined,
@@ -127,7 +138,7 @@ export class RateLimitError extends AppError {
     super(
       ErrorCode.RATE_LIMIT_EXCEEDED,
       message,
-      429,
+      HTTP_STATUS_TOO_MANY_REQUESTS,
       ErrorSeverity.MEDIUM,
       true,
       { retryAfter },
@@ -145,7 +156,7 @@ export class ServiceUnavailableError extends AppError {
     super(
       ErrorCode.SERVICE_UNAVAILABLE,
       message || `${service} is currently unavailable`,
-      503,
+      HTTP_STATUS_SERVICE_UNAVAILABLE,
       ErrorSeverity.HIGH,
       true,
       { service, ...details },
@@ -159,7 +170,7 @@ export class TimeoutError extends AppError {
     super(
       ErrorCode.TIMEOUT,
       `${operation} timed out after ${timeout}ms`,
-      504,
+      HTTP_STATUS_GATEWAY_TIMEOUT,
       ErrorSeverity.HIGH,
       true,
       { operation, timeout },
@@ -176,7 +187,7 @@ export class InternalError extends AppError {
     super(
       ErrorCode.INTERNAL_ERROR,
       message,
-      500,
+      HTTP_STATUS_INTERNAL_ERROR,
       ErrorSeverity.HIGH,
       false,
       details,
@@ -260,23 +271,23 @@ export function isOperationalError(error: Error): boolean {
 
 export function mapHttpStatusCodeToErrorCode(statusCode: number): ErrorCode {
   switch (statusCode) {
-    case 400:
+    case HTTP_STATUS_BAD_REQUEST:
       return ErrorCode.INVALID_REQUEST;
-    case 401:
+    case HTTP_STATUS_UNAUTHORIZED:
       return ErrorCode.UNAUTHORIZED;
-    case 403:
+    case HTTP_STATUS_FORBIDDEN:
       return ErrorCode.FORBIDDEN;
-    case 404:
+    case HTTP_STATUS_NOT_FOUND:
       return ErrorCode.NOT_FOUND;
-    case 422:
+    case HTTP_STATUS_UNPROCESSABLE_ENTITY:
       return ErrorCode.VALIDATION_ERROR;
-    case 429:
+    case HTTP_STATUS_TOO_MANY_REQUESTS:
       return ErrorCode.RATE_LIMIT_EXCEEDED;
-    case 500:
+    case HTTP_STATUS_INTERNAL_ERROR:
       return ErrorCode.INTERNAL_ERROR;
-    case 503:
+    case HTTP_STATUS_SERVICE_UNAVAILABLE:
       return ErrorCode.SERVICE_UNAVAILABLE;
-    case 504:
+    case HTTP_STATUS_GATEWAY_TIMEOUT:
       return ErrorCode.TIMEOUT;
     default:
       return ErrorCode.INTERNAL_ERROR;

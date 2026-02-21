@@ -1,5 +1,9 @@
 import { Migration, MigrationRecord } from "./types";
 import { logger } from "../utils/logger";
+import {
+  SUPABASE_ERROR_NOT_FOUND,
+  SUPABASE_ERROR_RELATION_NOT_FOUND,
+} from "../config/constants";
 
 export interface SupabaseClient {
   from(table: string): QueryBuilder;
@@ -105,7 +109,7 @@ export class MigrationRunner {
       await this.supabase.client.rpc("create_migrations_table");
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string };
-      if (err.code !== "PGRST202") {
+      if (err.code !== SUPABASE_ERROR_RELATION_NOT_FOUND) {
         logger.warn("Failed to create migrations table:", {
           message: err.message,
         });
@@ -124,7 +128,7 @@ export class MigrationRunner {
       error?: { code?: string; message?: string };
     };
 
-    if (error && error.code !== "PGRST116") {
+    if (error && error.code !== SUPABASE_ERROR_NOT_FOUND) {
       throw new Error(`Failed to get migrations: ${error.message}`);
     }
 

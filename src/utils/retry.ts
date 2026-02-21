@@ -7,6 +7,11 @@ import {
   DEFAULT_RETRY_BACKOFF_MULTIPLIER,
   RETRYABLE_HTTP_STATUS_CODES,
   RETRYABLE_ERROR_CODES,
+  HTTP_STATUS_TOO_MANY_REQUESTS,
+  HTTP_STATUS_INTERNAL_ERROR,
+  HTTP_STATUS_BAD_GATEWAY,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+  HTTP_STATUS_GATEWAY_TIMEOUT,
 } from "../config/constants";
 
 export interface RetryOptions {
@@ -46,7 +51,13 @@ export const RetryPolicies = {
     initialDelay: 500,
     maxDelay: 5000,
     backoffMultiplier: 2,
-    retryableErrors: [429, 500, 502, 503, 504],
+    retryableErrors: [
+      HTTP_STATUS_TOO_MANY_REQUESTS,
+      HTTP_STATUS_INTERNAL_ERROR,
+      HTTP_STATUS_BAD_GATEWAY,
+      HTTP_STATUS_SERVICE_UNAVAILABLE,
+      HTTP_STATUS_GATEWAY_TIMEOUT,
+    ],
     retryableErrorCodes: RETRYABLE_ERROR_CODES,
   } as const,
 

@@ -23,6 +23,10 @@ import {
   CIRCUIT_BREAKER_DEFAULT_RESET_TIMEOUT_MS,
   HEALTH_CHECK_QUERY_LIMIT,
   API_KEY_PREFIX_LENGTH,
+  SUPABASE_ERROR_NOT_FOUND,
+  SUPABASE_ERROR_RANGE_NOT_SATISFIABLE,
+  CLIENT_IDENTIFIER,
+  CLIENT_IDENTIFIER_ADMIN,
 } from "../config/constants";
 
 export interface SupabaseConfig extends ResilienceConfig {
@@ -101,7 +105,7 @@ export class SupabaseService extends BaseService {
       },
       global: {
         headers: {
-          "x-client-info": "viber-integration-layer",
+          "x-client-info": CLIENT_IDENTIFIER,
         },
       },
     });
@@ -113,7 +117,7 @@ export class SupabaseService extends BaseService {
         },
         global: {
           headers: {
-            "x-client-info": "viber-integration-layer-admin",
+            "x-client-info": CLIENT_IDENTIFIER_ADMIN,
           },
         },
       });
@@ -167,7 +171,7 @@ export class SupabaseService extends BaseService {
       timeout: this.config.timeout || DEFAULT_OPERATION_TIMEOUT_MS,
       maxRetries: this.config.maxRetries || DEFAULT_MAX_RETRY_ATTEMPTS,
       retryableErrors: RETRYABLE_HTTP_STATUS_CODES,
-      retryableErrorCodes: ["PGRST116", "PGRST301", ...RETRYABLE_ERROR_CODES],
+      retryableErrorCodes: [SUPABASE_ERROR_NOT_FOUND, SUPABASE_ERROR_RANGE_NOT_SATISFIABLE, ...RETRYABLE_ERROR_CODES],
     };
   }
 
@@ -257,7 +261,7 @@ export class SupabaseService extends BaseService {
         const { data, error } = await query.single();
 
         if (error) {
-          if (error.code === "PGRST116") {
+          if (error.code === SUPABASE_ERROR_NOT_FOUND) {
             return null;
           }
           this.handleSupabaseError(error);
@@ -346,7 +350,7 @@ export class SupabaseService extends BaseService {
         return data as unknown as T;
       },
       queryOptions,
-      `Supabase update ${table}:${id.slice(0, 8)}...`,
+      `Supabase update ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 
@@ -378,7 +382,7 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase delete ${table}:${id.slice(0, 8)}...`,
+      `Supabase delete ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 
@@ -425,7 +429,7 @@ export class SupabaseService extends BaseService {
         return;
       },
       queryOptions,
-      `Supabase restore ${table}:${id.slice(0, 8)}...`,
+      `Supabase restore ${table}:${id.slice(0, API_KEY_PREFIX_LENGTH)}...`,
     );
   }
 
@@ -455,7 +459,7 @@ export class SupabaseService extends BaseService {
         .select("id")
         .limit(HEALTH_CHECK_QUERY_LIMIT);
 
-      if (error && error.code !== "PGRST116") {
+      if (error && error.code !== SUPABASE_ERROR_NOT_FOUND) {
         throw error;
       }
     });

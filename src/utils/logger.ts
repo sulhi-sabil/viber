@@ -6,6 +6,18 @@ import {
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
   SENSITIVE_DATA_REDACTION_FORMAT,
+  ANSI_RESET,
+  ANSI_CYAN,
+  ANSI_GREEN,
+  ANSI_YELLOW,
+  ANSI_RED,
+  ANSI_GRAY,
+  EMOJI_DEBUG,
+  EMOJI_INFO,
+  EMOJI_SUCCESS,
+  EMOJI_WARN,
+  EMOJI_ERROR,
+  API_KEY_PREFIX_LENGTH,
 } from "../config/constants";
 
 const SENSITIVE_PATTERNS = DEFAULT_SENSITIVE_FIELD_PATTERNS;
@@ -137,16 +149,16 @@ export interface LoggerOptions {
 }
 
 const LOG_LEVEL_CONFIG = {
-  debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
-  info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
+  debug: { emoji: EMOJI_DEBUG, label: "DEBUG", color: ANSI_CYAN, reset: ANSI_RESET },
+  info: { emoji: EMOJI_INFO, label: "INFO", color: ANSI_GREEN, reset: ANSI_RESET },
   success: {
-    emoji: "✅",
+    emoji: EMOJI_SUCCESS,
     label: "SUCCESS",
-    color: "\x1b[32m",
-    reset: "\x1b[0m",
+    color: ANSI_GREEN,
+    reset: ANSI_RESET,
   },
-  warn: { emoji: "⚠️ ", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
-  error: { emoji: "❌", label: "ERROR", color: "\x1b[31m", reset: "\x1b[0m" },
+  warn: { emoji: EMOJI_WARN, label: "WARN", color: ANSI_YELLOW, reset: ANSI_RESET },
+  error: { emoji: EMOJI_ERROR, label: "ERROR", color: ANSI_RED, reset: ANSI_RESET },
 } as const;
 
 export class ConsoleLogger implements Logger {
@@ -214,10 +226,10 @@ export class ConsoleLogger implements Logger {
 
     const parts: string[] = [];
     if (context.requestId) {
-      parts.push(`req-${context.requestId.slice(0, 8)}`);
+      parts.push(`req-${context.requestId.slice(0, API_KEY_PREFIX_LENGTH)}`);
     }
     if (context.correlationId && context.correlationId !== context.requestId) {
-      parts.push(`corr-${context.correlationId.slice(0, 8)}`);
+      parts.push(`corr-${context.correlationId.slice(0, API_KEY_PREFIX_LENGTH)}`);
     }
     if (context.operation) {
       parts.push(context.operation);
@@ -231,7 +243,7 @@ export class ConsoleLogger implements Logger {
     }
 
     return this.useColors
-      ? `\x1b[90m[${parts.join(" ")}]\x1b[0m`
+      ? `${ANSI_GRAY}[${parts.join(" ")}]${ANSI_RESET}`
       : `[${parts.join(" ")}]`;
   }
 

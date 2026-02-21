@@ -1,4 +1,5 @@
 import { ValidationError } from "./errors";
+import { EMAIL_REGEX, UUID_REGEX } from "../config/constants";
 
 export interface ValidationRule {
   validate: (value: unknown, fieldName?: string) => void;
@@ -83,8 +84,7 @@ export class Validator {
 
   static email(value: unknown, fieldName: string = "field"): void {
     this.string(value, fieldName);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value as string)) {
+    if (!EMAIL_REGEX.test(value as string)) {
       throw new ValidationError(`${fieldName} must be a valid email address`);
     }
   }
@@ -100,9 +100,7 @@ export class Validator {
 
   static uuid(value: unknown, fieldName: string = "field"): void {
     this.string(value, fieldName);
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(value as string)) {
+    if (!UUID_REGEX.test(value as string)) {
       throw new ValidationError(`${fieldName} must be a valid UUID`);
     }
   }
