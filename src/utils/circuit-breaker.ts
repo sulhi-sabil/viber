@@ -23,6 +23,24 @@ export interface CircuitBreakerOptions {
   onStateChange?: (state: CircuitState, reason: string) => void;
 }
 
+/**
+ * Metrics returned by CircuitBreaker.getMetrics()
+ */
+export interface CircuitBreakerMetrics {
+  /** Current state of the circuit breaker */
+  state: CircuitState;
+  /** Total failure count */
+  failureCount: number;
+  /** Total success count */
+  successCount: number;
+  /** Number of failures within the monitoring window */
+  failuresInWindow: number;
+  /** Number of successes within the monitoring window */
+  successesInWindow: number;
+  /** Timestamp of the last failure (Unix ms), null if no failures */
+  lastFailureTime: number | null;
+}
+
 export const DEFAULT_CIRCUIT_BREAKER_OPTIONS: Required<CircuitBreakerOptions> =
   {
     failureThreshold: CIRCUIT_BREAKER_DEFAULT_FAILURE_THRESHOLD,
@@ -150,7 +168,7 @@ export class CircuitBreaker {
     return this.state;
   }
 
-  getMetrics() {
+  getMetrics(): CircuitBreakerMetrics {
     this.cleanupOldMetricsLazy();
 
     return {

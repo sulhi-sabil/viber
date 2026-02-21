@@ -1,5 +1,7 @@
 import {
   CircuitBreaker,
+  CircuitState,
+  CircuitBreakerMetrics,
   DEFAULT_CIRCUIT_BREAKER_OPTIONS,
 } from "./circuit-breaker";
 import { logger } from "./logger";
@@ -22,6 +24,8 @@ import {
   HealthCheckRegistry,
   HealthCheckFunction,
   HealthCheckConfig,
+  HealthCheckResult,
+  AggregateHealthResult,
   healthCheckRegistry,
 } from "./health-check";
 import {
@@ -58,6 +62,11 @@ export interface CircuitBreakerConfigMap {
   supabase?: CircuitBreakerConfig;
   gemini?: CircuitBreakerConfig;
 }
+
+export type CircuitBreakerStateResult = {
+  state: CircuitState;
+  metrics: CircuitBreakerMetrics;
+};
 
 export class ServiceFactory {
   private static instance: ServiceFactory;
@@ -195,7 +204,9 @@ export class ServiceFactory {
     this.services.clear();
   }
 
-  getCircuitBreakerState(serviceName: string) {
+  getCircuitBreakerState(
+    serviceName: string,
+  ): CircuitBreakerStateResult | null {
     const circuitBreaker = this.circuitBreakers.get(serviceName);
     if (!circuitBreaker) {
       return null;
@@ -207,8 +218,8 @@ export class ServiceFactory {
     };
   }
 
-  getAllCircuitBreakerStates(): Record<string, unknown> {
-    const states: Record<string, unknown> = {};
+  getAllCircuitBreakerStates(): Record<string, CircuitBreakerStateResult> {
+    const states: Record<string, CircuitBreakerStateResult> = {};
     this.circuitBreakers.forEach((circuitBreaker, serviceName) => {
       states[serviceName] = {
         state: circuitBreaker.getState(),
@@ -218,12 +229,6 @@ export class ServiceFactory {
     return states;
   }
 
-  /**
-   * Register a health check for a service
-   * @param serviceName - Service identifier
-   * @param check - Health check function
-   * @param config - Health check configuration
-   */
   registerHealthCheck(
     serviceName: string,
     check: HealthCheckFunction,
@@ -233,35 +238,18 @@ export class ServiceFactory {
     logger.info(`Registered health check for service: ${serviceName}`);
   }
 
-  /**
-   * Execute health check for a specific service
-   * @param serviceName - Service identifier
-   * @returns Health check result
-   */
-  async checkHealth(serviceName: string) {
+  async checkHealth(serviceName: string): Promise<HealthCheckResult> {
     return this.healthCheckRegistry.check(serviceName);
   }
 
-  /**
-   * Execute health checks for all registered services
-   * @returns Aggregate health result
-   */
-  async checkAllHealth() {
+  async checkAllHealth(): Promise<AggregateHealthResult> {
     return this.healthCheckRegistry.checkAll();
   }
 
-  /**
-   * Get the health check registry
-   * @returns HealthCheckRegistry instance
-   */
   getHealthCheckRegistry(): HealthCheckRegistry {
     return this.healthCheckRegistry;
   }
 
-  /**
-   * Register health check for a BaseService instance
-   * Converts ServiceHealth result to HealthCheckResult format
-   */
   private registerServiceHealthCheck(
     serviceName: string,
     service: BaseService,
@@ -300,49 +288,25 @@ export class ServiceFactory {
     });
   }
 
-  /**
-   * Get the metrics registry
-   * @returns MetricsRegistry instance
-   */
   getMetricsRegistry(): MetricsRegistry {
     return this.metricsRegistry;
   }
 
-  /**
-   * Create a migration runner for database schema management
-   * @param config - Supabase configuration for migrations
-   * @returns MigrationRunner instance
-   */
   createMigrationRunner(config: SupabaseConfig): MigrationRunner {
     const client = this.createSupabaseClient(config);
     return new MigrationRunner(client as unknown as MigrationSupabaseClient);
   }
 
-  /**
-   * Export all metrics in Prometheus format
-   * @returns Prometheus-formatted metrics string
-   */
   exportMetrics(): string {
     return this.metricsRegistry.toPrometheusString();
   }
 
-  /**
-   * Print a formatted metrics table to console
-   * Human-readable ASCII table format (useful for debugging/monitoring)
-   * 
-   * @param options - Formatter options
-   * @returns Formatted metrics table string
-   */
   printMetricsTable(options?: FormatterOptions): string {
     const table = formatServiceFactoryMetrics(this, options);
     console.log(table);
     return table;
   }
 
-  /**
-   * Register metrics collector for a service
-   * @param serviceName - Service identifier
-   */
   private registerServiceMetrics(serviceName: string): ServiceMetricsCollector {
     if (this.serviceMetrics.has(serviceName)) {
       return this.serviceMetrics.get(serviceName)!;
