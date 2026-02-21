@@ -726,6 +726,137 @@ npm run build
 npm run lint
 ```
 
+## Vercel Deployment
+
+This library includes serverless function wrappers for deployment on Vercel. The API endpoints expose the library's services (Supabase, Gemini) as HTTP endpoints.
+
+### Available Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check for all configured services |
+| `/api/ai/generate` | POST | Generate text using Gemini AI |
+| `/api/status` | GET | Circuit breaker and rate limiter status |
+
+### Environment Variables
+
+Set these environment variables in your Vercel project:
+
+```bash
+# Supabase (optional)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # optional
+
+# Gemini (required for /api/ai/generate)
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-1.5-flash  # optional, default shown
+
+# Optional: Override defaults
+SUPABASE_TIMEOUT=10000
+SUPABASE_MAX_RETRIES=3
+GEMINI_TIMEOUT=30000
+GEMINI_MAX_RETRIES=3
+GEMINI_RATE_LIMIT_REQUESTS=15
+GEMINI_RATE_LIMIT_WINDOW=60000
+```
+
+### Deploy to Vercel
+
+1. Install Vercel CLI:
+   ```bash
+   npm i -g vercel
+   ```
+
+2. Link and deploy:
+   ```bash
+   vercel link
+   vercel deploy
+   ```
+
+3. Set environment variables in Vercel dashboard or via CLI:
+   ```bash
+   vercel env add GEMINI_API_KEY
+   vercel env add SUPABASE_URL
+   vercel env add SUPABASE_ANON_KEY
+   ```
+
+### API Examples
+
+#### Health Check
+
+```bash
+curl https://your-app.vercel.app/api/health
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "services": {
+      "supabase": { "status": "healthy" },
+      "gemini": { "status": "healthy" }
+    },
+    "configured": { "supabase": true, "gemini": true },
+    "timestamp": "2026-02-21T20:00:00.000Z"
+  }
+}
+```
+
+#### AI Text Generation
+
+```bash
+curl -X POST https://your-app.vercel.app/api/ai/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Explain quantum computing"}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "prompt": "Explain quantum computing",
+    "text": "Quantum computing uses quantum bits...",
+    "model": "gemini-1.5-flash"
+  }
+}
+```
+
+#### Status Endpoint
+
+```bash
+curl https://your-app.vercel.app/api/status
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "circuitBreakers": {
+      "supabase": { "state": "CLOSED", "metrics": { "failureCount": 0 } },
+      "gemini": { "state": "CLOSED", "metrics": { "failureCount": 0 } }
+    },
+    "rateLimiters": {
+      "gemini": { "remainingRequests": 14, "maxRequests": 15, "windowMs": 60000 }
+    },
+    "timestamp": "2026-02-21T20:00:00.000Z"
+  }
+}
+```
+
+### Vercel Configuration
+
+The `vercel.json` file is pre-configured with:
+
+- **Fluid Compute**: Enabled for optimal cold start performance
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, etc.
+- **Function Configuration**: 1024MB memory, 30s max duration
+- **No caching**: API routes configured with `no-store`
+
 ## Best Practices
 
 1. **Use ServiceFactory**: Always create services through the factory for consistent configuration
