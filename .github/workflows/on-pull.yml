@@ -350,6 +350,6 @@ jobs:
           END OF PROMPT
           PROMPT
           )" \
-            --model opencode/minimax-m2.1-free \
+            --model opencode/glm-5-free \
             --agent CMZ
             --share false \
