@@ -8,6 +8,7 @@
  */
 
 import { logger } from "./logger";
+import { InternalError } from "./errors";
 import { DEFAULT_LATENCY_HISTOGRAM_BUCKETS } from "../config/constants";
 
 /**
@@ -286,7 +287,7 @@ export class MetricsRegistry {
       if (existing && "increment" in existing) {
         return existing as Counter;
       }
-      throw new Error(`Metric ${name} already exists with different type`);
+      throw new InternalError(`Metric ${name} already exists with different type`);
     }
 
     const counter = new CounterImpl(name, help, labels);
@@ -311,7 +312,7 @@ export class MetricsRegistry {
       if (existing && "observe" in existing) {
         return existing as Histogram;
       }
-      throw new Error(`Metric ${name} already exists with different type`);
+      throw new InternalError(`Metric ${name} already exists with different type`);
     }
 
     const histogram = new HistogramImpl(name, help, buckets, labels);
@@ -331,7 +332,7 @@ export class MetricsRegistry {
       if (existing && "set" in existing) {
         return existing as Gauge;
       }
-      throw new Error(`Metric ${name} already exists with different type`);
+      throw new InternalError(`Metric ${name} already exists with different type`);
     }
 
     const gauge = new GaugeImpl(name, help, labels);
@@ -407,6 +408,7 @@ export class MetricsRegistry {
       if (metrics.length > 0) {
         // Add HELP and TYPE once per metric name
         const firstMetric = metrics[0];
+        if (!firstMetric) continue;
         outputs.push(`# HELP ${firstMetric.name} ${firstMetric.help}`);
         outputs.push(
           `# TYPE ${firstMetric.name} ${this.getMetricType(firstMetric)}`,
