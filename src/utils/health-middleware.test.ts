@@ -450,9 +450,10 @@ describe("Health Middleware", () => {
         setHeader: jest.fn(),
       };
 
-      await routes["/health"](
+      const healthHandler = routes["/health"]!;
+      await healthHandler(
         {},
-        mockRes as unknown as Parameters<(typeof routes)["/health"]>[1],
+        mockRes as unknown as Parameters<typeof healthHandler>[1],
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
@@ -474,10 +475,14 @@ describe("Health Middleware", () => {
         setHeader: jest.fn(),
       };
 
-      await routes["/health"](
+      const healthHandler = routes["/health"]!;
+      await healthHandler(
         {},
-        mockRes as unknown as Parameters<(typeof routes)["/health"]>[1],
+        mockRes as unknown as Parameters<typeof healthHandler>[1],
       );
+
+
+
 
       expect(mockRes.json).toHaveBeenCalledWith(
         expect.objectContaining({
