@@ -307,3 +307,168 @@ export function wrapError(
     code: errorCode,
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSOLE ERROR FORMATTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** ANSI color codes for console output */
+const ERROR_COLORS = {
+  reset: "\x1b[0m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
+} as const;
+
+/** Options for error console formatting */
+export interface ErrorFormatOptions {
+  /** Enable ANSI colors (default: auto-detect TTY) */
+  useColors?: boolean;
+  /** Include stack trace in output */
+  includeStack?: boolean;
+  /** Include suggestion text */
+  includeSuggestion?: boolean;
+}
+
+/**
+ * Format an AppError for human-readable console output
+ *
+ * Creates a visually distinct error box with colors, emoji, and clear
+ * action guidance for developers.
+ *
+ * @param error - The error to format
+ * @param options - Formatting options
+ * @returns Formatted error string for console output
+ *
+ * @example
+ * ```typescript
+ * const error = new ValidationError("Invalid email format");
+ * console.error(formatErrorForConsole(error));
+ * // Outputs:
+ * // ╔════════════════════════════════════════════════════════╗
+ * // ║  ❌ VALIDATION_ERROR                                    ║
+ * // ╠════════════════════════════════════════════════════════╣
+ * // ║  Invalid email format                                   ║
+ * // ║                                                        ║
+ * // ║  💡 Suggestion:                                        ║
+ * // ║  Check the input data format...                        ║
+ * // ║                                                        ║
+ * // ║  🔍 Request ID: abc12345                               ║
+ * // ╚════════════════════════════════════════════════════════╝
+ * ```
+ */
+export function formatErrorForConsole(
+  error: AppError,
+  options: ErrorFormatOptions = {},
+): string {
+  const useColors =
+    options.useColors ??
+    (typeof process !== "undefined" &&
+      process.env?.NODE_ENV !== "production" &&
+      process.stdout?.isTTY === true);
+
+  const includeSuggestion = options.includeSuggestion ?? true;
+  const includeStack = options.includeStack ?? false;
+
+  const colorize = (text: string, color: keyof typeof ERROR_COLORS): string =>
+    useColors ? `${ERROR_COLORS[color]}${text}${ERROR_COLORS.reset}` : text;
+
+  const lines: string[] = [];
+  const BOX_WIDTH = 58;
+
+  // Helper to pad content to box width
+  const padLine = (text: string): string => {
+    const visualWidth = [...text].reduce(
+      (w, c) => w + (c.charCodeAt(0) > 127 ? 2 : 1),
+      0,
+    );
+    return text + " ".repeat(Math.max(0, BOX_WIDTH - visualWidth));
+  };
+
+  // Header with error code
+  const headerEmoji = getSeverityEmoji(error.severity);
+  const headerText = `${headerEmoji} ${error.code}`;
+  lines.push(`╔${"═".repeat(BOX_WIDTH)}╗`);
+  lines.push(`║  ${colorize(padLine(headerText), "red")}║`);
+  lines.push(`╠${"═".repeat(BOX_WIDTH)}╣`);
+
+  // Error message
+  const messageLines = wrapText(error.message, BOX_WIDTH - 4);
+  for (const line of messageLines) {
+    lines.push(`║  ${colorize(padLine(line), "white")}║`);
+  }
+
+  // Suggestion (if available and requested)
+  if (includeSuggestion && error.suggestion) {
+    lines.push(`║${" ".repeat(BOX_WIDTH)}║`);
+    lines.push(
+      `║  ${colorize(padLine("💡 Suggestion:"), "cyan")}║`,
+    );
+    const suggestionLines = wrapText(error.suggestion, BOX_WIDTH - 4);
+    for (const line of suggestionLines) {
+      lines.push(`║  ${colorize(padLine(line), "dim")}║`);
+    }
+  }
+
+  // Request ID for debugging
+  lines.push(`║${" ".repeat(BOX_WIDTH)}║`);
+  const requestIdText = `🔍 Request ID: ${error.requestId.slice(0, 8)}`;
+  lines.push(
+    `║  ${colorize(padLine(requestIdText), "dim")}║`,
+  );
+
+  // Stack trace (if requested)
+  if (includeStack && error.stack) {
+    lines.push(`╠${"═".repeat(BOX_WIDTH)}╣`);
+    lines.push(`║  ${colorize(padLine("📚 Stack Trace:"), "yellow")}║`);
+    const stackLines = error.stack.split("\n").slice(0, 5);
+    for (const line of stackLines) {
+      const truncated = line.length > BOX_WIDTH - 4 ? line.slice(0, BOX_WIDTH - 5) + "…" : line;
+      lines.push(`║  ${colorize(padLine(truncated), "dim")}║`);
+    }
+  }
+
+  lines.push(`╚${"═".repeat(BOX_WIDTH)}╝`);
+
+  return lines.join("\n");
+}
+
+/**
+ * Get emoji based on error severity
+ */
+function getSeverityEmoji(severity: ErrorSeverity): string {
+  switch (severity) {
+    case ErrorSeverity.HIGH:
+      return "🚨";
+    case ErrorSeverity.MEDIUM:
+      return "❌";
+    case ErrorSeverity.LOW:
+      return "⚠️";
+    default:
+      return "❗";
+  }
+}
+
+/**
+ * Wrap text to a maximum width
+ */
+function wrapText(text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (testLine.length <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word.length > maxWidth ? word.slice(0, maxWidth - 1) + "…" : word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  return lines;
+}

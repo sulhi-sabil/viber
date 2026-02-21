@@ -505,31 +505,43 @@ export function formatAggregateHealthResult(
         ? "⚠️"
         : "❌";
 
+  // Box width matches logger banner (60 chars total, 58 content)
+  const BOX_WIDTH = 58;
+  const padLine = (text: string): string => {
+    const visualWidth = [...text].reduce(
+      (w, c) => w + (c.charCodeAt(0) > 127 ? 2 : 1),
+      0,
+    );
+    return text + " ".repeat(Math.max(0, BOX_WIDTH - visualWidth));
+  };
+
   const lines: string[] = [
     "",
-    `╔══════════════════════════════════════════════════════════╗`,
-    `║           HEALTH CHECK REPORT                            ║`,
-    `╚══════════════════════════════════════════════════════════╝`,
-    "",
-    `${statusIcon} Overall Status: ${result.status.toUpperCase()}`,
-    `🕐 Checked at: ${new Date(result.timestamp).toLocaleString()}`,
-    "",
-    `📊 Summary:`,
-    `   • Total Services: ${result.summary.total}`,
-    `   • ✅ Healthy: ${result.summary.healthy}`,
-    `   • ⚠️  Degraded: ${result.summary.degraded}`,
-    `   • ❌ Unhealthy: ${result.summary.unhealthy}`,
-    "",
-    `📋 Service Details:`,
-    "",
+    `╔${"═".repeat(BOX_WIDTH)}╗`,
+    `║  ${padLine("🏥 HEALTH CHECK REPORT")}║`,
+    `╠${"═".repeat(BOX_WIDTH)}╣`,
+    `║  ${padLine(`${statusIcon} Status: ${result.status.toUpperCase()}`)}║`,
+    `║  ${padLine(`🕐 Checked: ${new Date(result.timestamp).toLocaleString()}`)}║`,
+    `║${" ".repeat(BOX_WIDTH)}║`,
+    `║  ${padLine("📊 Summary")}║`,
+    `║     ${padLine(`Total: ${result.summary.total}  •  ✅ Healthy: ${result.summary.healthy}`)}║`,
+    `║     ${padLine(`⚠️  Degraded: ${result.summary.degraded}  •  ❌ Unhealthy: ${result.summary.unhealthy}`)}║`,
+    `╠${"═".repeat(BOX_WIDTH)}╣`,
+    `║  ${padLine("📋 Service Details")}║`,
+    `║${" ".repeat(BOX_WIDTH)}║`,
   ];
 
   for (const [, serviceResult] of Object.entries(result.services)) {
-    lines.push(formatHealthCheckResult(serviceResult));
-    lines.push("");
+    const icon = serviceResult.status === "healthy" ? "✅" : 
+                 serviceResult.status === "degraded" ? "⚠️ " : "❌";
+    const serviceLine = `${icon} ${serviceResult.service}: ${serviceResult.responseTime}ms`;
+    lines.push(`║  ${padLine(serviceLine)}║`);
+    if (serviceResult.message) {
+      lines.push(`║    └─ ${padLine(serviceResult.message.slice(0, BOX_WIDTH - 8))}║`);
+    }
   }
 
-  lines.push("═══════════════════════════════════════════════════════════", "");
+  lines.push(`╚${"═".repeat(BOX_WIDTH)}╝`, "");
 
   return lines.join("\n");
 }

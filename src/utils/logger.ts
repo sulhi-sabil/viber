@@ -138,15 +138,15 @@ export interface LoggerOptions {
 }
 
 const LOG_LEVEL_CONFIG = {
-  debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[36m", reset: "\x1b[0m" },
-  info: { emoji: "ℹ️ ", label: "INFO", color: "\x1b[32m", reset: "\x1b[0m" },
+  debug: { emoji: "🔍", label: "DEBUG", color: "\x1b[35m", reset: "\x1b[0m" },
+  info: { emoji: "ℹ️", label: "INFO", color: "\x1b[36m", reset: "\x1b[0m" },
   success: {
     emoji: "✅",
     label: "SUCCESS",
     color: "\x1b[32m",
     reset: "\x1b[0m",
   },
-  warn: { emoji: "⚠️ ", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
+  warn: { emoji: "⚠️", label: "WARN", color: "\x1b[33m", reset: "\x1b[0m" },
   error: { emoji: "❌", label: "ERROR", color: "\x1b[31m", reset: "\x1b[0m" },
 } as const;
 
@@ -217,10 +217,10 @@ export class ConsoleLogger implements Logger {
 
     const parts: string[] = [];
     if (context.requestId) {
-      parts.push(`req-${context.requestId.slice(0, 8)}`);
+      parts.push(`req:${context.requestId.slice(0, 8)}`);
     }
     if (context.correlationId && context.correlationId !== context.requestId) {
-      parts.push(`corr-${context.correlationId.slice(0, 8)}`);
+      parts.push(`corr:${context.correlationId.slice(0, 8)}`);
     }
     if (context.operation) {
       parts.push(context.operation);
@@ -502,6 +502,10 @@ export const printStartupBanner = (version: string = "1.0.0"): void => {
   const titleText = `🔌 VIBER INTEGRATION LAYER v${version}`;
   const paddedTitle = padToVisualWidth(titleText, CONTENT_WIDTH - titlePrefix.length);
 
+  // Get current log level for display
+  const currentLogLevel = getLogLevel();
+  const logLevelHint = padToVisualWidth(`📊 Log Level: ${currentLogLevel.toUpperCase()}`, CONTENT_WIDTH - 4);
+
   const banner = `
 ╔════════════════════════════════════════════════════════════╗
 ${titlePrefix}${paddedTitle}║
@@ -513,7 +517,9 @@ ${titlePrefix}${paddedTitle}║
 ║      • Health checks                                       ║
 ║      • Idempotency support                                 ║
 ║                                                            ║
-║   📚 Docs: Set LOG_LEVEL=debug for verbose output          ║
+║   ${logLevelHint}║
+║   📚 Env: LOG_LEVEL=(debug|info|warn|error)                ║
+║   💡 Tip: Set NODE_ENV=production for JSON logs            ║
 ╚════════════════════════════════════════════════════════════╝
   `;
 
