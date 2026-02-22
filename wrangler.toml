@@ -1,7 +1,8 @@
 # Cloudflare Workers configuration for viber integration layer
-# This is a library configuration - no entry point specified
+# Entry point for Worker deployment
 
 name = "viber-integration"
+main = "dist/worker.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -11,3 +12,17 @@ enabled = true
 
 # Environment variables should be set via Cloudflare dashboard
 # or wrangler secrets, not hardcoded here
+
+# Staging environment
+[env.staging]
+name = "viber-integration-staging"
+# Environment variables for staging (set via wrangler secrets or dashboard)
+# [env.staging.vars]
+# ENVIRONMENT = "staging"
+
+# Production environment
+[env.production]
+name = "viber-integration-production"
+# Environment variables for production (set via wrangler secrets or dashboard)
+# [env.production.vars]
+# ENVIRONMENT = "production"
