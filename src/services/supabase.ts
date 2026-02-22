@@ -8,6 +8,47 @@ import { isEdgeRuntime } from "../utils/edge-runtime";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+
+/**
+ * SQL injection risk patterns to warn about
+ * These patterns indicate potentially dangerous queries that should be reviewed
+ */
+const SQL_INJECTION_PATTERNS = [
+  /;\s*(?:drop|delete|truncate|alter|create|exec|execute)\s/i, // Multiple statements with DDL/DCL
+  /union\s+(?:all\s+)?select/i, // UNION-based injection
+  /--\s*$/m, // SQL comment at end (commenting out rest of query)
+  /\/\*.*\*\//s, // Block comments
+  /'\s*(?:or|and)\s+'\w*'\s*=\s*'/i, // Always-true conditions
+];
+
+/**
+ * Validates a raw SQL query for potential injection patterns
+ * Logs warnings for suspicious patterns without blocking execution
+ * @param query - SQL query to validate
+ * @param params - Query parameters
+ */
+function validateRawQuery(query: string, params: unknown[]): void {
+  // Check for common SQL injection patterns
+  for (const pattern of SQL_INJECTION_PATTERNS) {
+    if (pattern.test(query)) {
+      logger.warn("Potentially unsafe SQL query detected", {
+        pattern: pattern.source,
+        queryPreview: query.substring(0, 100),
+        paramsCount: params.length,
+        recommendation: "Use parameterized queries with params array instead of string concatenation",
+      });
+      break; // Only warn once per query
+    }
+  }
+
+  // Warn if query contains string interpolation-like patterns
+  if (query.includes("${") || query.includes("#{")) {
+    logger.warn("Query may contain template literal injection", {
+      queryPreview: query.substring(0, 100),
+      recommendation: "Use params array for dynamic values, not string interpolation",
+    });
+  }
+}
 import { ResilienceConfig } from "../types/service-config";
 import {
   BaseService,
@@ -439,6 +480,9 @@ export class SupabaseService extends BaseService {
     params: unknown[] = [],
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
+    // Validate query for potential SQL injection patterns
+    validateRawQuery(query, params);
+    
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client.rpc("exec_sql", {
         query,
