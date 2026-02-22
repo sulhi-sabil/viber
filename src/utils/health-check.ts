@@ -145,7 +145,7 @@ export class HealthCheckRegistry {
     config: Partial<HealthCheckConfig> = {},
   ): void {
     if (this.checks.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Health check already registered for service: ${service}`,
       );
     }
@@ -391,7 +391,7 @@ export class HealthCheckRegistry {
     visited: Set<string> = new Set(),
   ): void {
     if (visited.has(service)) {
-      throw new Error(
+      throw new InternalError(
         `Circular dependency detected involving service: ${service}`,
       );
     }
