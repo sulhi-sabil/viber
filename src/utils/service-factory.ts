@@ -38,7 +38,7 @@ import {
   MigrationRunner,
   SupabaseClient as MigrationSupabaseClient,
 } from "../migrations/runner";
-import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
+import { HEALTH_CHECK_TIMEOUT_MS, API_KEY_PREFIX_LENGTH } from "../config/constants";
 
 export interface CircuitBreakerConfig {
   failureThreshold?: number;
@@ -145,7 +145,9 @@ export class ServiceFactory {
 
   createGeminiClient(config: GeminiConfig): GeminiService {
     const apiKeyPrefix =
-      config.apiKey.length >= 8 ? config.apiKey.substring(0, 8) : config.apiKey;
+      config.apiKey.length >= API_KEY_PREFIX_LENGTH
+        ? config.apiKey.substring(0, API_KEY_PREFIX_LENGTH)
+        : config.apiKey;
     const cacheKey = `gemini-${apiKeyPrefix}`;
     const cached = this.services.get(cacheKey) as GeminiService;
     if (cached) {

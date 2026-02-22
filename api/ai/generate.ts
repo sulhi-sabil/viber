@@ -8,6 +8,7 @@ import {
 } from "../_lib/response";
 import { getGemini } from "../_lib/services";
 import { RateLimitError } from "../../src/utils/errors";
+import { GEMINI_DEFAULT_MODEL } from "../../src/index";
 
 interface GenerateRequest {
   prompt: string;
@@ -71,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     json(res, {
       prompt,
       text,
-      model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+      model: process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL,
     });
   } catch (err) {
     // Handle rate limit errors with proper 429 response and headers
