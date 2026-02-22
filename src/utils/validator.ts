@@ -1,4 +1,5 @@
 import { ValidationError } from "./errors";
+import { logger } from "./logger";
 
 export interface ValidationRule {
   validate: (value: unknown, fieldName?: string) => void;
@@ -350,4 +351,43 @@ export function sanitizeInput(
   escapeHtml: boolean = true,
 ): unknown {
   return Validator.sanitize(input, { trim: true, escapeHtml });
+}
+
+/**
+ * SQL injection risk patterns to warn about
+ * These patterns indicate potentially dangerous queries that should be reviewed
+ */
+export const SQL_INJECTION_PATTERNS: RegExp[] = [
+  /;\s*(?:drop|delete|truncate|alter|create|exec|execute)\s/i,
+  /union\s+(?:all\s+)?select/i,
+  /--\s*$/m,
+  /\/\*.*\*\//s,
+  /'\s*(?:or|and)\s+'\w*'\s*=\s*'/i,
+];
+
+/**
+ * Validates a raw SQL query for potential injection patterns
+ * Logs warnings for suspicious patterns without blocking execution
+ * @param query - SQL query to validate
+ * @param params - Query parameters
+ */
+export function validateRawQuery(query: string, params: unknown[]): void {
+  for (const pattern of SQL_INJECTION_PATTERNS) {
+    if (pattern.test(query)) {
+      logger.warn("Potentially unsafe SQL query detected", {
+        pattern: pattern.source,
+        queryPreview: query.substring(0, 100),
+        paramsCount: params.length,
+        recommendation: "Use parameterized queries with params array instead of string concatenation",
+      });
+      break;
+    }
+  }
+
+  if (query.includes("${") || query.includes("#{")) {
+    logger.warn("Query may contain template literal injection", {
+      queryPreview: query.substring(0, 100),
+      recommendation: "Use params array for dynamic values, not string interpolation",
+    });
+  }
 }

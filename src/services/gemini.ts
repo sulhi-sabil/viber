@@ -483,6 +483,15 @@ export class GeminiService extends BaseService {
   }
 }
 
+// ============================================================================
+// CIRCULAR DEPENDENCY WARNING
+// ============================================================================
+// The following import MUST remain at the BOTTOM of this file.
+// Moving it to the top will cause a circular dependency with service-factory.ts
+// which imports GeminiService at its top.
+// See: service-factory.ts imports this file, this imports that file.
+// ============================================================================
+
 // Import ServiceFactory for singleton management (consolidated pattern)
 import { serviceFactory } from "../utils/service-factory";
 

@@ -5,8 +5,11 @@ import {
   validateUrl,
   validateUuid,
   sanitizeInput,
+  validateRawQuery,
+  SQL_INJECTION_PATTERNS,
 } from "../utils/validator";
 import { ValidationError } from "../utils/errors";
+import { logger } from "../utils/logger";
 
 describe("Validator", () => {
   describe("required", () => {
@@ -456,6 +459,110 @@ describe("Helper functions", () => {
 
     it("should only trim when escapeHtml is false", () => {
       expect(sanitizeInput("  <test>  ", false)).toBe("<test>");
+    });
+  });
+});
+
+describe("validateRawQuery", () => {
+  let warnSpy: jest.SpiedFunction<typeof logger.warn>;
+
+  beforeEach(() => {
+    warnSpy = jest.spyOn(logger, "warn").mockImplementation();
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  describe("SQL injection patterns", () => {
+    it("should warn on DROP statement after semicolon", () => {
+      validateRawQuery("SELECT * FROM users; DROP TABLE users;", []);
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Potentially unsafe SQL query detected",
+        expect.objectContaining({
+          pattern: expect.any(String),
+          paramsCount: 0,
+        })
+      );
+    });
+
+    it("should warn on UNION SELECT injection", () => {
+      validateRawQuery("SELECT * FROM users UNION SELECT * FROM admin", []);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    it("should warn on UNION ALL SELECT injection", () => {
+      validateRawQuery("SELECT * FROM users UNION ALL SELECT password FROM admins", []);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    it("should warn on SQL comment at end", () => {
+      validateRawQuery("SELECT * FROM users WHERE id = 1 --", []);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    it("should warn on block comments", () => {
+      validateRawQuery("SELECT * FROM users /* comment */", []);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    it("should warn on OR-based always-true condition", () => {
+      validateRawQuery("SELECT * FROM users WHERE 'x' OR '1' = '1'", []);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("template literal injection", () => {
+    it("should warn on ${} template literal", () => {
+      validateRawQuery("SELECT * FROM ${table}", []);
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Query may contain template literal injection",
+        expect.objectContaining({
+          queryPreview: "SELECT * FROM ${table}",
+        })
+      );
+    });
+
+    it("should warn on #{} interpolation", () => {
+      validateRawQuery("SELECT * FROM #{table}", []);
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Query may contain template literal injection",
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe("safe queries", () => {
+    it("should not warn on safe parameterized queries", () => {
+      validateRawQuery("SELECT * FROM users WHERE id = $1", [1]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should not warn on safe SELECT queries", () => {
+      validateRawQuery("SELECT id, name FROM users WHERE active = true", []);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it("should not warn on safe INSERT queries", () => {
+      validateRawQuery("INSERT INTO users (name, email) VALUES ($1, $2)", ["John", "john@example.com"]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("warning behavior", () => {
+    it("should only warn once per query for injection patterns", () => {
+      validateRawQuery("SELECT * FROM users; DROP TABLE users; DELETE FROM logs;", []);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("SQL_INJECTION_PATTERNS", () => {
+  it("should be an array of RegExp patterns", () => {
+    expect(Array.isArray(SQL_INJECTION_PATTERNS)).toBe(true);
+    expect(SQL_INJECTION_PATTERNS.length).toBeGreaterThan(0);
+    SQL_INJECTION_PATTERNS.forEach((pattern) => {
+      expect(pattern).toBeInstanceOf(RegExp);
     });
   });
 });
