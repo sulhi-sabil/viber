@@ -57,9 +57,7 @@ export class RateLimiter {
     while (true) {
       this.lazyCleanup(now);
 
-      const activeRequests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      ).length;
+      const activeRequests = this.countActiveRequests(now);
 
       if (activeRequests < this.maxRequests) {
         break;
@@ -91,9 +89,7 @@ export class RateLimiter {
     const now = Date.now();
 
     if (this.requests.length < this.cleanupThreshold) {
-      const activeRequests = this.requests.filter(
-        (time) => now - time < this.windowMs,
-      ).length;
+      const activeRequests = this.countActiveRequests(now);
       return Math.max(0, this.maxRequests - activeRequests);
     }
 
@@ -162,6 +158,20 @@ export class RateLimiter {
         timerRef.unref();
       }
     });
+  }
+
+  /**
+   * Count active requests without creating intermediate arrays.
+   * More efficient than .filter().length for counting only.
+   */
+  private countActiveRequests(now: number): number {
+    let count = 0;
+    for (let i = 0; i < this.requests.length; i++) {
+      if (now - (this.requests[i] ?? 0) < this.windowMs) {
+        count++;
+      }
+    }
+    return count;
   }
 }
 
