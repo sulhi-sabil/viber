@@ -10,6 +10,8 @@ import { getGemini } from "../_lib/services";
 import { RateLimitError } from "../../src/utils/errors";
 import { GEMINI_DEFAULT_MODEL } from "../../src/index";
 
+export const runtime = "nodejs";
+
 interface GenerateRequest {
   prompt: string;
   temperature?: number;
