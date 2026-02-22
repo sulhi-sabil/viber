@@ -351,3 +351,26 @@ export function sanitizeInput(
 ): unknown {
   return Validator.sanitize(input, { trim: true, escapeHtml });
 }
+
+/**
+ * Safely parse an environment variable as an integer.
+ * Returns the default value if the env var is undefined, empty, or not a valid number.
+ *
+ * @param value - The environment variable value (may be undefined)
+ * @param defaultValue - The fallback value if parsing fails
+ * @returns The parsed integer or the default value
+ *
+ * @example
+ * const timeout = parseEnvInt(process.env.TIMEOUT, 10000);
+ * const retries = parseEnvInt(env.MAX_RETRIES, 3);
+ */
+export function parseEnvInt(
+  value: string | undefined,
+  defaultValue: number,
+): number {
+  if (value === undefined || value === "") {
+    return defaultValue;
+  }
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+}

@@ -174,3 +174,12 @@ Fix: Changed Function to new (...args: any[]) => any, changed NodeJS.Timeout to 
 [x] error: Worker process failed to exit gracefully - active timers detected in test suite (FIXED - .unref() added to all setTimeout calls in retry.ts and rate-limiter.ts)
 [x] error: Test suite still showing worker process warning due to gemini.test.ts setTimeout without unref() (FIXED - added unref() to gemini.test.ts line 553)
 [x] error: Worker process warning from health-check.ts setTimeout without unref() (FIXED - added unref() to health-check.ts line 369)
+
+### BUG-015: Environment Variable parseInt NaN Handling
+
+[x] bug: parseInt on environment variables could return NaN without validation
+Location: api/_lib/services.ts:50-51, 76-85; src/worker.ts:79-80, 95-98
+Impact: If env vars contain non-numeric strings, NaN propagates through config
+Fix: Created parseEnvInt() utility in src/utils/validator.ts with NaN validation, updated all affected files to use it
+Tests: 13 new tests added in src/__tests__/utils/parseEnvInt.test.ts
+
