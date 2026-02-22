@@ -10,6 +10,14 @@ import {
   type SupabaseService,
   type GeminiService,
 } from "../../src/index";
+import {
+  DEFAULT_OPERATION_TIMEOUT_MS,
+  DEFAULT_MAX_RETRY_ATTEMPTS,
+  GEMINI_DEFAULT_MODEL,
+  STREAMING_TIMEOUT_MS,
+  RATE_LIMITER_DEFAULT_MAX_REQUESTS,
+  RATE_LIMITER_DEFAULT_WINDOW_MS,
+} from "../../src/config/constants";
 
 // Cache service instances per cold start
 let supabaseInstance: SupabaseService | null = null;
@@ -46,8 +54,8 @@ export function getSupabase(): SupabaseService | null {
     url,
     anonKey,
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    timeout: parseInt(process.env.SUPABASE_TIMEOUT || "10000", 10),
-    maxRetries: parseInt(process.env.SUPABASE_MAX_RETRIES || "3", 10),
+    timeout: parseInt(process.env.SUPABASE_TIMEOUT || String(DEFAULT_OPERATION_TIMEOUT_MS), 10),
+    maxRetries: parseInt(process.env.SUPABASE_MAX_RETRIES || String(DEFAULT_MAX_RETRY_ATTEMPTS), 10),
   };
 
   supabaseInstance = getServiceFactory().createSupabaseClient(config);
@@ -71,15 +79,15 @@ export function getGemini(): GeminiService | null {
 
   const config: GeminiConfig = {
     apiKey,
-    model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
-    timeout: parseInt(process.env.GEMINI_TIMEOUT || "30000", 10),
-    maxRetries: parseInt(process.env.GEMINI_MAX_RETRIES || "3", 10),
+    model: process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL,
+    timeout: parseInt(process.env.GEMINI_TIMEOUT || String(STREAMING_TIMEOUT_MS), 10),
+    maxRetries: parseInt(process.env.GEMINI_MAX_RETRIES || String(DEFAULT_MAX_RETRY_ATTEMPTS), 10),
     rateLimitRequests: parseInt(
-      process.env.GEMINI_RATE_LIMIT_REQUESTS || "15",
+      process.env.GEMINI_RATE_LIMIT_REQUESTS || String(RATE_LIMITER_DEFAULT_MAX_REQUESTS),
       10,
     ),
     rateLimitWindow: parseInt(
-      process.env.GEMINI_RATE_LIMIT_WINDOW || "60000",
+      process.env.GEMINI_RATE_LIMIT_WINDOW || String(RATE_LIMITER_DEFAULT_WINDOW_MS),
       10,
     ),
   };

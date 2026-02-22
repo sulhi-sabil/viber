@@ -101,6 +101,9 @@ export const MAX_PROMPT_LENGTH = 100000;
 /** Maximum output tokens for AI generation */
 export const MAX_OUTPUT_TOKENS = 1024;
 
+/** Maximum prompt length for API endpoint validation (practical limit) */
+export const API_PROMPT_MAX_LENGTH = 32000;
+
 /** Maximum length for slugs */
 export const MAX_SLUG_LENGTH = 255;
 
@@ -131,6 +134,18 @@ export const GEMINI_DEFAULT_TOP_P = 0.95;
 
 /** Default Gemini model name */
 export const GEMINI_DEFAULT_MODEL = "gemini-1.5-flash";
+
+/** Minimum temperature for AI generation */
+export const GEMINI_TEMPERATURE_MIN = 0;
+
+/** Maximum temperature for AI generation */
+export const GEMINI_TEMPERATURE_MAX = 2;
+
+/** Minimum output tokens for AI generation */
+export const GEMINI_MAX_OUTPUT_TOKENS_MIN = 1;
+
+/** Maximum output tokens for AI generation */
+export const GEMINI_MAX_OUTPUT_TOKENS_MAX = 8192;
 
 // ============================================================================
 // Pagination Constants
@@ -228,3 +243,10 @@ export const DEFAULT_REDACTION_STRING = "[REDACTED]";
 
 export const SENSITIVE_DATA_REDACTION_FORMAT = (key: string): string =>
   `[SENSITIVE DATA REDACTED for key: ${key}]`;
+
+// ============================================================================
+// UI/Display Constants
+// ============================================================================
+
+/** Width for console banners and formatted output */
+export const BANNER_WIDTH = 58;

@@ -8,6 +8,14 @@ import {
 } from "../_lib/response";
 import { getGemini } from "../_lib/services";
 import { RateLimitError } from "../../src/utils/errors";
+import {
+  API_PROMPT_MAX_LENGTH,
+  GEMINI_TEMPERATURE_MIN,
+  GEMINI_TEMPERATURE_MAX,
+  GEMINI_MAX_OUTPUT_TOKENS_MIN,
+  GEMINI_MAX_OUTPUT_TOKENS_MAX,
+  GEMINI_DEFAULT_MODEL,
+} from "../../src/config/constants";
 
 interface GenerateRequest {
   prompt: string;
@@ -47,8 +55,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (body.prompt.length > 32000) {
-    badRequest(res, "prompt must be less than 32000 characters");
+  if (body.prompt.length > API_PROMPT_MAX_LENGTH) {
+    badRequest(res, `prompt must be less than ${API_PROMPT_MAX_LENGTH} characters`);
     return;
   }
 
@@ -57,10 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const options: { temperature?: number; maxOutputTokens?: number } = {};
     if (temperature !== undefined) {
-      options.temperature = Math.max(0, Math.min(2, temperature));
+      options.temperature = Math.max(GEMINI_TEMPERATURE_MIN, Math.min(GEMINI_TEMPERATURE_MAX, temperature));
     }
     if (maxOutputTokens !== undefined) {
-      options.maxOutputTokens = Math.max(1, Math.min(8192, maxOutputTokens));
+      options.maxOutputTokens = Math.max(GEMINI_MAX_OUTPUT_TOKENS_MIN, Math.min(GEMINI_MAX_OUTPUT_TOKENS_MAX, maxOutputTokens));
     }
 
     const text = await gemini.generateText(
@@ -71,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     json(res, {
       prompt,
       text,
-      model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+      model: process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL,
     });
   } catch (err) {
     // Handle rate limit errors with proper 429 response and headers

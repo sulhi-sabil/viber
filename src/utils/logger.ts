@@ -6,6 +6,7 @@ import {
   LOGGER_MAX_OBJECT_KEYS_PER_LEVEL,
   DEFAULT_SENSITIVE_FIELD_PATTERNS,
   SENSITIVE_DATA_REDACTION_FORMAT,
+  BANNER_WIDTH,
 } from "../config/constants";
 import { isEdgeRuntime } from "./edge-runtime";
 
@@ -497,7 +498,7 @@ export const printStartupBanner = (version: string = "1.0.0"): void => {
   }
 
   // Calculate proper padding for visual alignment (box is 60 chars wide)
-  const CONTENT_WIDTH = 58; // Space between ║ chars
+  const CONTENT_WIDTH = BANNER_WIDTH; // Space between ║ chars
   const titlePrefix = "║   ";
   const titleText = `🔌 VIBER INTEGRATION LAYER v${version}`;
   const paddedTitle = padToVisualWidth(titleText, CONTENT_WIDTH - titlePrefix.length);

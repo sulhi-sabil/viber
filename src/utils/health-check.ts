@@ -11,7 +11,7 @@
  * @module utils/health-check
  */
 
-import { HEALTH_CHECK_TIMEOUT_MS } from "../config/constants";
+import { HEALTH_CHECK_TIMEOUT_MS, BANNER_WIDTH } from "../config/constants";
 import { logger } from "./logger";
 import { InternalError } from "./errors";
 
@@ -506,7 +506,7 @@ export function formatAggregateHealthResult(
         : "❌";
 
   // Box width matches logger banner (60 chars total, 58 content)
-  const BOX_WIDTH = 58;
+  const BOX_WIDTH = BANNER_WIDTH;
   const padLine = (text: string): string => {
     const visualWidth = [...text].reduce(
       (w, c) => w + (c.charCodeAt(0) > 127 ? 2 : 1),
