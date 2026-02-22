@@ -16,7 +16,7 @@ interface GenerateRequest {
   model?: string;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     res.status(405).json({ error: "Method Not Allowed" });

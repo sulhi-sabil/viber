@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { json, serviceUnavailable } from "./_lib/response";
 import { getSupabase, getGemini, getConfiguredServices } from "./_lib/services";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     res.status(405).json({ error: "Method Not Allowed" });
