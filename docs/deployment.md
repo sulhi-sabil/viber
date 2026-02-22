@@ -40,9 +40,6 @@ Set these in Vercel dashboard (Project → Settings → Environment Variables):
 | Endpoint           | Method | Description                                                              |
 | ------------------ | ------ | ------------------------------------------------------------------------ |
 | `/api/health`      | GET    | Full health check with service status (200 if healthy, 503 if unhealthy) |
-| `/api/ready`       | GET    | Simple readiness probe for load balancers                                |
-| `/api/metrics`     | GET    | Prometheus-compatible metrics                                            |
-| `/api/version`     | GET    | Service version info                                                     |
 | `/api/status`      | GET    | Detailed status of all services                                          |
 | `/api/ai/generate` | POST   | AI text generation using Gemini                                          |
 
@@ -51,12 +48,6 @@ Set these in Vercel dashboard (Project → Settings → Environment Variables):
 ```bash
 # Health check
 curl https://your-app.vercel.app/api/health
-
-# Readiness probe
-curl https://your-app.vercel.app/api/ready
-
-# Version info
-curl https://your-app.vercel.app/api/version
 
 # Status
 curl https://your-app.vercel.app/api/status
@@ -93,8 +84,7 @@ API routes additionally include:
 ## Monitoring
 
 - **Health**: Configure Vercel Health Checks to ping `/api/health`
-- **Readiness**: Use `/api/ready` for load balancer health probes
-- **Metrics**: Scrape `/api/metrics` with Prometheus
+- **Status**: Use `/api/status` for detailed service status
 - **Logs**: View in Vercel dashboard under Deployments → Logs
 
 ## Architecture
@@ -108,9 +98,6 @@ This project is a TypeScript library (`viber-integration-layer`) with serverless
 
 - **Serverless Functions**: `api/` → deployed by Vercel
   - `health.ts` - Full health check
-  - `ready.ts` - Simple liveness probe
-  - `metrics.ts` - Prometheus metrics
-  - `version.ts` - Service version
   - `status.ts` - Detailed service status
   - `ai/generate.ts` - AI text generation
   - `_lib/` - Shared utilities
