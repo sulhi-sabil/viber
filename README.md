@@ -737,6 +737,7 @@ This library includes serverless function wrappers for deployment on Vercel. The
 | `/api/health` | GET | Health check for all configured services |
 | `/api/ai/generate` | POST | Generate text using Gemini AI |
 | `/api/status` | GET | Circuit breaker and rate limiter status |
+| `/api/metrics` | GET | Prometheus metrics for monitoring |
 
 ### Environment Variables
 
@@ -846,6 +847,35 @@ Response:
     "timestamp": "2026-02-21T20:00:00.000Z"
   }
 }
+```
+
+#### Metrics Endpoint (Prometheus)
+
+```bash
+curl https://your-app.vercel.app/api/metrics
+```
+
+Response (Prometheus text format):
+```
+# HELP requests_total Total number of requests
+# TYPE requests_total counter
+requests_total{service="gemini"} 100
+# HELP errors_total Total number of errors
+# TYPE errors_total counter
+errors_total{service="gemini"} 5
+# HELP request_duration_seconds Request duration in seconds
+# TYPE request_duration_seconds histogram
+request_duration_seconds_bucket{service="gemini",le="0.1"} 50
+...
+```
+
+**Authentication**: Optionally protect the endpoint with a bearer token:
+```bash
+# Set environment variable
+METRICS_BEARER_TOKEN=your-secure-token
+
+# Access with token
+curl -H "Authorization: Bearer your-secure-token" https://your-app.vercel.app/api/metrics
 ```
 
 ### Vercel Configuration

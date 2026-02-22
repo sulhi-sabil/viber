@@ -8,6 +8,9 @@
     "api/status.ts": {
       "maxDuration": 5
     },
+    "api/metrics.ts": {
+      "maxDuration": 5
+    },
     "api/ai/generate.ts": {
       "maxDuration": 30
     }
@@ -41,6 +44,15 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=5, s-maxage=5, stale-while-revalidate=15"
+        }
+      ]
+    },
+    {
+      "source": "/api/metrics",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
         }
       ]
     },
