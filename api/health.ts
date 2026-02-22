@@ -65,7 +65,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
   }
 
-  const allHealthy = Object.values(healthResults).every(
+  // Only check configured services for health status determination
+  // Unconfigured services should not cause "degraded" status
+  const configuredHealthResults = Object.entries(healthResults)
+    .filter(([key]) => configured[key as keyof typeof configured])
+    .map(([, value]) => value);
+
+  const allHealthy = configuredHealthResults.every(
     (r) => (r as { status?: string }).status === "healthy",
   );
   const anyConfigured = configured.supabase || configured.gemini;
