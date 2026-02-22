@@ -6,6 +6,7 @@ import {
   ErrorContext,
   HttpError,
 } from "../types/errors";
+import { isEdgeRuntime } from "./edge-runtime";
 
 export { ErrorCode, ErrorSeverity };
 
@@ -227,6 +228,97 @@ export class CloudflareError extends AppError {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTION ERROR DETAILS SANITIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fields that should never be exposed in production API error responses.
+ * These can leak sensitive implementation details, internal paths, or stack traces.
+ */
+const SENSITIVE_ERROR_FIELDS = [
+  "stack",
+  "stacktrace",
+  "originalError",
+  "error",
+  "exception",
+  "internal",
+  "debug",
+  "trace",
+] as const;
+
+/**
+ * Checks if the current environment is production.
+ * In production, error details should be sanitized to prevent information disclosure.
+ */
+function isProduction(): boolean {
+  // Edge runtime defaults to production behavior
+  if (isEdgeRuntime()) {
+    return true;
+  }
+  return (
+    typeof process !== "undefined" && process.env?.NODE_ENV === "production"
+  );
+}
+
+/**
+ * Sanitizes error details by removing sensitive information in production environments.
+ *
+ * This prevents accidental exposure of:
+ * - Stack traces (file paths, line numbers, internal code structure)
+ * - Original error messages (may contain sensitive data)
+ * - Internal debugging information
+ *
+ * @param details - The error details object to sanitize
+ * @returns Sanitized details safe for API responses, or undefined if no safe details remain
+ */
+function sanitizeErrorDetailsForProduction(
+  details: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  // In development, preserve all details for debugging
+  if (!isProduction()) {
+    return details;
+  }
+
+  // No details to sanitize
+  if (!details || Object.keys(details).length === 0) {
+    return undefined;
+  }
+
+  const sanitized: Record<string, unknown> = {};
+  let hasSafeFields = false;
+
+  for (const [key, value] of Object.entries(details)) {
+    // Check if this field is sensitive (case-insensitive match)
+    const lowerKey = key.toLowerCase();
+    const isSensitive = SENSITIVE_ERROR_FIELDS.some((sensitive) =>
+      lowerKey.includes(sensitive.toLowerCase()),
+    );
+
+    if (!isSensitive) {
+      // Recursively sanitize nested objects
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+        const nestedSanitized = sanitizeErrorDetailsForProduction(
+          value as Record<string, unknown>,
+        );
+        if (nestedSanitized && Object.keys(nestedSanitized).length > 0) {
+          sanitized[key] = nestedSanitized;
+          hasSafeFields = true;
+        }
+      } else {
+        sanitized[key] = value;
+        hasSafeFields = true;
+      }
+    }
+  }
+
+  return hasSafeFields ? sanitized : undefined;
+}
+
 export function createApiError(
   error: Error | AppError,
   context?: ErrorContext,
@@ -243,7 +335,7 @@ export function createApiError(
       code: appError.code || ErrorCode.INTERNAL_ERROR,
       message: appError.message || "An unexpected error occurred",
       suggestion: appError.suggestion,
-      details: mergedDetails,
+      details: sanitizeErrorDetailsForProduction(mergedDetails),
       requestId,
       severity: appError.severity || ErrorSeverity.MEDIUM,
       timestamp: new Date().toISOString(),
