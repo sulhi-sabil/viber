@@ -358,7 +358,10 @@ export function formatTimestamp(
  */
 function getDefaultTimestampFormat(): TimestampFormat {
   // Use ISO in production for log aggregation, locale in dev for readability
-  if (typeof process !== "undefined" && process.env?.NODE_ENV === "production") {
+  if (
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV === "production"
+  ) {
     return "iso";
   }
   // Use locale in TTY environments for better readability
@@ -406,4 +409,287 @@ function formatRelativeTime(diffMs: number, useColors: boolean): string {
 
   const suffix = isPast ? " ago" : "";
   return colorize(result + suffix, color);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATUS TABLE FORMATTER
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Circuit breaker state type */
+export type CircuitBreakerState = "closed" | "open" | "half-open";
+
+/** Circuit breaker status info */
+export interface CircuitBreakerStatus {
+  state: CircuitBreakerState;
+  failures?: number;
+  lastFailureTime?: number;
+  nextRetryTime?: number;
+}
+
+/** Rate limiter status info */
+export interface RateLimiterStatus {
+  available?: number;
+  limit?: number;
+  resetTime?: number;
+  blocked?: boolean;
+}
+
+/** Status output for formatting */
+export interface StatusOutput {
+  circuitBreakers: Record<string, CircuitBreakerStatus>;
+  rateLimiters: Record<string, RateLimiterStatus | null>;
+  timestamp?: string;
+}
+
+/** Column widths for status table */
+const STATUS_COLUMN_WIDTHS = {
+  service: 20,
+  status: 14,
+  details: 36,
+} as const;
+
+/** Status emojis */
+const STATUS_EMOJIS = {
+  healthy: "✅",
+  degraded: "⚠️",
+  unhealthy: "❌",
+  blocked: "🚫",
+  available: "🟢",
+  unknown: "❓",
+} as const;
+
+/**
+ * Format a status table with ASCII borders
+ *
+ * @param status - Status output from /api/status endpoint
+ * @param options - Formatter options
+ * @returns Formatted ASCII table string
+ *
+ * @example
+ * ```typescript
+ * const status = {
+ *   circuitBreakers: {
+ *     supabase: { state: "closed", failures: 0 },
+ *     gemini: { state: "open", failures: 5 }
+ *   },
+ *   rateLimiters: {
+ *     gemini: { available: 50, limit: 60, blocked: false }
+ *   }
+ * };
+ * console.log(formatStatusTable(status));
+ * ```
+ */
+export function formatStatusTable(
+  status: StatusOutput,
+  options: FormatterOptions = {},
+): string {
+  const opts = getDefaultOptions(options);
+  const lines: string[] = [];
+
+  // Border characters
+  const tl = "┌",
+    tr = "┐",
+    bl = "└",
+    br = "┘";
+  const h = "─",
+    v = "│";
+  const lt = "├",
+    rt = "┤",
+    tt = "┬";
+
+  const col1 = STATUS_COLUMN_WIDTHS.service;
+  const col2 = STATUS_COLUMN_WIDTHS.status;
+  const col3 = STATUS_COLUMN_WIDTHS.details;
+  const totalWidth = col1 + col2 + col3 + 4; // +4 for separators
+
+  // Header
+  lines.push(`${tl}${h.repeat(totalWidth - 2)}${tr}`);
+  lines.push(`${v}${padCenter("SERVICE STATUS", totalWidth - 2)}${v}`);
+
+  if (opts.includeTimestamp) {
+    const timestamp = status.timestamp ?? new Date().toLocaleString();
+    lines.push(
+      `${v}${colorize(padCenter(`Generated: ${timestamp}`, totalWidth - 2), "dim", opts.useColors)}${v}`,
+    );
+  }
+
+  lines.push(`${v}${" ".repeat(totalWidth - 2)}${v}`);
+
+  // Column headers
+  const headerLine = [
+    padRight("Service", col1),
+    padRight("Status", col2),
+    padRight("Details", col3),
+  ].join(`${v}`);
+  lines.push(`${v}${colorize(headerLine, "cyan", opts.useColors)}${v}`);
+
+  // Separator
+  lines.push(
+    `${lt}${h.repeat(col1)}${tt}${h.repeat(col2)}${tt}${h.repeat(col3)}${rt}`,
+  );
+
+  // Circuit Breakers section
+  const cbEntries = Object.entries(status.circuitBreakers);
+  if (cbEntries.length > 0) {
+    lines.push(
+      `${v}${colorize(padRight("  Circuit Breakers", totalWidth - 2), "dim", opts.useColors)}${v}`,
+    );
+
+    for (const [service, cb] of cbEntries) {
+      const { emoji, statusText, color } = formatCircuitBreakerStatus(cb);
+      const details = formatCircuitBreakerDetails(cb);
+
+      const row = [
+        padRight(`  ${service}`, col1),
+        padRight(
+          colorize(`${emoji} ${statusText}`, color, opts.useColors),
+          col2,
+        ),
+        padRight(colorize(details, "dim", opts.useColors), col3),
+      ].join(`${v}`);
+      lines.push(`${v}${row}${v}`);
+    }
+  }
+
+  // Rate Limiters section
+  const rlEntries = Object.entries(status.rateLimiters).filter(
+    ([, val]) => val !== null,
+  ) as [string, RateLimiterStatus][];
+  if (rlEntries.length > 0) {
+    lines.push(
+      `${v}${colorize(padRight("  Rate Limiters", totalWidth - 2), "dim", opts.useColors)}${v}`,
+    );
+
+    for (const [service, rl] of rlEntries) {
+      const { emoji, statusText, color } = formatRateLimiterStatus(rl);
+      const details = formatRateLimiterDetails(rl);
+
+      const row = [
+        padRight(`  ${service}`, col1),
+        padRight(
+          colorize(`${emoji} ${statusText}`, color, opts.useColors),
+          col2,
+        ),
+        padRight(colorize(details, "dim", opts.useColors), col3),
+      ].join(`${v}`);
+      lines.push(`${v}${row}${v}`);
+    }
+  }
+
+  // Empty state
+  if (cbEntries.length === 0 && rlEntries.length === 0) {
+    lines.push(
+      `${v}${padCenter("No status data available", totalWidth - 2)}${v}`,
+    );
+  }
+
+  // Footer
+  lines.push(`${bl}${h.repeat(totalWidth - 2)}${br}`);
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/** Format circuit breaker status for display */
+function formatCircuitBreakerStatus(cb: CircuitBreakerStatus): {
+  emoji: string;
+  statusText: string;
+  color: keyof typeof COLORS;
+} {
+  switch (cb.state) {
+    case "closed":
+      return {
+        emoji: STATUS_EMOJIS.healthy,
+        statusText: "Healthy",
+        color: "green",
+      };
+    case "half-open":
+      return {
+        emoji: STATUS_EMOJIS.degraded,
+        statusText: "Recovering",
+        color: "yellow",
+      };
+    case "open":
+      return {
+        emoji: STATUS_EMOJIS.unhealthy,
+        statusText: "Tripped",
+        color: "magenta",
+      };
+    default:
+      return {
+        emoji: STATUS_EMOJIS.unknown,
+        statusText: "Unknown",
+        color: "dim",
+      };
+  }
+}
+
+/** Format circuit breaker details */
+function formatCircuitBreakerDetails(cb: CircuitBreakerStatus): string {
+  const parts: string[] = [];
+
+  if (cb.failures !== undefined && cb.failures > 0) {
+    parts.push(`failures: ${cb.failures}`);
+  }
+
+  if (cb.nextRetryTime) {
+    const remaining = Math.max(0, cb.nextRetryTime - Date.now());
+    if (remaining > 0) {
+      parts.push(`retry in ${Math.ceil(remaining / 1000)}s`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "operational";
+}
+
+/** Format rate limiter status for display */
+function formatRateLimiterStatus(rl: RateLimiterStatus): {
+  emoji: string;
+  statusText: string;
+  color: keyof typeof COLORS;
+} {
+  if (rl.blocked) {
+    return {
+      emoji: STATUS_EMOJIS.blocked,
+      statusText: "Blocked",
+      color: "magenta",
+    };
+  }
+
+  if (rl.available !== undefined && rl.limit !== undefined) {
+    const ratio = rl.available / rl.limit;
+    if (ratio > 0.5) {
+      return {
+        emoji: STATUS_EMOJIS.available,
+        statusText: "Available",
+        color: "green",
+      };
+    } else if (ratio > 0.2) {
+      return {
+        emoji: STATUS_EMOJIS.degraded,
+        statusText: "Limited",
+        color: "yellow",
+      };
+    }
+  }
+
+  return { emoji: STATUS_EMOJIS.healthy, statusText: "OK", color: "green" };
+}
+
+/** Format rate limiter details */
+function formatRateLimiterDetails(rl: RateLimiterStatus): string {
+  const parts: string[] = [];
+
+  if (rl.available !== undefined && rl.limit !== undefined) {
+    parts.push(`${rl.available}/${rl.limit} remaining`);
+  }
+
+  if (rl.resetTime) {
+    const remaining = Math.max(0, rl.resetTime - Date.now());
+    if (remaining > 0) {
+      parts.push(`resets in ${Math.ceil(remaining / 1000)}s`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "active";
 }
