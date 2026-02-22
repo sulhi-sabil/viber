@@ -23,8 +23,9 @@ interface KeyCounter {
 }
 
 function isSensitiveKey(key: string): boolean {
-  if (patternCache.has(key)) {
-    return patternCache.get(key)!;
+  const cached = patternCache.get(key);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const result = SENSITIVE_PATTERNS.some((pattern) => pattern.test(key));
