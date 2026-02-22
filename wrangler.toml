@@ -5,6 +5,8 @@ name = "viber-integration"
 main = "dist/worker.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
+format = "cjs"
+workers_dev = true
 
 # Enable observability for logging and monitoring
 [observability]
@@ -16,6 +18,7 @@ enabled = true
 # Staging environment
 [env.staging]
 name = "viber-integration-staging"
+workers_dev = true
 # Environment variables for staging (set via wrangler secrets or dashboard)
 # [env.staging.vars]
 # ENVIRONMENT = "staging"
