@@ -286,6 +286,16 @@ Feel free to:
 - Start a discussion
 - Reach out to maintainers
 
+## Community
+
+Join our community to connect with other contributors:
+
+- **GitHub Discussions**: Share ideas, ask questions, and discuss features
+- **GitHub Issues**: Report bugs or request features
+- **Pull Requests**: Contribute code improvements
+
+We welcome contributions from developers of all experience levels!
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
