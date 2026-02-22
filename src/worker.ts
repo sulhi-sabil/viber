@@ -319,7 +319,7 @@ app.notFound(() => {
 /**
  * Error handler
  */
-app.onError((err, _c) => {
+app.onError((err) => {
   console.error("Worker error:", err);
   return errorResponse("INTERNAL_ERROR", err.message, 500);
 });
