@@ -21,6 +21,7 @@ import {
   type GeminiService,
   RateLimitError,
 } from "./index";
+import { parseEnvInt } from "./utils/validator";
 
 // Type for Cloudflare Worker bindings
 type Bindings = {
@@ -76,8 +77,8 @@ function getSupabase(env: Bindings): SupabaseService | null {
     url: env.SUPABASE_URL,
     anonKey: env.SUPABASE_ANON_KEY,
     serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    timeout: parseInt(env.SUPABASE_TIMEOUT || "10000", 10),
-    maxRetries: parseInt(env.SUPABASE_MAX_RETRIES || "3", 10),
+    timeout: parseEnvInt(env.SUPABASE_TIMEOUT, 10000),
+    maxRetries: parseEnvInt(env.SUPABASE_MAX_RETRIES, 3),
   };
 
   return factory.createSupabaseClient(config);
@@ -92,10 +93,10 @@ function getGemini(env: Bindings): GeminiService | null {
   const config: GeminiConfig = {
     apiKey: env.GEMINI_API_KEY,
     model: env.GEMINI_MODEL || "gemini-1.5-flash",
-    timeout: parseInt(env.GEMINI_TIMEOUT || "30000", 10),
-    maxRetries: parseInt(env.GEMINI_MAX_RETRIES || "3", 10),
-    rateLimitRequests: parseInt(env.GEMINI_RATE_LIMIT_REQUESTS || "15", 10),
-    rateLimitWindow: parseInt(env.GEMINI_RATE_LIMIT_WINDOW || "60000", 10),
+    timeout: parseEnvInt(env.GEMINI_TIMEOUT, 30000),
+    maxRetries: parseEnvInt(env.GEMINI_MAX_RETRIES, 3),
+    rateLimitRequests: parseEnvInt(env.GEMINI_RATE_LIMIT_REQUESTS, 15),
+    rateLimitWindow: parseEnvInt(env.GEMINI_RATE_LIMIT_WINDOW, 60000),
   };
 
   return factory.createGeminiClient(config);
