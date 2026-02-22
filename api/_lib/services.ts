@@ -4,6 +4,7 @@
  */
 
 import {
+  GEMINI_DEFAULT_MODEL,
   ServiceFactory,
   type SupabaseConfig,
   type GeminiConfig,
@@ -71,7 +72,7 @@ export function getGemini(): GeminiService | null {
 
   const config: GeminiConfig = {
     apiKey,
-    model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+    model: process.env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL,
     timeout: parseInt(process.env.GEMINI_TIMEOUT || "30000", 10),
     maxRetries: parseInt(process.env.GEMINI_MAX_RETRIES || "3", 10),
     rateLimitRequests: parseInt(

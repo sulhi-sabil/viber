@@ -26,6 +26,7 @@ import {
   GEMINI_DEFAULT_TOP_K,
   GEMINI_DEFAULT_TOP_P,
   GEMINI_DEFAULT_MODEL,
+  API_KEY_PREFIX_LENGTH,
   GEMINI_API_BASE_URL,
   GEMINI_API_VERSION_PATH,
 } from "../config/constants";
@@ -471,7 +472,9 @@ export class GeminiService extends BaseService {
    * @internal
    */
   getApiKeyPrefix(): string {
-    return this.apiKey.length >= 8 ? this.apiKey.substring(0, 8) : this.apiKey;
+    return this.apiKey.length >= API_KEY_PREFIX_LENGTH
+      ? this.apiKey.substring(0, API_KEY_PREFIX_LENGTH)
+      : this.apiKey;
   }
 
   /**
