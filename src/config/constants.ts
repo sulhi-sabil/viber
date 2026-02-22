@@ -205,6 +205,19 @@ export const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com";
 export const GEMINI_API_VERSION_PATH = "/v1beta/models/";
 
 // ============================================================================
+// Cloudflare API Configuration
+// ============================================================================
+
+/** Base URL for Cloudflare API */
+export const CLOUDFLARE_API_BASE_URL = "https://api.cloudflare.com/client/v4";
+
+/** Default timeout for Cloudflare API operations */
+export const CLOUDFLARE_DEFAULT_TIMEOUT_MS = 10000;
+
+/** Cloudflare API rate limit (requests per 5 minutes) */
+export const CLOUDFLARE_RATE_LIMIT_PER_WINDOW = 100;
+
+// ============================================================================
 // Sensitive Data Patterns
 // ============================================================================
 

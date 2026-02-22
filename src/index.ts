@@ -18,6 +18,7 @@ export * from "./utils/formatters";
 export * from "./services/base-service";
 export * from "./services/supabase";
 export * from "./services/gemini";
+export * from "./services/cloudflare";
 export * from "./config/constants";
 export * from "./migrations/index";
 export * from "./migrations/runner";

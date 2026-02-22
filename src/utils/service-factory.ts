@@ -17,6 +17,11 @@ import {
   GeminiConfig,
   isGeminiService,
 } from "../services/gemini";
+import {
+  CloudflareService,
+  CloudflareConfig,
+  isCloudflareService,
+} from "../services/cloudflare";
 import { BaseService } from "../services/base-service";
 import {
   HealthCheckRegistry,
@@ -57,6 +62,7 @@ export interface ServiceFactoryConfig {
 export interface CircuitBreakerConfigMap {
   supabase?: CircuitBreakerConfig;
   gemini?: CircuitBreakerConfig;
+  cloudflare?: CircuitBreakerConfig;
 }
 
 export class ServiceFactory {
@@ -155,6 +161,26 @@ export class ServiceFactory {
     return service;
   }
 
+  createCloudflareClient(config: CloudflareConfig): CloudflareService {
+    const apiTokenPrefix =
+      config.apiToken.length >= 8
+        ? config.apiToken.substring(0, 8)
+        : config.apiToken;
+    const cacheKey = `cloudflare-${apiTokenPrefix}`;
+    const cached = this.services.get(cacheKey) as CloudflareService;
+    if (cached) {
+      return cached;
+    }
+
+    const circuitBreaker = this.getCircuitBreaker("cloudflare");
+    const service = new CloudflareService(config, circuitBreaker);
+    const metricsCollector = this.registerServiceMetrics("cloudflare");
+    service.setMetricsCollector(metricsCollector);
+    this.services.set(cacheKey, service);
+    this.registerServiceHealthCheck("cloudflare", service);
+    return service;
+  }
+
   resetCircuitBreaker(serviceName: string): void {
     const circuitBreaker = this.circuitBreakers.get(serviceName);
     if (circuitBreaker) {
@@ -181,7 +207,9 @@ export class ServiceFactory {
         ? "supabase"
         : isGeminiService(service)
           ? "gemini"
-          : "unknown";
+          : isCloudflareService(service)
+            ? "cloudflare"
+            : "unknown";
       services.push({ name: key, type });
     });
     return services;

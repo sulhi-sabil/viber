@@ -11,6 +11,10 @@ export interface CloudflareEnv {
   // External APIs
   GEMINI_API_KEY: string;
 
+  // Cloudflare API
+  CLOUDFLARE_API_TOKEN: string;
+  CLOUDFLARE_ZONE_ID: string;
+
   // Environment
   ENVIRONMENT?: "development" | "staging" | "production";
   LOG_LEVEL?: "debug" | "info" | "warn" | "error";
@@ -26,6 +30,8 @@ export function isCloudflareEnv(env: unknown): env is CloudflareEnv {
     typeof e.SUPABASE_URL === "string" &&
     typeof e.SUPABASE_ANON_KEY === "string" &&
     typeof e.SUPABASE_SERVICE_ROLE_KEY === "string" &&
-    typeof e.GEMINI_API_KEY === "string"
+    typeof e.GEMINI_API_KEY === "string" &&
+    typeof e.CLOUDFLARE_API_TOKEN === "string" &&
+    typeof e.CLOUDFLARE_ZONE_ID === "string"
   );
 }
