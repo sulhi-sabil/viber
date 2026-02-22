@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { json } from "./_lib/response";
 import { getServiceFactory, getGemini } from "./_lib/services";
 
+export const runtime = "nodejs";
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
