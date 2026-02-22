@@ -569,8 +569,8 @@ describe("Formatting Utilities", () => {
       };
       const formatted = formatAggregateHealthResult(result);
       expect(formatted).toContain("HEALTH CHECK REPORT");
-      expect(formatted).toContain("✅ Overall Status: HEALTHY");
-      expect(formatted).toContain("Total Services: 1");
+      expect(formatted).toContain("✅ Status: HEALTHY");
+      expect(formatted).toContain("Total: 1");
       expect(formatted).toContain("✅ Healthy: 1");
     });
 
@@ -601,7 +601,7 @@ describe("Formatting Utilities", () => {
         },
       };
       const formatted = formatAggregateHealthResult(result);
-      expect(formatted).toContain("⚠️ Overall Status: DEGRADED");
+      expect(formatted).toContain("⚠️ Status: DEGRADED");
       expect(formatted).toContain("service-1");
       expect(formatted).toContain("service-2");
       expect(formatted).toContain("Slow response");
@@ -622,7 +622,7 @@ describe("Formatting Utilities", () => {
         },
       };
       const formatted = formatAggregateHealthResult(result);
-      expect(formatted).toContain("Checked at:");
+      expect(formatted).toContain("🕐 Checked:");
     });
   });
 });
