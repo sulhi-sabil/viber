@@ -8,6 +8,35 @@ import { isEdgeRuntime } from "../utils/edge-runtime";
 import { SupabaseError, InternalError } from "../utils/errors";
 import { logger } from "../utils/logger";
 import { Validator } from "../utils/validator";
+
+const SQL_INJECTION_PATTERNS = [
+  /;\s*(?:drop|delete|truncate|alter|create|exec|execute)\s/i,
+  /union\s+(?:all\s+)?select/i,
+  /--\s*$/m,
+  /\/\*.*\*\//s,
+  /'\s*(?:or|and)\s+'\w*'\s*=\s*'/i,
+];
+
+function validateRawQuery(query: string, params: unknown[]): void {
+  for (const pattern of SQL_INJECTION_PATTERNS) {
+    if (pattern.test(query)) {
+      logger.warn("Potentially unsafe SQL query detected", {
+        pattern: pattern.source,
+        queryPreview: query.substring(0, 100),
+        paramsCount: params.length,
+        recommendation: "Use parameterized queries with params array instead of string concatenation",
+      });
+      break;
+    }
+  }
+
+  if (query.includes("${") || query.includes("#{")) {
+    logger.warn("Query may contain template literal injection", {
+      queryPreview: query.substring(0, 100),
+      recommendation: "Use params array for dynamic values, not string interpolation",
+    });
+  }
+}
 import { ResilienceConfig } from "../types/service-config";
 import {
   BaseService,
@@ -439,6 +468,8 @@ export class SupabaseService extends BaseService {
     params: unknown[] = [],
     queryOptions: QueryOptions = {},
   ): Promise<T[]> {
+    validateRawQuery(query, params);
+    
     return this.executeWithResilience(async () => {
       const { data, error } = await this.client.rpc("exec_sql", {
         query,

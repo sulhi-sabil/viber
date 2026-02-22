@@ -112,7 +112,6 @@ CREATE INDEX idx_content_types_updated_at
   ON content_types(updated_at DESC)
   WHERE deleted_at IS NULL;
 
-
 -- Check constraint for timestamp consistency
 ALTER TABLE content_types ADD CONSTRAINT chk_content_types_timestamps
     CHECK (updated_at >= created_at);
@@ -139,7 +138,6 @@ CREATE INDEX idx_entries_slug ON entries(slug) WHERE deleted_at IS NULL AND slug
 CREATE INDEX idx_entries_status ON entries(status) WHERE deleted_at IS NULL;
 CREATE INDEX idx_entries_created_at ON entries(created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX idx_entries_updated_at ON entries(updated_at DESC) WHERE deleted_at IS NULL;
-
 CREATE INDEX idx_entries_deleted_at ON entries(deleted_at);
 
 -- Unique constraint on slug within type_slug for published entries
@@ -181,7 +179,6 @@ CREATE INDEX idx_assets_mime_type ON assets(mime_type) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_entry_id ON assets(entry_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_created_at ON assets(created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX idx_assets_updated_at ON assets(updated_at DESC) WHERE deleted_at IS NULL;
-
 CREATE INDEX idx_assets_deleted_at ON assets(deleted_at);
 
 -- Check constraint for timestamp consistency
