@@ -2,7 +2,8 @@
  * HTTP Response helpers for Vercel serverless functions
  */
 
-import type { VercelResponse } from "@vercel/node";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { randomUUID } from "crypto";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -13,22 +14,54 @@ export interface ApiResponse<T = unknown> {
     details?: unknown;
   };
   timestamp: string;
+  requestId?: string;
 }
 
 /**
- * Send a JSON success response
+ * Get or generate a request ID for tracing
+ * Uses existing X-Request-Id header if present, otherwise generates a new UUID
  */
-export function json<T>(res: VercelResponse, data: T, statusCode = 200): void {
+export function getRequestId(req: VercelRequest): string {
+  const existingId = req.headers["x-request-id"];
+  if (typeof existingId === "string" && existingId) {
+    return existingId;
+  }
+  return `req_${randomUUID()}`;
+}
+
+/**
+ * Set X-Request-Id header on response
+ */
+export function setRequestIdHeader(
+  res: VercelResponse,
+  requestId: string,
+): void {
+  res.setHeader("X-Request-Id", requestId);
+}
+
+/**
+ * Send a JSON success response with request tracing
+ */
+export function json<T>(
+  res: VercelResponse,
+  data: T,
+  statusCode = 200,
+  requestId?: string,
+): void {
   const response: ApiResponse<T> = {
     success: true,
     data,
     timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
   };
+  if (requestId) {
+    setRequestIdHeader(res, requestId);
+  }
   res.status(statusCode).json(response);
 }
 
 /**
- * Send a JSON error response
+ * Send a JSON error response with request tracing
  */
 export function error(
   res: VercelResponse,
@@ -36,6 +69,7 @@ export function error(
   message: string,
   statusCode = 500,
   details?: unknown,
+  requestId?: string,
 ): void {
   const response: ApiResponse = {
     success: false,
@@ -45,7 +79,11 @@ export function error(
       details,
     },
     timestamp: new Date().toISOString(),
+    ...(requestId && { requestId }),
   };
+  if (requestId) {
+    setRequestIdHeader(res, requestId);
+  }
   res.status(statusCode).json(response);
 }
 
@@ -56,8 +94,9 @@ export function badRequest(
   res: VercelResponse,
   message: string,
   details?: unknown,
+  requestId?: string,
 ): void {
-  error(res, "BAD_REQUEST", message, 400, details);
+  error(res, "BAD_REQUEST", message, 400, details, requestId);
 }
 
 /**
@@ -66,8 +105,9 @@ export function badRequest(
 export function unauthorized(
   res: VercelResponse,
   message = "Unauthorized",
+  requestId?: string,
 ): void {
-  error(res, "UNAUTHORIZED", message, 401);
+  error(res, "UNAUTHORIZED", message, 401, undefined, requestId);
 }
 
 /**
@@ -77,8 +117,9 @@ export function serviceUnavailable(
   res: VercelResponse,
   message: string,
   details?: unknown,
+  requestId?: string,
 ): void {
-  error(res, "SERVICE_UNAVAILABLE", message, 503, details);
+  error(res, "SERVICE_UNAVAILABLE", message, 503, details, requestId);
 }
 
 /**
@@ -88,8 +129,9 @@ export function internalError(
   res: VercelResponse,
   message: string,
   details?: unknown,
+  requestId?: string,
 ): void {
-  error(res, "INTERNAL_ERROR", message, 500, details);
+  error(res, "INTERNAL_ERROR", message, 500, details, requestId);
 }
 
 /**
@@ -104,6 +146,7 @@ export function rateLimited(
     remaining?: number;
     reset?: number;
   },
+  requestId?: string,
 ): void {
   // Set rate limit headers
   if (options?.limit !== undefined) {
@@ -119,5 +162,5 @@ export function rateLimited(
     res.setHeader("Retry-After", options.retryAfter);
   }
 
-  error(res, "RATE_LIMIT_EXCEEDED", message, 429, options);
+  error(res, "RATE_LIMIT_EXCEEDED", message, 429, options, requestId);
 }

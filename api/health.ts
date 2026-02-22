@@ -1,10 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { json, serviceUnavailable } from "./_lib/response";
+import { json, getRequestId } from "./_lib/response";
 import { getSupabase, getGemini, getConfiguredServices } from "./_lib/services";
 
 export const runtime = "nodejs";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const requestId = getRequestId(req);
+
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     res.status(405).json({ error: "Method Not Allowed" });
@@ -15,7 +17,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const healthResults: Record<string, unknown> = {};
   const timestamp = new Date().toISOString();
 
-  // Run health checks in parallel using Promise.allSettled for improved latency
   const [supabaseResult, geminiResult] = await Promise.allSettled([
     (async () => {
       const supabase = getSupabase();
@@ -45,28 +46,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })(),
   ]);
 
-  // Process Supabase result
   if (supabaseResult.status === "fulfilled") {
     healthResults.supabase = supabaseResult.value.result;
   } else {
     healthResults.supabase = {
       status: "unhealthy",
-      error: supabaseResult.reason instanceof Error ? supabaseResult.reason.message : "Unknown error",
+      error:
+        supabaseResult.reason instanceof Error
+          ? supabaseResult.reason.message
+          : "Unknown error",
     };
   }
 
-  // Process Gemini result
   if (geminiResult.status === "fulfilled") {
     healthResults.gemini = geminiResult.value.result;
   } else {
     healthResults.gemini = {
       status: "unhealthy",
-      error: geminiResult.reason instanceof Error ? geminiResult.reason.message : "Unknown error",
+      error:
+        geminiResult.reason instanceof Error
+          ? geminiResult.reason.message
+          : "Unknown error",
     };
   }
 
-  // Only check configured services for health status determination
-  // Unconfigured services should not cause "degraded" status
   const configuredHealthResults = Object.entries(healthResults)
     .filter(([key]) => configured[key as keyof typeof configured])
     .map(([, value]) => value);
@@ -82,10 +85,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? "healthy"
       : "degraded";
 
-  json(res, {
-    status,
-    services: healthResults,
-    configured,
-    timestamp,
-  });
+  json(
+    res,
+    {
+      status,
+      services: healthResults,
+      configured,
+      timestamp,
+    },
+    200,
+    requestId,
+  );
 }
