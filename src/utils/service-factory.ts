@@ -374,8 +374,9 @@ export class ServiceFactory {
    * @param serviceName - Service identifier
    */
   private registerServiceMetrics(serviceName: string): ServiceMetricsCollector {
-    if (this.serviceMetrics.has(serviceName)) {
-      return this.serviceMetrics.get(serviceName)!;
+    const existingMetrics = this.serviceMetrics.get(serviceName);
+    if (existingMetrics) {
+      return existingMetrics;
     }
 
     const metricsCollector = new ServiceMetricsCollector(
