@@ -10,7 +10,7 @@ export interface SupabaseClient {
   rpc(name: string): Promise<{ error?: { code?: string } }>;
 }
 
-interface QueryBuilder {
+interface QueryBuilder extends PromiseLike<{ data?: unknown[]; error?: { code?: string; message?: string } }> {
   select(columns: string): QueryBuilder;
   insert(data: unknown): QueryBuilder;
   update(data: unknown): QueryBuilder;
